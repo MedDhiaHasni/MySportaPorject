@@ -7,7 +7,7 @@ import 'package:sporta/Models/app_enums.dart';
 // THEME PROVIDER
 // ─────────────────────────────────────────────────────────────────────────────
 class ThemeProvider extends ChangeNotifier {
-  bool _isDarkMode = false; // Default to light mode
+  bool _isDarkMode = false;
   bool get isDarkMode => _isDarkMode;
 
   void toggleTheme() {
@@ -47,9 +47,9 @@ class AdminThemeColors extends ThemeExtension<AdminThemeColors> {
     required this.divider,
   });
 
-  // Light theme - using app colors
+  // Light theme only - using app colors
   static final light = AdminThemeColors(
-    background: kBg, // Your app background
+    background: kBg,
     surface: Colors.white,
     card: Colors.white,
     border: const Color(0xFFE5E5E5),
@@ -58,19 +58,6 @@ class AdminThemeColors extends ThemeExtension<AdminThemeColors> {
     textLight: kTextLight,
     hover: const Color(0xFFF5F5F5),
     divider: const Color(0xFFEEEEEE),
-  );
-
-  // Dark theme - proper dark mode
-  static final dark = AdminThemeColors(
-    background: const Color(0xFF121212),
-    surface: const Color(0xFF1E1E1E),
-    card: const Color(0xFF252525),
-    border: const Color(0xFF333333),
-    text: Colors.white,
-    textMid: const Color(0xFFB0B0B0),
-    textLight: const Color(0xFF808080),
-    hover: const Color(0xFF2A2A2A),
-    divider: const Color(0xFF333333),
   );
 
   @override
@@ -119,7 +106,7 @@ class AdminThemeColors extends ThemeExtension<AdminThemeColors> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODELS (unchanged)
+// MODELS
 // ─────────────────────────────────────────────────────────────────────────────
 enum AdminSection {
   overview,
@@ -134,11 +121,11 @@ enum AdminSection {
 
 class AdminPlayer {
   final String id, name, email, phone, avatar;
-  final int bookings, matches;
+  final int bookings;
   final double spent;
-  final bool isActive, isVerified;
+  final bool isActive;
   final DateTime joined;
-  final List<SportType> sports;
+
   AdminPlayer({
     required this.id,
     required this.name,
@@ -146,13 +133,11 @@ class AdminPlayer {
     required this.phone,
     required this.avatar,
     required this.bookings,
-    required this.matches,
     required this.spent,
     required this.isActive,
-    required this.isVerified,
     required this.joined,
-    required this.sports,
   });
+
   AdminPlayer copyWith({bool? isActive}) => AdminPlayer(
     id: id,
     name: name,
@@ -160,53 +145,65 @@ class AdminPlayer {
     phone: phone,
     avatar: avatar,
     bookings: bookings,
-    matches: matches,
     spent: spent,
     isActive: isActive ?? this.isActive,
-    isVerified: isVerified,
     joined: joined,
-    sports: sports,
   );
 }
 
+class ManagerVenue {
+  String name;
+  String city;
+  int courts;
+  List<SportType> sports;
+
+  ManagerVenue({
+    required this.name,
+    required this.city,
+    required this.courts,
+    required this.sports,
+  });
+}
+
 class AdminManager {
-  final String id, name, email, phone, venueName, venueCity, avatar;
-  final int courts, bookingsMonth;
+  final String id, name, email, phone, avatar;
+  final List<ManagerVenue> venues;
+  final int bookingsMonth;
   final double revenue;
-  final bool isActive, isVerified;
+  final bool isActive;
   final DateTime joined;
-  final List<SportType> sports;
+
   AdminManager({
     required this.id,
     required this.name,
     required this.email,
     required this.phone,
-    required this.venueName,
-    required this.venueCity,
     required this.avatar,
-    required this.courts,
+    required this.venues,
     required this.bookingsMonth,
     required this.revenue,
     required this.isActive,
-    required this.isVerified,
     required this.joined,
-    required this.sports,
   });
-  AdminManager copyWith({bool? isActive, bool? isVerified}) => AdminManager(
+
+  int get totalCourts => venues.fold(0, (sum, v) => sum + v.courts);
+  String get firstVenueName =>
+      venues.isNotEmpty ? venues.first.name : 'No venue';
+  String get firstVenueCity =>
+      venues.isNotEmpty ? venues.first.city : 'Unknown';
+
+  // FIX: Added missing copyWith method
+  AdminManager copyWith({bool? isActive}) => AdminManager(
     id: id,
     name: name,
     email: email,
     phone: phone,
-    venueName: venueName,
-    venueCity: venueCity,
     avatar: avatar,
-    courts: courts,
+    venues: venues,
     bookingsMonth: bookingsMonth,
     revenue: revenue,
     isActive: isActive ?? this.isActive,
-    isVerified: isVerified ?? this.isVerified,
     joined: joined,
-    sports: sports,
   );
 }
 
@@ -250,7 +247,7 @@ class AdminVenue {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SEED DATA (unchanged)
+// SEED DATA
 // ─────────────────────────────────────────────────────────────────────────────
 List<AdminPlayer> _seedPlayers() => [
   AdminPlayer(
@@ -260,12 +257,9 @@ List<AdminPlayer> _seedPlayers() => [
     phone: '+216 55 100 001',
     avatar: 'KJ',
     bookings: 34,
-    matches: 18,
     spent: 2840,
     isActive: true,
-    isVerified: true,
     joined: DateTime(2023, 3, 12),
-    sports: [SportType.football, SportType.padel],
   ),
   AdminPlayer(
     id: 'p2',
@@ -274,12 +268,9 @@ List<AdminPlayer> _seedPlayers() => [
     phone: '+216 55 100 002',
     avatar: 'NB',
     bookings: 21,
-    matches: 9,
     spent: 1560,
     isActive: true,
-    isVerified: true,
     joined: DateTime(2023, 6, 4),
-    sports: [SportType.tennis],
   ),
   AdminPlayer(
     id: 'p3',
@@ -288,12 +279,9 @@ List<AdminPlayer> _seedPlayers() => [
     phone: '+216 55 100 003',
     avatar: 'MT',
     bookings: 47,
-    matches: 31,
     spent: 4120,
     isActive: true,
-    isVerified: false,
     joined: DateTime(2023, 1, 28),
-    sports: [SportType.basketball, SportType.football],
   ),
   AdminPlayer(
     id: 'p4',
@@ -302,12 +290,9 @@ List<AdminPlayer> _seedPlayers() => [
     phone: '+216 55 100 004',
     avatar: 'LM',
     bookings: 12,
-    matches: 5,
     spent: 890,
     isActive: false,
-    isVerified: true,
     joined: DateTime(2024, 2, 14),
-    sports: [SportType.padel],
   ),
   AdminPlayer(
     id: 'p5',
@@ -316,12 +301,9 @@ List<AdminPlayer> _seedPlayers() => [
     phone: '+216 55 100 005',
     avatar: 'AB',
     bookings: 28,
-    matches: 14,
     spent: 2100,
     isActive: true,
-    isVerified: true,
     joined: DateTime(2023, 9, 7),
-    sports: [SportType.football],
   ),
   AdminPlayer(
     id: 'p6',
@@ -330,12 +312,9 @@ List<AdminPlayer> _seedPlayers() => [
     phone: '+216 55 100 006',
     avatar: 'YK',
     bookings: 19,
-    matches: 7,
     spent: 1440,
     isActive: true,
-    isVerified: true,
     joined: DateTime(2024, 1, 3),
-    sports: [SportType.tennis, SportType.padel],
   ),
   AdminPlayer(
     id: 'p7',
@@ -344,12 +323,9 @@ List<AdminPlayer> _seedPlayers() => [
     phone: '+216 55 100 007',
     avatar: 'SB',
     bookings: 55,
-    matches: 40,
     spent: 5300,
     isActive: true,
-    isVerified: true,
     joined: DateTime(2022, 11, 20),
-    sports: [SportType.football, SportType.basketball],
   ),
   AdminPlayer(
     id: 'p8',
@@ -358,12 +334,9 @@ List<AdminPlayer> _seedPlayers() => [
     phone: '+216 55 100 008',
     avatar: 'RH',
     bookings: 8,
-    matches: 2,
     spent: 560,
     isActive: false,
-    isVerified: false,
     joined: DateTime(2024, 4, 18),
-    sports: [SportType.padel],
   ),
 ];
 
@@ -373,85 +346,100 @@ List<AdminManager> _seedManagers() => [
     name: 'Mohamed Karim',
     email: 'mk@arena.tn',
     phone: '+216 55 200 001',
-    venueName: 'Arena Sport Center',
-    venueCity: 'Tunis',
     avatar: 'MK',
-    courts: 4,
+    venues: [
+      ManagerVenue(
+        name: 'Arena Sport Center',
+        city: 'Tunis',
+        courts: 4,
+        sports: [
+          SportType.football,
+          SportType.padel,
+          SportType.tennis,
+          SportType.basketball,
+        ],
+      ),
+    ],
     bookingsMonth: 142,
     revenue: 12800,
     isActive: true,
-    isVerified: true,
     joined: DateTime(2022, 8, 1),
-    sports: [
-      SportType.football,
-      SportType.padel,
-      SportType.tennis,
-      SportType.basketball,
-    ],
   ),
   AdminManager(
     id: 'm2',
     name: 'Fares Bouslama',
     email: 'fares@sport.tn',
     phone: '+216 55 200 002',
-    venueName: 'Tunis Sport Hub',
-    venueCity: 'Ariana',
     avatar: 'FB',
-    courts: 3,
+    venues: [
+      ManagerVenue(
+        name: 'Tunis Sport Hub',
+        city: 'Ariana',
+        courts: 3,
+        sports: [SportType.football, SportType.padel],
+      ),
+    ],
     bookingsMonth: 89,
     revenue: 7400,
     isActive: true,
-    isVerified: true,
     joined: DateTime(2023, 2, 15),
-    sports: [SportType.football, SportType.padel],
   ),
   AdminManager(
     id: 'm3',
     name: 'Inès Sahli',
     email: 'ines@club.tn',
     phone: '+216 55 200 003',
-    venueName: 'Padel Club Nord',
-    venueCity: 'La Marsa',
     avatar: 'IS',
-    courts: 2,
+    venues: [
+      ManagerVenue(
+        name: 'Padel Club Nord',
+        city: 'La Marsa',
+        courts: 2,
+        sports: [SportType.padel, SportType.tennis],
+      ),
+    ],
     bookingsMonth: 61,
     revenue: 5200,
     isActive: true,
-    isVerified: true,
     joined: DateTime(2023, 5, 22),
-    sports: [SportType.padel, SportType.tennis],
   ),
   AdminManager(
     id: 'm4',
     name: 'Walid Cherif',
     email: 'walid@field.tn',
     phone: '+216 55 200 004',
-    venueName: 'City Field',
-    venueCity: 'Sfax',
     avatar: 'WC',
-    courts: 5,
+    venues: [
+      ManagerVenue(
+        name: 'City Field',
+        city: 'Sfax',
+        courts: 5,
+        sports: [SportType.football, SportType.basketball],
+      ),
+    ],
     bookingsMonth: 203,
     revenue: 18600,
     isActive: true,
-    isVerified: false,
     joined: DateTime(2022, 12, 3),
-    sports: [SportType.football, SportType.basketball],
   ),
   AdminManager(
     id: 'm5',
     name: 'Sara Mrad',
     email: 'sara@fit.tn',
     phone: '+216 55 200 005',
-    venueName: 'FitZone Courts',
-    venueCity: 'Sousse',
     avatar: 'SM',
-    courts: 2,
+    venues: [
+      ManagerVenue(
+        name: 'FitZone Courts',
+        city: 'Sousse',
+        courts: 2,
+        sports: [SportType.tennis],
+      ),
+    ],
     bookingsMonth: 44,
     revenue: 3800,
     isActive: false,
-    isVerified: true,
     joined: DateTime(2024, 1, 9),
-    sports: [SportType.tennis],
   ),
 ];
 
@@ -639,19 +627,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   void _togglePlayerStatus(String id) => setState(() {
     final i = _players.indexWhere((p) => p.id == id);
-    if (i != -1)
+    if (i != -1) {
       _players[i] = _players[i].copyWith(isActive: !_players[i].isActive);
+    }
   });
 
   void _toggleManagerStatus(String id) => setState(() {
     final i = _managers.indexWhere((m) => m.id == id);
-    if (i != -1)
+    if (i != -1) {
       _managers[i] = _managers[i].copyWith(isActive: !_managers[i].isActive);
-  });
-
-  void _verifyManager(String id) => setState(() {
-    final i = _managers.indexWhere((m) => m.id == id);
-    if (i != -1) _managers[i] = _managers[i].copyWith(isVerified: true);
+    }
   });
 
   void _addManager(AdminManager m) => setState(() => _managers.insert(0, m));
@@ -669,10 +654,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: _buildLightTheme(),
-            darkTheme: _buildDarkTheme(),
-            themeMode: themeProvider.isDarkMode
-                ? ThemeMode.dark
-                : ThemeMode.light,
             home: Scaffold(
               backgroundColor:
                   Theme.of(context).extension<AdminThemeColors>()?.background ??
@@ -689,11 +670,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   Expanded(
                     child: Column(
                       children: [
-                        _TopBar(
-                          section: _section,
-                          onThemeToggle: themeProvider.toggleTheme,
-                          isDarkMode: themeProvider.isDarkMode,
-                        ),
+                        _TopBar(section: _section),
                         Expanded(
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 220),
@@ -735,10 +712,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return ThemeData.light().copyWith(extensions: [AdminThemeColors.light]);
   }
 
-  ThemeData _buildDarkTheme() {
-    return ThemeData.dark().copyWith(extensions: [AdminThemeColors.dark]);
-  }
-
   Widget _buildSection() {
     switch (_section) {
       case AdminSection.overview:
@@ -759,7 +732,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         return _ManagersSection(
           managers: _managers,
           onToggle: _toggleManagerStatus,
-          onVerify: _verifyManager,
           onAdd: _addManager,
           onDelete: _deleteManager,
         );
@@ -948,7 +920,7 @@ class _SidebarState extends State<_Sidebar> {
             widget.collapsed
                 ? Icons.chevron_right_rounded
                 : Icons.chevron_left_rounded,
-            color: colors.textMid,
+            color: colors.textLight,
             size: 18,
           ),
         ),
@@ -1022,7 +994,7 @@ class _SidebarItemState extends State<_SidebarItem> {
                 size: 18,
                 color: active
                     ? kPrimary
-                    : (_hover ? colors.text : colors.textMid),
+                    : (_hover ? colors.text : colors.textLight),
               ),
               if (!widget.collapsed) ...[
                 const SizedBox(width: 11),
@@ -1033,7 +1005,7 @@ class _SidebarItemState extends State<_SidebarItem> {
                     fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                     color: active
                         ? colors.text
-                        : (_hover ? colors.text : colors.textMid),
+                        : (_hover ? colors.text : colors.textLight),
                   ),
                 ),
                 if (active) ...[
@@ -1061,14 +1033,8 @@ class _SidebarItemState extends State<_SidebarItem> {
 // ─────────────────────────────────────────────────────────────────────────────
 class _TopBar extends StatefulWidget {
   final AdminSection section;
-  final VoidCallback onThemeToggle;
-  final bool isDarkMode;
 
-  const _TopBar({
-    required this.section,
-    required this.onThemeToggle,
-    required this.isDarkMode,
-  });
+  const _TopBar({required this.section});
 
   @override
   State<_TopBar> createState() => _TopBarState();
@@ -1124,19 +1090,11 @@ class _TopBarState extends State<_TopBar> {
               color: colors.text,
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
             ),
           ),
           const Spacer(),
           _buildSearchBar(colors),
           const SizedBox(width: 16),
-          _TopBtn(
-            icon: widget.isDarkMode
-                ? Icons.light_mode_rounded
-                : Icons.dark_mode_rounded,
-            onTap: widget.onThemeToggle,
-          ),
-          const SizedBox(width: 8),
           _TopBtn(icon: Icons.notifications_outlined, badge: '3', onTap: () {}),
           const SizedBox(width: 8),
           _buildUserProfile(colors),
@@ -1208,8 +1166,6 @@ class _TopBarState extends State<_TopBar> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [kPrimary, kPrimary.withOpacity(0.8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(10),
           ),
@@ -1293,7 +1249,7 @@ class _TopBtnState extends State<_TopBtn> {
                   width: 16,
                   height: 16,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFE03B3B),
+                    color: kRed,
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -1365,11 +1321,7 @@ class _OverviewSectionState extends State<_OverviewSection> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [kPrimary, kPrimary.withOpacity(0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: [kPrimary, kPrimary.withOpacity(0.8)]),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -1454,8 +1406,7 @@ class _OverviewSectionState extends State<_OverviewSection> {
             value: '${widget.managers.length}',
             icon: Icons.manage_accounts_rounded,
             color: kPurple,
-            sub:
-                '${widget.managers.where((m) => !m.isVerified).length} pending',
+            sub: '${widget.managers.length} active',
             trend: false,
           ),
           const SizedBox(width: 16),
@@ -2019,16 +1970,16 @@ class _ManagerSnippet extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  manager.venueName,
+                  '${manager.venues.length} venue(s) · ${manager.totalCourts} courts',
                   style: TextStyle(color: colors.textLight, fontSize: 11),
                 ),
               ],
             ),
           ),
-          if (!manager.isVerified)
-            _ABadge('Unverified', kAmber)
-          else
-            _ABadge('Verified', kGreen),
+          _ABadge(
+            manager.isActive ? 'Active' : 'Inactive',
+            manager.isActive ? kGreen : kRed,
+          ),
         ],
       ),
     );
@@ -2102,7 +2053,7 @@ class _PlayersSectionState extends State<_PlayersSection> {
       child: Row(
         children: [
           _MiniStat(
-            'Total Players',
+            'Total',
             '${widget.players.length}',
             Icons.person_rounded,
             kPrimary,
@@ -2120,13 +2071,6 @@ class _PlayersSectionState extends State<_PlayersSection> {
             '${widget.players.where((p) => !p.isActive).length}',
             Icons.block_rounded,
             kRed,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Verified',
-            '${widget.players.where((p) => p.isVerified).length}',
-            Icons.verified_rounded,
-            kAmber,
           ),
         ],
       ),
@@ -2147,7 +2091,6 @@ class _PlayersSectionState extends State<_PlayersSection> {
             cols: const [
               'Player',
               'Email',
-              'Sports',
               'Bookings',
               'Spent',
               'Status',
@@ -2160,7 +2103,6 @@ class _PlayersSectionState extends State<_PlayersSection> {
               onToggle: () => widget.onToggle(p.id),
               onDelete: () =>
                   _confirmDelete(context, p.name, () => widget.onDelete(p.id)),
-              onView: () => _showPlayerDetail(context, p),
             ),
           ),
           if (_filtered.isEmpty)
@@ -2212,23 +2154,15 @@ class _PlayersSectionState extends State<_PlayersSection> {
       ),
     );
   }
-
-  void _showPlayerDetail(BuildContext ctx, AdminPlayer p) {
-    showDialog(
-      context: ctx,
-      builder: (_) => _PlayerDetailDialog(player: p),
-    );
-  }
 }
 
 class _PlayerRow extends StatefulWidget {
   final AdminPlayer player;
-  final VoidCallback onToggle, onDelete, onView;
+  final VoidCallback onToggle, onDelete;
   const _PlayerRow({
     required this.player,
     required this.onToggle,
     required this.onDelete,
-    required this.onView,
   });
 
   @override
@@ -2264,7 +2198,6 @@ class _PlayerRowState extends State<_PlayerRow> {
                   style: TextStyle(color: colors.textLight, fontSize: 12),
                 ),
               ),
-              Expanded(flex: 2, child: _buildSportBadges(p)),
               Expanded(
                 flex: 1,
                 child: Text(
@@ -2307,21 +2240,13 @@ class _PlayerRowState extends State<_PlayerRow> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    p.name,
-                    style: TextStyle(
-                      color: colors.text,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (p.isVerified) ...[
-                    const SizedBox(width: 5),
-                    Icon(Icons.verified_rounded, size: 13, color: kPrimary),
-                  ],
-                ],
+              Text(
+                p.name,
+                style: TextStyle(
+                  color: colors.text,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               Text(
                 'Joined ${_formatDate(p.joined)}',
@@ -2334,35 +2259,12 @@ class _PlayerRowState extends State<_PlayerRow> {
     );
   }
 
-  Widget _buildSportBadges(AdminPlayer p) {
-    return Wrap(
-      spacing: 4,
-      children: p.sports
-          .map(
-            (s) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: s.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                s.label,
-                style: TextStyle(
-                  color: s.color,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-
   Widget _buildActions(AdminThemeColors colors) {
     return Row(
       children: [
-        _ActionBtn(Icons.visibility_outlined, colors.textLight, widget.onView),
+        _ActionBtn(Icons.visibility_outlined, kPrimary, () {
+          _showPlayerDetail(context, widget.player);
+        }),
         const SizedBox(width: 6),
         _ActionBtn(
           widget.player.isActive
@@ -2376,6 +2278,13 @@ class _PlayerRowState extends State<_PlayerRow> {
       ],
     );
   }
+
+  void _showPlayerDetail(BuildContext ctx, AdminPlayer p) {
+    showDialog(
+      context: ctx,
+      builder: (_) => _PlayerDetailDialog(player: p),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2383,12 +2292,11 @@ class _PlayerRowState extends State<_PlayerRow> {
 // ─────────────────────────────────────────────────────────────────────────────
 class _ManagersSection extends StatefulWidget {
   final List<AdminManager> managers;
-  final ValueChanged<String> onToggle, onVerify, onDelete;
+  final ValueChanged<String> onToggle, onDelete;
   final ValueChanged<AdminManager> onAdd;
   const _ManagersSection({
     required this.managers,
     required this.onToggle,
-    required this.onVerify,
     required this.onAdd,
     required this.onDelete,
   });
@@ -2415,14 +2323,12 @@ class _ManagersSectionState extends State<_ManagersSection> {
           .where(
             (m) =>
                 m.name.toLowerCase().contains(_search.toLowerCase()) ||
-                m.venueName.toLowerCase().contains(_search.toLowerCase()),
+                m.email.toLowerCase().contains(_search.toLowerCase()),
           )
           .toList();
     }
     if (_filter == 'active') return list.where((m) => m.isActive).toList();
     if (_filter == 'inactive') return list.where((m) => !m.isActive).toList();
-    if (_filter == 'unverified')
-      return list.where((m) => !m.isVerified).toList();
     return list;
   }
 
@@ -2461,10 +2367,10 @@ class _ManagersSectionState extends State<_ManagersSection> {
         ),
         const SizedBox(width: 14),
         _MiniStat(
-          'Unverified',
-          '${widget.managers.where((m) => !m.isVerified).length}',
-          Icons.pending_rounded,
-          kAmber,
+          'Inactive',
+          '${widget.managers.where((m) => !m.isActive).length}',
+          Icons.block_rounded,
+          kRed,
         ),
         const SizedBox(width: 14),
         _MiniStat(
@@ -2496,8 +2402,8 @@ class _ManagersSectionState extends State<_ManagersSection> {
           _TableHeader(
             cols: const [
               'Manager',
-              'Venue',
-              'City',
+              'Email',
+              'Venues',
               'Courts',
               'Revenue/mo',
               'Status',
@@ -2508,10 +2414,8 @@ class _ManagersSectionState extends State<_ManagersSection> {
             (m) => _ManagerRow(
               manager: m,
               onToggle: () => widget.onToggle(m.id),
-              onVerify: () => widget.onVerify(m.id),
               onDelete: () =>
                   _confirmDelete(context, m.name, () => widget.onDelete(m.id)),
-              onView: () => _showManagerDetail(context, m),
             ),
           ),
           if (_filtered.isEmpty)
@@ -2540,7 +2444,7 @@ class _ManagersSectionState extends State<_ManagersSection> {
             onChanged: (v) => setState(() => _search = v),
           ),
           const SizedBox(width: 10),
-          ...['all', 'active', 'inactive', 'unverified'].map(
+          ...['all', 'active', 'inactive'].map(
             (f) => _FilterPill(
               label: f == 'all' ? 'All' : f.capitalize(),
               active: _filter == f,
@@ -2571,24 +2475,15 @@ class _ManagersSectionState extends State<_ManagersSection> {
       ),
     );
   }
-
-  void _showManagerDetail(BuildContext ctx, AdminManager m) {
-    showDialog(
-      context: ctx,
-      builder: (_) => _ManagerDetailDialog(manager: m),
-    );
-  }
 }
 
 class _ManagerRow extends StatefulWidget {
   final AdminManager manager;
-  final VoidCallback onToggle, onVerify, onDelete, onView;
+  final VoidCallback onToggle, onDelete;
   const _ManagerRow({
     required this.manager,
     required this.onToggle,
-    required this.onVerify,
     required this.onDelete,
-    required this.onView,
   });
 
   @override
@@ -2620,21 +2515,21 @@ class _ManagerRowState extends State<_ManagerRow> {
               Expanded(
                 flex: 3,
                 child: Text(
-                  m.venueName,
-                  style: TextStyle(color: colors.text, fontSize: 12),
+                  m.email,
+                  style: TextStyle(color: colors.textLight, fontSize: 12),
                 ),
               ),
               Expanded(
                 flex: 2,
                 child: Text(
-                  m.venueCity,
-                  style: TextStyle(color: colors.textLight, fontSize: 12),
+                  '${m.venues.length}',
+                  style: TextStyle(color: colors.text, fontSize: 13),
                 ),
               ),
               Expanded(
                 flex: 1,
                 child: Text(
-                  '${m.courts}',
+                  '${m.totalCourts}',
                   style: TextStyle(color: colors.text, fontSize: 13),
                 ),
               ),
@@ -2673,28 +2568,16 @@ class _ManagerRowState extends State<_ManagerRow> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    m.name,
-                    style: TextStyle(
-                      color: colors.text,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (m.isVerified) ...[
-                    const SizedBox(width: 5),
-                    Icon(Icons.verified_rounded, size: 13, color: kPrimary),
-                  ],
-                  if (!m.isVerified) ...[
-                    const SizedBox(width: 5),
-                    _ABadge('Pending', kAmber),
-                  ],
-                ],
+              Text(
+                m.name,
+                style: TextStyle(
+                  color: colors.text,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               Text(
-                m.email,
+                '${m.venues.length} venue(s)',
                 style: TextStyle(color: colors.textLight, fontSize: 11),
               ),
             ],
@@ -2707,21 +2590,27 @@ class _ManagerRowState extends State<_ManagerRow> {
   Widget _buildActions(AdminThemeColors colors) {
     return Row(
       children: [
-        _ActionBtn(Icons.visibility_outlined, colors.textLight, widget.onView),
+        _ActionBtn(Icons.visibility_outlined, kPrimary, () {
+          _showManagerDetail(context, widget.manager);
+        }),
         const SizedBox(width: 6),
-        if (!widget.manager.isVerified)
-          _ActionBtn(Icons.verified_rounded, kPrimary, widget.onVerify),
-        if (widget.manager.isVerified)
-          _ActionBtn(
-            widget.manager.isActive
-                ? Icons.block_rounded
-                : Icons.check_circle_outline_rounded,
-            widget.manager.isActive ? kAmber : kGreen,
-            widget.onToggle,
-          ),
+        _ActionBtn(
+          widget.manager.isActive
+              ? Icons.block_rounded
+              : Icons.check_circle_outline_rounded,
+          widget.manager.isActive ? kAmber : kGreen,
+          widget.onToggle,
+        ),
         const SizedBox(width: 6),
         _ActionBtn(Icons.delete_outline_rounded, kRed, widget.onDelete),
       ],
+    );
+  }
+
+  void _showManagerDetail(BuildContext ctx, AdminManager m) {
+    showDialog(
+      context: ctx,
+      builder: (_) => _ManagerDetailDialog(manager: m),
     );
   }
 }
@@ -2780,7 +2669,7 @@ class _VenuesSectionState extends State<_VenuesSection> {
       child: Row(
         children: [
           _MiniStat(
-            'Total Venues',
+            'Total',
             '${widget.venues.length}',
             Icons.stadium_rounded,
             kPrimary,
@@ -2794,14 +2683,14 @@ class _VenuesSectionState extends State<_VenuesSection> {
           ),
           const SizedBox(width: 14),
           _MiniStat(
-            'Total Courts',
+            'Courts',
             '${widget.venues.fold(0, (s, v) => s + v.courts)}',
             Icons.sports_tennis_rounded,
             kAmber,
           ),
           const SizedBox(width: 14),
           _MiniStat(
-            'Total Revenue',
+            'Revenue',
             '${(widget.venues.fold(0.0, (s, v) => s + v.revenue) / 1000).toStringAsFixed(1)}K DT',
             Icons.payments_rounded,
             kGreen,
@@ -2877,7 +2766,9 @@ class _VenueRowState extends State<_VenueRow> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
+    final colors = Theme.of(
+      context,
+    ).extension<AdminThemeColors>()!; // This line must be here
     final v = widget.venue;
 
     return MouseRegion(
@@ -2933,7 +2824,10 @@ class _VenueRowState extends State<_VenueRow> {
                   ),
                 ),
               ),
-              Expanded(flex: 1, child: _buildRating(v)),
+              Expanded(
+                flex: 1,
+                child: _buildRating(v, colors),
+              ), // Pass colors to _buildRating
               Expanded(
                 flex: 1,
                 child: _ABadge(
@@ -3005,18 +2899,16 @@ class _VenueRowState extends State<_VenueRow> {
     );
   }
 
-  Widget _buildRating(AdminVenue v) {
+  Widget _buildRating(AdminVenue v, AdminThemeColors colors) {
+    // Add colors parameter
     return Row(
       children: [
         const Icon(Icons.star_rounded, size: 13, color: kAmber),
         const SizedBox(width: 4),
         Text(
           '${v.rating}',
-          style: TextStyle(
-            color: Theme.of(context).extension<AdminThemeColors>()!.text,
-            fontSize: 12,
-          ),
-        ),
+          style: TextStyle(color: colors.text, fontSize: 12),
+        ), // Now colors is defined
       ],
     );
   }
@@ -3427,8 +3319,7 @@ class _ReportsSectionState extends State<_ReportsSection> {
           _TableHeader(
             cols: const [
               'Manager',
-              'Venue',
-              'City',
+              'Venues',
               'Courts',
               'Bookings/mo',
               'Revenue',
@@ -3465,29 +3356,16 @@ class _ReportsSectionState extends State<_ReportsSection> {
                         ),
                       ),
                       Expanded(
-                        flex: 3,
-                        child: Text(
-                          m.venueName,
-                          style: TextStyle(
-                            color: colors.textLight,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      Expanded(
                         flex: 2,
                         child: Text(
-                          m.venueCity,
-                          style: TextStyle(
-                            color: colors.textLight,
-                            fontSize: 12,
-                          ),
+                          '${m.venues.length}',
+                          style: TextStyle(color: colors.text, fontSize: 12),
                         ),
                       ),
                       Expanded(
                         flex: 1,
                         child: Text(
-                          '${m.courts}',
+                          '${m.totalCourts}',
                           style: TextStyle(color: colors.text, fontSize: 12),
                         ),
                       ),
@@ -4019,10 +3897,300 @@ class _SettingsToggle extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DIALOGS
+// PLAYER DETAIL DIALOG
 // ─────────────────────────────────────────────────────────────────────────────
+class _PlayerDetailDialog extends StatelessWidget {
+  final AdminPlayer player;
+  const _PlayerDetailDialog({required this.player});
 
-// Add Manager Dialog
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AdminThemeColors>()!;
+    final p = player;
+
+    return Dialog(
+      backgroundColor: colors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: colors.divider),
+      ),
+      child: SizedBox(
+        width: 460,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context, p, colors),
+              const SizedBox(height: 20),
+              Divider(color: colors.divider),
+              const SizedBox(height: 16),
+              _buildStats(p),
+              const SizedBox(height: 16),
+              _InfoRow(Icons.phone_outlined, 'Phone', p.phone),
+              _InfoRow(
+                Icons.calendar_today_outlined,
+                'Joined',
+                _formatDate(p.joined),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(
+    BuildContext context,
+    AdminPlayer p,
+    AdminThemeColors colors,
+  ) {
+    return Row(
+      children: [
+        _Avatar(p.avatar, kPrimary, size: 52),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                p.name,
+                style: TextStyle(
+                  color: colors.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                p.email,
+                style: TextStyle(color: colors.textLight, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        _ABadge(p.isActive ? 'Active' : 'Inactive', p.isActive ? kGreen : kRed),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: colors.background,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.close_rounded, size: 16, color: colors.textLight),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStats(AdminPlayer p) {
+    return Row(
+      children: [
+        _DetailStat(
+          'Bookings',
+          '${p.bookings}',
+          Icons.calendar_today_rounded,
+          kPrimary,
+        ),
+        _DetailStat(
+          'Total Spent',
+          '${p.spent.toInt()} DT',
+          Icons.payments_rounded,
+          kGreen,
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANAGER DETAIL DIALOG
+// ─────────────────────────────────────────────────────────────────────────────
+class _ManagerDetailDialog extends StatelessWidget {
+  final AdminManager manager;
+  const _ManagerDetailDialog({required this.manager});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AdminThemeColors>()!;
+    final m = manager;
+
+    return Dialog(
+      backgroundColor: colors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: colors.divider),
+      ),
+      child: SizedBox(
+        width: 480,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context, m, colors),
+              const SizedBox(height: 20),
+              Divider(color: colors.divider),
+              const SizedBox(height: 16),
+              _buildStats(m),
+              const SizedBox(height: 16),
+              _buildVenuesList(m, colors),
+              _InfoRow(Icons.phone_outlined, 'Phone', m.phone),
+              _InfoRow(
+                Icons.calendar_today_outlined,
+                'Joined',
+                _formatDate(m.joined),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(
+    BuildContext context,
+    AdminManager m,
+    AdminThemeColors colors,
+  ) {
+    return Row(
+      children: [
+        _Avatar(m.avatar, kPurple, size: 52),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                m.name,
+                style: TextStyle(
+                  color: colors.text,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                m.email,
+                style: TextStyle(color: colors.textLight, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        _ABadge(m.isActive ? 'Active' : 'Inactive', m.isActive ? kGreen : kRed),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: colors.background,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.close_rounded, size: 16, color: colors.textLight),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStats(AdminManager m) {
+    return Row(
+      children: [
+        _DetailStat(
+          'Venues',
+          '${m.venues.length}',
+          Icons.stadium_rounded,
+          kPrimary,
+        ),
+        _DetailStat(
+          'Courts',
+          '${m.totalCourts}',
+          Icons.sports_tennis_rounded,
+          kPurple,
+        ),
+        _DetailStat(
+          'Revenue',
+          '${(m.revenue / 1000).toStringAsFixed(1)}K DT',
+          Icons.payments_rounded,
+          kGreen,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVenuesList(AdminManager m, AdminThemeColors colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Venues',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        ...m.venues.map(
+          (v) => Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.divider),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  v.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  '${v.city} · ${v.courts} courts',
+                  style: TextStyle(color: colors.textLight, fontSize: 11),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  children: v.sports
+                      .map(
+                        (s) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: s.color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            s.label,
+                            style: TextStyle(
+                              color: s.color,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADD MANAGER DIALOG
+// ─────────────────────────────────────────────────────────────────────────────
 class _AddManagerDialog extends StatefulWidget {
   final ValueChanged<AdminManager> onAdd;
   const _AddManagerDialog({required this.onAdd});
@@ -4036,10 +4204,8 @@ class _AddManagerDialogState extends State<_AddManagerDialog> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
-  final _venue = TextEditingController();
-  final _city = TextEditingController();
-  final _courts = TextEditingController(text: '1');
-  final Set<SportType> _sports = {SportType.football};
+
+  final List<ManagerVenue> _venues = [];
   bool _sending = false;
 
   @override
@@ -4047,26 +4213,68 @@ class _AddManagerDialogState extends State<_AddManagerDialog> {
     _name.dispose();
     _email.dispose();
     _phone.dispose();
-    _venue.dispose();
-    _city.dispose();
-    _courts.dispose();
     super.dispose();
+  }
+
+  void _addVenue() {
+    setState(() {
+      _venues.add(
+        ManagerVenue(
+          name: '',
+          city: '',
+          courts: 1,
+          sports: [SportType.football],
+        ),
+      );
+    });
+  }
+
+  void _removeVenue(int index) {
+    setState(() {
+      _venues.removeAt(index);
+    });
+  }
+
+  void _updateVenue(
+    int index,
+    String name,
+    String city,
+    int courts,
+    List<SportType> sports,
+  ) {
+    setState(() {
+      _venues[index] = ManagerVenue(
+        name: name,
+        city: city,
+        courts: courts,
+        sports: sports,
+      );
+    });
   }
 
   void _submit() async {
     if (!_form.currentState!.validate()) return;
-    if (_sports.isEmpty) return;
+    if (_venues.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Add at least one venue'),
+          backgroundColor: kAmber,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _sending = true);
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
+
     widget.onAdd(
       AdminManager(
         id: 'mgr_${DateTime.now().millisecondsSinceEpoch}',
         name: _name.text.trim(),
         email: _email.text.trim(),
         phone: _phone.text.trim(),
-        venueName: _venue.text.trim(),
-        venueCity: _city.text.trim(),
         avatar: _name.text
             .trim()
             .split(' ')
@@ -4074,13 +4282,11 @@ class _AddManagerDialogState extends State<_AddManagerDialog> {
             .take(2)
             .join()
             .toUpperCase(),
-        courts: int.tryParse(_courts.text) ?? 1,
+        venues: _venues,
         bookingsMonth: 0,
         revenue: 0,
         isActive: true,
-        isVerified: false,
         joined: DateTime.now(),
-        sports: _sports.toList(),
       ),
     );
     Navigator.pop(context);
@@ -4097,7 +4303,7 @@ class _AddManagerDialogState extends State<_AddManagerDialog> {
         side: BorderSide(color: colors.divider),
       ),
       child: SizedBox(
-        width: 520,
+        width: 600,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(28),
           child: Form(
@@ -4137,40 +4343,7 @@ class _AddManagerDialogState extends State<_AddManagerDialog> {
                   type: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 20),
-                _DlgSLabel('Venue Information'),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DlgField(
-                        'Venue Name',
-                        _venue,
-                        Icons.stadium_outlined,
-                        required: true,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _DlgField(
-                        'City',
-                        _city,
-                        Icons.location_on_outlined,
-                        required: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _DlgField(
-                  'Number of Courts',
-                  _courts,
-                  Icons.sports_tennis_rounded,
-                  type: TextInputType.number,
-                ),
-                const SizedBox(height: 20),
-                _DlgSLabel('Sports Offered'),
-                const SizedBox(height: 10),
-                _buildSportSelector(),
+                _buildVenuesSection(colors),
                 const SizedBox(height: 28),
                 _buildActions(colors),
               ],
@@ -4212,7 +4385,7 @@ class _AddManagerDialogState extends State<_AddManagerDialog> {
                 ),
               ),
               Text(
-                'Create a manager account and assign their venue',
+                'Create a manager account and assign their venues',
                 style: TextStyle(color: kTextMid, fontSize: 12),
               ),
             ],
@@ -4234,41 +4407,72 @@ class _AddManagerDialogState extends State<_AddManagerDialog> {
     );
   }
 
-  Widget _buildSportSelector() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: SportType.values.map((s) {
-        final sel = _sports.contains(s);
-        return GestureDetector(
-          onTap: () => setState(() => sel ? _sports.remove(s) : _sports.add(s)),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: sel ? s.color.withOpacity(0.1) : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: sel ? s.color.withOpacity(0.5) : Colors.grey.shade300,
+  Widget _buildVenuesSection(AdminThemeColors colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _DlgSLabel('Venues'),
+            const Spacer(),
+            GestureDetector(
+              onTap: _addVenue,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: kPrimary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.add_rounded, size: 14, color: kPrimary),
+                    SizedBox(width: 4),
+                    Text(
+                      'Add Venue',
+                      style: TextStyle(
+                        color: kPrimary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(s.icon, size: 14, color: sel ? s.color : Colors.grey),
-                const SizedBox(width: 6),
-                Text(
-                  s.label,
-                  style: TextStyle(
-                    color: sel ? s.color : Colors.grey,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_venues.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: colors.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.divider),
             ),
-          ),
-        );
-      }).toList(),
+            child: Center(
+              child: Text(
+                'No venues added yet. Tap "Add Venue" to add one.',
+                style: TextStyle(color: colors.textLight, fontSize: 12),
+              ),
+            ),
+          )
+        else
+          ..._venues.asMap().entries.map((entry) {
+            final index = entry.key;
+            return _VenueFormTile(
+              index: index,
+              venue: entry.value,
+              onUpdate: (name, city, courts, sports) =>
+                  _updateVenue(index, name, city, courts, sports),
+              onRemove: () => _removeVenue(index),
+            );
+          }).toList(),
+      ],
     );
   }
 
@@ -4297,326 +4501,269 @@ class _AddManagerDialogState extends State<_AddManagerDialog> {
   }
 }
 
-// Player Detail Dialog
-class _PlayerDetailDialog extends StatelessWidget {
-  final AdminPlayer player;
-  const _PlayerDetailDialog({required this.player});
+class _VenueFormTile extends StatefulWidget {
+  final int index;
+  final ManagerVenue venue;
+  final Function(String, String, int, List<SportType>) onUpdate;
+  final VoidCallback onRemove;
+
+  const _VenueFormTile({
+    required this.index,
+    required this.venue,
+    required this.onUpdate,
+    required this.onRemove,
+  });
+
+  @override
+  State<_VenueFormTile> createState() => _VenueFormTileState();
+}
+
+class _VenueFormTileState extends State<_VenueFormTile> {
+  late TextEditingController _nameCtrl;
+  late TextEditingController _cityCtrl;
+  late TextEditingController _courtsCtrl;
+  late Set<SportType> _selectedSports;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.venue.name);
+    _cityCtrl = TextEditingController(text: widget.venue.city);
+    _courtsCtrl = TextEditingController(text: widget.venue.courts.toString());
+    _selectedSports = Set.from(widget.venue.sports);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _cityCtrl.dispose();
+    _courtsCtrl.dispose();
+    super.dispose();
+  }
+
+  void _update() {
+    widget.onUpdate(
+      _nameCtrl.text,
+      _cityCtrl.text,
+      int.tryParse(_courtsCtrl.text) ?? 1,
+      _selectedSports.toList(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final p = player;
 
-    return Dialog(
-      backgroundColor: colors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: colors.divider),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.divider),
       ),
-      child: SizedBox(
-        width: 460,
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              _buildHeader(context, p, colors),
-              const SizedBox(height: 20),
-              Divider(color: colors.divider),
-              const SizedBox(height: 16),
-              _buildStats(p),
-              const SizedBox(height: 16),
-              _InfoRow(Icons.phone_outlined, 'Phone', p.phone),
-              _InfoRow(
-                Icons.calendar_today_outlined,
-                'Joined',
-                _formatDate(p.joined),
-              ),
-              const SizedBox(height: 12),
-              _DlgSLabel('Favourite Sports'),
-              const SizedBox(height: 8),
-              _buildSportBadges(p),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(
-    BuildContext context,
-    AdminPlayer p,
-    AdminThemeColors colors,
-  ) {
-    return Row(
-      children: [
-        _Avatar(p.avatar, kPrimary, size: 52),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    p.name,
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: kPrimary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '${widget.index + 1}',
                     style: TextStyle(
-                      color: colors.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (p.isVerified) ...[
-                    const SizedBox(width: 7),
-                    Icon(Icons.verified_rounded, size: 16, color: kPrimary),
-                  ],
-                ],
-              ),
-              Text(
-                p.email,
-                style: TextStyle(color: colors.textLight, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        _ABadge(p.isActive ? 'Active' : 'Inactive', p.isActive ? kGreen : kRed),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.close_rounded, size: 16, color: colors.textLight),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStats(AdminPlayer p) {
-    return Row(
-      children: [
-        _DetailStat(
-          'Bookings',
-          '${p.bookings}',
-          Icons.calendar_today_rounded,
-          kPrimary,
-        ),
-        _DetailStat('Matches', '${p.matches}', Icons.sports_rounded, kPurple),
-        _DetailStat(
-          'Total Spent',
-          '${p.spent.toInt()} DT',
-          Icons.payments_rounded,
-          kGreen,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSportBadges(AdminPlayer p) {
-    return Wrap(
-      spacing: 8,
-      children: p.sports
-          .map(
-            (s) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: s.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: s.color.withOpacity(0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(s.icon, size: 13, color: s.color),
-                  const SizedBox(width: 5),
-                  Text(
-                    s.label,
-                    style: TextStyle(
-                      color: s.color,
-                      fontSize: 12,
+                      color: kPrimary,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          )
-          .toList(),
+              const SizedBox(width: 8),
+              Text(
+                'Venue ${widget.index + 1}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: widget.onRemove,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: kRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(Icons.close_rounded, size: 14, color: kRed),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Venue Name',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: _nameCtrl,
+                      onChanged: (_) => _update(),
+                      style: const TextStyle(fontSize: 12),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: BorderSide(color: colors.divider),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'City',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: _cityCtrl,
+                      onChanged: (_) => _update(),
+                      style: const TextStyle(fontSize: 12),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: BorderSide(color: colors.divider),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Number of Courts',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: _courtsCtrl,
+                      onChanged: (_) => _update(),
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(fontSize: 12),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: BorderSide(color: colors.divider),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Sports Offered',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: SportType.values.map((s) {
+              final selected = _selectedSports.contains(s);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (selected) {
+                      _selectedSports.remove(s);
+                    } else {
+                      _selectedSports.add(s);
+                    }
+                    _update();
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected ? s.color : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: selected ? s.color : colors.divider,
+                    ),
+                  ),
+                  child: Text(
+                    s.label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? Colors.white : colors.text,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// Manager Detail Dialog
-class _ManagerDetailDialog extends StatelessWidget {
-  final AdminManager manager;
-  const _ManagerDetailDialog({required this.manager});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final m = manager;
-
-    return Dialog(
-      backgroundColor: colors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: colors.divider),
-      ),
-      child: SizedBox(
-        width: 480,
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, m, colors),
-              const SizedBox(height: 20),
-              Divider(color: colors.divider),
-              const SizedBox(height: 16),
-              _buildStats(m),
-              const SizedBox(height: 16),
-              _InfoRow(Icons.stadium_rounded, 'Venue', m.venueName),
-              _InfoRow(Icons.location_on_outlined, 'City', m.venueCity),
-              _InfoRow(Icons.phone_outlined, 'Phone', m.phone),
-              _InfoRow(
-                Icons.calendar_today_outlined,
-                'Joined',
-                _formatDate(m.joined),
-              ),
-              const SizedBox(height: 12),
-              _DlgSLabel('Sports Offered'),
-              const SizedBox(height: 8),
-              _buildSportBadges(m),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(
-    BuildContext context,
-    AdminManager m,
-    AdminThemeColors colors,
-  ) {
-    return Row(
-      children: [
-        _Avatar(m.avatar, kPurple, size: 52),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    m.name,
-                    style: TextStyle(
-                      color: colors.text,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (m.isVerified) ...[
-                    const SizedBox(width: 7),
-                    Icon(Icons.verified_rounded, size: 16, color: kPrimary),
-                  ],
-                  if (!m.isVerified) ...[
-                    const SizedBox(width: 7),
-                    _ABadge('Unverified', kAmber),
-                  ],
-                ],
-              ),
-              Text(
-                m.email,
-                style: TextStyle(color: colors.textLight, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.close_rounded, size: 16, color: colors.textLight),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStats(AdminManager m) {
-    return Row(
-      children: [
-        _DetailStat(
-          'Courts',
-          '${m.courts}',
-          Icons.sports_tennis_rounded,
-          kPrimary,
-        ),
-        _DetailStat(
-          'Bookings/mo',
-          '${m.bookingsMonth}',
-          Icons.calendar_today_rounded,
-          kPurple,
-        ),
-        _DetailStat(
-          'Revenue',
-          '${(m.revenue / 1000).toStringAsFixed(1)}K DT',
-          Icons.payments_rounded,
-          kGreen,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSportBadges(AdminManager m) {
-    return Wrap(
-      spacing: 8,
-      children: m.sports
-          .map(
-            (s) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: s.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: s.color.withOpacity(0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(s.icon, size: 13, color: s.color),
-                  const SizedBox(width: 5),
-                  Text(
-                    s.label,
-                    style: TextStyle(
-                      color: s.color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
-// Confirm Dialog
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIRM DIALOG
+// ─────────────────────────────────────────────────────────────────────────────
 class _ConfirmDialog extends StatelessWidget {
   final String title, body;
   final Color color;
@@ -5121,7 +5268,6 @@ class _DlgSLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
     return Text(
       t,
       style: TextStyle(

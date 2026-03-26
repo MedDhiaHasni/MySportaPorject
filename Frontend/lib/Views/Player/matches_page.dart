@@ -1,6 +1,6 @@
 // matches_page.dart — place at Views/Player/matches_page.dart
 // Tab 1: Announcements (tappable cards → detail sheet, no pay chips, venue+court shown)
-// Tab 2: Tournaments  (venue posters → detail sheet + join/register)
+// Tab 2: Tournaments  (venue posters → detail sheet + join/register form)
 
 import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
@@ -63,6 +63,29 @@ class TournamentModel {
     ];
     return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOURNAMENT REGISTRATION MODEL
+// ─────────────────────────────────────────────────────────────────────────────
+class TournamentRegistration {
+  final String id;
+  final String captainName;
+  final String phoneNumber;
+  final String teamName;
+  final String comment;
+  final DateTime registeredAt;
+  final String playerId;
+
+  TournamentRegistration({
+    required this.id,
+    required this.captainName,
+    required this.phoneNumber,
+    required this.teamName,
+    required this.comment,
+    required this.registeredAt,
+    required this.playerId,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,6 +186,9 @@ class _MatchesState extends State<Matches> with SingleTickerProviderStateMixin {
   late List<TournamentModel> _tournaments;
   static const _myId = 'p1';
 
+  // Store tournament registrations
+  final Map<String, List<TournamentRegistration>> _tournamentRegistrations = {};
+
   @override
   void initState() {
     super.initState();
@@ -251,20 +277,61 @@ class _MatchesState extends State<Matches> with SingleTickerProviderStateMixin {
     builder: (_) => _TournamentDetailSheet(
       tournament: t,
       onJoin: () {
-        setState(() {
-          t.joined = true;
-          t.registeredTeams++;
-        });
+        // Open registration form instead of directly joining
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registered! Check your notifications for updates.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _openTournamentRegistrationForm(t);
       },
     ),
   );
+
+  void _openTournamentRegistrationForm(TournamentModel t) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _TournamentRegistrationSheet(
+        tournament: t,
+        onSubmit: (captainName, phoneNumber, teamName, comment) {
+          // Create registration
+          final registration = TournamentRegistration(
+            id: 'tr_${DateTime.now().millisecondsSinceEpoch}',
+            captainName: captainName,
+            phoneNumber: phoneNumber,
+            teamName: teamName,
+            comment: comment,
+            registeredAt: DateTime.now(),
+            playerId: _myId,
+          );
+
+          // Store registration
+          if (!_tournamentRegistrations.containsKey(t.id)) {
+            _tournamentRegistrations[t.id] = [];
+          }
+          _tournamentRegistrations[t.id]!.add(registration);
+
+          // Update tournament state
+          setState(() {
+            t.joined = true;
+            t.registeredTeams++;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Registration submitted! Your team "$teamName" is registered.',
+              ),
+              backgroundColor: kGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1773,7 +1840,7 @@ class _TournamentDetailSheet extends StatelessWidget {
                     )
                   else
                     PrimaryButton(
-                      'Register — ${t.entryFee} DT',
+                      'Register Now',
                       color: sc,
                       icon: Icons.emoji_events_rounded,
                       onTap: onJoin,
@@ -1818,6 +1885,638 @@ class _TournamentDetailSheet extends StatelessWidget {
           ),
         ),
       );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOURNAMENT REGISTRATION SHEET - IMPROVED
+// ─────────────────────────────────────────────────────────────────────────────
+class _TournamentRegistrationSheet extends StatefulWidget {
+  final TournamentModel tournament;
+  final Function(
+    String captainName,
+    String phoneNumber,
+    String teamName,
+    String comment,
+  )
+  onSubmit;
+  const _TournamentRegistrationSheet({
+    required this.tournament,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_TournamentRegistrationSheet> createState() =>
+      _TournamentRegistrationSheetState();
+}
+
+class _TournamentRegistrationSheetState
+    extends State<_TournamentRegistrationSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _captainNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _teamNameController = TextEditingController();
+  final _commentController = TextEditingController();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _captainNameController.dispose();
+    _phoneController.dispose();
+    _teamNameController.dispose();
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
+
+      // Simulate API call
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      if (mounted) {
+        widget.onSubmit(
+          _captainNameController.text.trim(),
+          _phoneController.text.trim(),
+          _teamNameController.text.trim(),
+          _commentController.text.trim(),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.tournament;
+    final sc = t.sport.color;
+    final bot = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: kCard,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x28000000),
+            blurRadius: 30,
+            offset: Offset(0, -6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kTextLight.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [sc, sc.withOpacity(0.7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.emoji_events_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Register for Tournament',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: kTextDark,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      Text(
+                        t.title,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: kTextMid,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: kBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: kTextMid,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, indent: 20, endIndent: 20),
+
+          // Form
+          Flexible(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, bot + 20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tournament summary card - improved
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [sc.withOpacity(0.08), sc.withOpacity(0.03)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: sc.withOpacity(0.2),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: sc.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 16,
+                                  color: sc,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Date & Time',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: kTextLight,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${t.dateLabel} at ${t.time}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: kTextDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: sc.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.location_on_rounded,
+                                  size: 16,
+                                  color: sc,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Venue',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: kTextLight,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      t.venueName,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: kTextDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Divider(color: sc.withOpacity(0.1), height: 1),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Entry Fee',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: kTextLight,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${t.entryFee} DT',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: sc,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text(
+                                    'Teams Registered',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: kTextLight,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${t.registeredTeams}/${t.maxTeams}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: kTextDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Section title
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: sc,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Team Information',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: kTextDark,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Captain Name
+                    _buildInputField(
+                      label: 'Captain Name',
+                      hint: 'Enter full name of team captain',
+                      controller: _captainNameController,
+                      icon: Icons.person_outline_rounded,
+                      color: sc,
+                      isRequired: true,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Captain name is required';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Phone Number
+                    _buildInputField(
+                      label: 'Phone Number',
+                      hint: 'e.g. +216 55 123 456',
+                      controller: _phoneController,
+                      icon: Icons.phone_outlined,
+                      color: sc,
+                      isRequired: true,
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Phone number is required';
+                        }
+                        if (value.trim().length < 8) {
+                          return 'Please enter a valid phone number';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Team Name
+                    _buildInputField(
+                      label: 'Team Name',
+                      hint: 'Enter your team name (e.g., FC Lions)',
+                      controller: _teamNameController,
+                      icon: Icons.group_rounded,
+                      color: sc,
+                      isRequired: true,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Team name is required';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Section title for optional
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: kTextLight,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Additional Information (Optional)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: kTextMid,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Comment
+                    Container(
+                      decoration: BoxDecoration(
+                        color: kBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: kTextLight.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: TextFormField(
+                        controller: _commentController,
+                        maxLines: 4,
+                        style: const TextStyle(fontSize: 14, color: kTextDark),
+                        decoration: InputDecoration(
+                          hintText: 'Any special requests or information...',
+                          hintStyle: TextStyle(
+                            color: kTextLight,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Example team info preview
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: sc.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: sc.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 16,
+                            color: sc.withOpacity(0.7),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'After registration, the tournament organizer will contact your team captain via phone.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: kTextMid,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Submit button
+                    GestureDetector(
+                      onTap: _isSubmitting ? null : _submit,
+                      child: Container(
+                        height: 56,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [sc, sc.withOpacity(0.8)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: sc.withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'Complete Registration',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    required IconData icon,
+    required Color color,
+    bool isRequired = false,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: kTextDark,
+              ),
+            ),
+            if (isRequired) ...[
+              const SizedBox(width: 4),
+              Text(
+                '*',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: kRed,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: kBg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: kTextLight.withOpacity(0.2), width: 1),
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: const TextStyle(fontSize: 14, color: kTextDark),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: kTextLight,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+              prefixIcon: Icon(icon, size: 20, color: color),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
+            validator: validator,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2196,6 +2895,7 @@ class _RequestTileState extends State<_RequestTile> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AvatarWidget(
                 initials: req.player.avatarInitials,
@@ -2215,6 +2915,19 @@ class _RequestTileState extends State<_RequestTile> {
                         color: kTextDark,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    // Display phone number
+                    Row(
+                      children: [
+                        Icon(Icons.phone_outlined, size: 10, color: kTextLight),
+                        const SizedBox(width: 4),
+                        Text(
+                          req.player.phone ?? 'No phone', // Added null check
+                          style: const TextStyle(fontSize: 11, color: kTextMid),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
                     Text(
                       '${ann.reservation.courtName}  ·  ${ann.reservation.startTime}',
                       style: const TextStyle(fontSize: 11, color: kTextMid),

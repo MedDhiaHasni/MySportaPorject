@@ -4,7 +4,6 @@ import 'package:sporta/Views/SplashOnboarding/onboarding.dart';
 
 import 'dart:async';
 
-
 class Splash extends StatefulWidget {
   const Splash({super.key});
 
@@ -47,9 +46,9 @@ class _SplashState extends State<Splash> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
             Image(
-              image: AssetImage("assets/test1.png"),
-              height: 180,
-              width: 180,
+              image: AssetImage("assets/sportalogowhite.png"),
+              height: 120,
+              width: 120,
             ),
 
             Text(

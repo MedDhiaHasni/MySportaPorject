@@ -17,7 +17,7 @@ class SportaApp extends StatelessWidget {
       title: 'Sporta',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const AdminLoginPage(),
+      home: const Splash(),
     );
   }
 }

@@ -1,67 +1,300 @@
-// dashboard.dart — Manager Dashboard
-// Rebuilt: no stats cards, no settings, clean courts + schedule + tournaments
+// dashboard.dart — Views/Manager/dashboard.dart
+// Manager home: uses CourtModel, CourtReservation, TournamentModel
+// same models as player side → backend maps 1:1
 
 import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Models/app_enums.dart';
-import 'package:sporta/Views/Manager/ManageTournamentPage.dart' as manage;
-import 'package:sporta/Views/Manager/tournaments.dart';
+import 'package:sporta/Models/app_models.dart';
+import 'package:sporta/Models/venue_model.dart';
+import 'package:sporta/Views/Manager/ManageTournamentPage.dart';
+import 'package:sporta/Views/Player/matches_page.dart' show TournamentModel;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODELS
+// MANAGER-SIDE WRAPPER MODELS
+// These thin wrappers add manager-only state on top of the shared models.
+// In the backend: isPending = reservation status field; isActive = court status field.
 // ─────────────────────────────────────────────────────────────────────────────
-class _Court {
-  final String id, name, imageUrl;
-  final SportType sport;
-  final double price;
+
+/// Wraps CourtModel + manager-only fields (isActive, bookingsToday)
+/// Backend: courts table + a live_status or is_active boolean field
+class ManagerCourt {
+  final CourtModel court;
   bool isActive;
   final int bookingsToday;
-  _Court({
-    required this.id,
-    required this.name,
-    required this.imageUrl,
-    required this.sport,
-    required this.price,
+  ManagerCourt({
+    required this.court,
     required this.isActive,
     required this.bookingsToday,
   });
 }
 
-class _Booking {
-  final String id, time, courtName, courtImage, player;
-  final SportType sport;
+/// Wraps CourtReservation + manager-only fields (playerName, isPending)
+/// Backend: court_reservations table + status enum (pending/confirmed/declined)
+class ManagerBooking {
+  final String id;
+  final CourtReservation reservation;
+  final String playerName;
+  final String playerPhone; // shown to manager for pay-at-venue bookings
   bool isPending;
-  _Booking({
+  ManagerBooking({
     required this.id,
-    required this.time,
-    required this.courtName,
-    required this.courtImage,
-    required this.player,
-    required this.sport,
-    required this.isPending,
+    required this.reservation,
+    required this.playerName,
+    required this.playerPhone,
+    this.isPending = true,
   });
 }
 
-class TournamentData {
-  final String id, name, date, description, posterUrl;
-  final SportType sport;
-  final int teams, max;
-  final int entryFee, prizePool;
-  TournamentData({
-    required this.id,
-    required this.name,
-    required this.date,
-    required this.description,
-    required this.posterUrl,
-    required this.sport,
-    required this.teams,
-    required this.max,
-    required this.entryFee,
-    required this.prizePool,
-  });
-  bool get isFull => teams >= max;
-  int get spotsLeft => max - teams;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// SAMPLE DATA — swap for Strapi API calls
+// ─────────────────────────────────────────────────────────────────────────────
+final _venue = VenueModel(
+  name: 'Arena Sport Center',
+  location: 'Lac 2, Tunis',
+  sports: ['Football', 'Padel', 'Tennis', 'Basketball'],
+  amenities: ['Parking', 'Showers', 'Floodlights', 'Locker'],
+  minPrice: 75,
+  maxPrice: 120,
+  available: true,
+  openUntil: '11:00 PM',
+  image: 'assets/sportcenter.jpg',
+  lat: 36.8425,
+  lng: 10.2320,
+  courts: [],
+  managerName: 'Anis Trabelsi',
+  managerPhone: '+216 71 234 567',
+  managerAvatar: 'AT',
+);
+
+List<ManagerCourt> _initCourts() => [
+  ManagerCourt(
+    court: CourtModel(
+      id: 'c1',
+      name: 'Court Alpha',
+      location: 'Lac 2, Tunis',
+      sport: SportType.football,
+      pricePerHour: 90,
+      color: SportType.football.color,
+      imageUrl:
+          'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=700&q=80',
+    ),
+    isActive: true,
+    bookingsToday: 6,
+  ),
+  ManagerCourt(
+    court: CourtModel(
+      id: 'c2',
+      name: 'Court Beta',
+      location: 'Lac 2, Tunis',
+      sport: SportType.padel,
+      pricePerHour: 120,
+      color: SportType.padel.color,
+      imageUrl:
+          'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=700&q=80',
+    ),
+    isActive: true,
+    bookingsToday: 4,
+  ),
+  ManagerCourt(
+    court: CourtModel(
+      id: 'c3',
+      name: 'Court Gamma',
+      location: 'Lac 2, Tunis',
+      sport: SportType.tennis,
+      pricePerHour: 105,
+      color: SportType.tennis.color,
+      imageUrl:
+          'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=700&q=80',
+    ),
+    isActive: false,
+    bookingsToday: 2,
+  ),
+  ManagerCourt(
+    court: CourtModel(
+      id: 'c4',
+      name: 'Court Delta',
+      location: 'Lac 2, Tunis',
+      sport: SportType.basketball,
+      pricePerHour: 75,
+      color: SportType.basketball.color,
+      imageUrl:
+          'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=700&q=80',
+    ),
+    isActive: true,
+    bookingsToday: 5,
+  ),
+];
+
+List<ManagerBooking> _initBookings() => [
+  // payNow → auto-confirmed (isPending: false)
+  ManagerBooking(
+    id: 'b1',
+    playerName: 'Karim Jaziri',
+    playerPhone: '+216 54 123 456',
+    isPending: false,
+    reservation: CourtReservation(
+      id: 'r1',
+      courtId: 'c1',
+      courtName: 'Court Alpha',
+      hostId: 'p1',
+      sport: SportType.football,
+      date: DateTime.now(),
+      startTime: '08:00',
+      endTime: '09:00',
+      durationHours: 1,
+      totalPrice: 90,
+      paymentOption: PaymentOption.payNow,
+      courtImageUrl:
+          'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=300&q=80',
+    ),
+  ),
+  // payAtVenue → pending until manager confirms (isPending: true)
+  ManagerBooking(
+    id: 'b2',
+    playerName: 'Nadia Ben Salah',
+    playerPhone: '+216 52 234 567',
+    isPending: true,
+    reservation: CourtReservation(
+      id: 'r2',
+      courtId: 'c2',
+      courtName: 'Court Beta',
+      hostId: 'p2',
+      sport: SportType.padel,
+      date: DateTime.now(),
+      startTime: '09:30',
+      endTime: '11:00',
+      durationHours: 1.5,
+      totalPrice: 120,
+      paymentOption: PaymentOption.payAtVenue,
+      courtImageUrl:
+          'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=300&q=80',
+    ),
+  ),
+  // payNow → auto-confirmed
+  ManagerBooking(
+    id: 'b3',
+    playerName: 'Mehdi Trabelsi',
+    playerPhone: '+216 55 345 678',
+    isPending: false,
+    reservation: CourtReservation(
+      id: 'r3',
+      courtId: 'c3',
+      courtName: 'Court Gamma',
+      hostId: 'p3',
+      sport: SportType.tennis,
+      date: DateTime.now(),
+      startTime: '11:00',
+      endTime: '12:00',
+      durationHours: 1,
+      totalPrice: 105,
+      paymentOption: PaymentOption.payNow,
+      courtImageUrl:
+          'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=300&q=80',
+    ),
+  ),
+  // payAtVenue → pending
+  ManagerBooking(
+    id: 'b4',
+    playerName: 'Leila Mallouli',
+    playerPhone: '+216 56 456 789',
+    isPending: true,
+    reservation: CourtReservation(
+      id: 'r4',
+      courtId: 'c4',
+      courtName: 'Court Delta',
+      hostId: 'p4',
+      sport: SportType.basketball,
+      date: DateTime.now(),
+      startTime: '14:00',
+      endTime: '15:00',
+      durationHours: 1,
+      totalPrice: 75,
+      paymentOption: PaymentOption.payAtVenue,
+      courtImageUrl:
+          'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=300&q=80',
+    ),
+  ),
+  // payAtVenue → pending
+  ManagerBooking(
+    id: 'b5',
+    playerName: 'Ahmed Ben Ali',
+    playerPhone: '+216 58 567 890',
+    isPending: true,
+    reservation: CourtReservation(
+      id: 'r5',
+      courtId: 'c1',
+      courtName: 'Court Alpha',
+      hostId: 'p5',
+      sport: SportType.football,
+      date: DateTime.now(),
+      startTime: '19:00',
+      endTime: '20:00',
+      durationHours: 1,
+      totalPrice: 90,
+      paymentOption: PaymentOption.payAtVenue,
+      courtImageUrl:
+          'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=300&q=80',
+    ),
+  ),
+];
+
+List<TournamentModel> _initTournaments() => [
+  TournamentModel(
+    id: 't1',
+    title: 'Summer Padel Cup',
+    venueName: 'Arena Sport Center',
+    location: 'Lac 2, Tunis',
+    sport: SportType.padel,
+    date: DateTime(2025, 6, 15),
+    time: '10:00',
+    maxTeams: 16,
+    registeredTeams: 8,
+    prizePool: 1200,
+    entryFee: 60,
+    posterUrl:
+        'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=700&q=80',
+    description: 'Annual padel championship open to all levels.',
+    format: 'Doubles Round-Robin',
+    prizes: ['🥇 1st: 700 DT', '🥈 2nd: 300 DT', '🥉 3rd: 200 DT'],
+  ),
+  TournamentModel(
+    id: 't2',
+    title: 'Friday Football 5v5',
+    venueName: 'Arena Sport Center',
+    location: 'Lac 2, Tunis',
+    sport: SportType.football,
+    date: DateTime(2025, 6, 21),
+    time: '09:00',
+    maxTeams: 8,
+    registeredTeams: 6,
+    prizePool: 2000,
+    entryFee: 80,
+    posterUrl:
+        'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=700&q=80',
+    description: 'Weekly 5-a-side league. Fast-paced, competitive.',
+    format: '5v5 Knockout',
+    prizes: ['🥇 1st: 1000 DT', '🥈 2nd: 600 DT', '🥉 3rd: 400 DT'],
+  ),
+  TournamentModel(
+    id: 't3',
+    title: 'Tennis Open Singles',
+    venueName: 'Arena Sport Center',
+    location: 'Lac 2, Tunis',
+    sport: SportType.tennis,
+    date: DateTime(2025, 7, 5),
+    time: '08:00',
+    maxTeams: 32,
+    registeredTeams: 12,
+    prizePool: 3000,
+    entryFee: 100,
+    posterUrl:
+        'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=700&q=80',
+    description: 'Open singles bracket for all skill levels.',
+    format: 'Singles Knockout',
+    prizes: ['🥇 1st: 1500 DT', '🥈 2nd: 900 DT', '🥉 3rd: 600 DT'],
+  ),
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DASHBOARD
@@ -73,143 +306,25 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  List<_Court> _courts = [
-    _Court(
-      id: 'c1',
-      name: 'Court Alpha',
-      imageUrl:
-          'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=700&q=80',
-      sport: SportType.football,
-      price: 90,
-      isActive: true,
-      bookingsToday: 6,
-    ),
-    _Court(
-      id: 'c2',
-      name: 'Court Beta',
-      imageUrl:
-          'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=700&q=80',
-      sport: SportType.padel,
-      price: 120,
-      isActive: true,
-      bookingsToday: 4,
-    ),
-    _Court(
-      id: 'c3',
-      name: 'Court Gamma',
-      imageUrl:
-          'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=700&q=80',
-      sport: SportType.tennis,
-      price: 105,
-      isActive: false,
-      bookingsToday: 2,
-    ),
-    _Court(
-      id: 'c4',
-      name: 'Court Delta',
-      imageUrl:
-          'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=700&q=80',
-      sport: SportType.basketball,
-      price: 75,
-      isActive: true,
-      bookingsToday: 5,
-    ),
-  ];
+  late List<ManagerCourt> _courts;
+  late List<ManagerBooking> _bookings;
+  late List<TournamentModel> _tournaments;
 
-  List<_Booking> _bookings = [
-    _Booking(
-      id: 'b1',
-      time: '08:00',
-      courtName: 'Court Alpha',
-      courtImage:
-          'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=300&q=80',
-      player: 'Karim Jaziri',
-      sport: SportType.football,
-      isPending: false,
-    ),
-    _Booking(
-      id: 'b2',
-      time: '09:30',
-      courtName: 'Court Beta',
-      courtImage:
-          'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=300&q=80',
-      player: 'Nadia Ben Salah',
-      sport: SportType.padel,
-      isPending: false,
-    ),
-    _Booking(
-      id: 'b3',
-      time: '11:00',
-      courtName: 'Court Gamma',
-      courtImage:
-          'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=300&q=80',
-      player: 'Mehdi Trabelsi',
-      sport: SportType.basketball,
-      isPending: true,
-    ),
-    _Booking(
-      id: 'b4',
-      time: '14:00',
-      courtName: 'Court Alpha',
-      courtImage:
-          'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=300&q=80',
-      player: 'Leila Mallouli',
-      sport: SportType.tennis,
-      isPending: false,
-    ),
-    _Booking(
-      id: 'b5',
-      time: '19:00',
-      courtName: 'Court Delta',
-      courtImage:
-          'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=300&q=80',
-      player: 'Ahmed Ben Ali',
-      sport: SportType.football,
-      isPending: true,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _courts = _initCourts();
+    _bookings = _initBookings();
+    _tournaments = _initTournaments();
+  }
 
-  List<TournamentData> _tournaments = [
-    TournamentData(
-      id: 't1',
-      name: 'Summer Padel Cup',
-      sport: SportType.padel,
-      date: 'Jun 15',
-      description: 'Annual padel championship open to all levels.',
-      posterUrl:
-          'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=700&q=80',
-      teams: 8,
-      max: 16,
-      entryFee: 60,
-      prizePool: 1200,
-    ),
-    TournamentData(
-      id: 't2',
-      name: 'Friday Football 5v5',
-      sport: SportType.football,
-      date: 'Jun 21',
-      description: 'Weekly 5-a-side league. Fast-paced, competitive.',
-      posterUrl:
-          'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=700&q=80',
-      teams: 6,
-      max: 8,
-      entryFee: 80,
-      prizePool: 2000,
-    ),
-    TournamentData(
-      id: 't3',
-      name: 'Tennis Open Singles',
-      sport: SportType.tennis,
-      date: 'Jul 5',
-      description: 'Open singles bracket for all skill levels.',
-      posterUrl:
-          'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=700&q=80',
-      teams: 12,
-      max: 32,
-      entryFee: 100,
-      prizePool: 3000,
-    ),
-  ];
+  int get _pending => _bookings.where((b) => b.isPending).length;
+  int get _active => _courts.where((c) => c.isActive).length;
+
+  void _toggleCourt(String id) => setState(() {
+    final i = _courts.indexWhere((c) => c.court.id == id);
+    if (i != -1) _courts[i].isActive = !_courts[i].isActive;
+  });
 
   void _confirmBooking(String id) => setState(() {
     final i = _bookings.indexWhere((b) => b.id == id);
@@ -220,26 +335,19 @@ class _DashboardState extends State<Dashboard> {
     _bookings.removeWhere((b) => b.id == id);
   });
 
-  void _toggleCourt(String id) => setState(() {
-    final i = _courts.indexWhere((c) => c.id == id);
-    if (i != -1) _courts[i].isActive = !_courts[i].isActive;
-  });
-
   @override
   Widget build(BuildContext context) {
     final navH =
         kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
-    final pending = _bookings.where((b) => b.isPending).length;
-
     return Scaffold(
       backgroundColor: kBg,
       body: CustomScrollView(
         slivers: [
-          // ── Hero header ──────────────────────────────────────────────────
           SliverToBoxAdapter(
             child: _DashboardHeader(
-              pendingCount: pending,
-              courtsActive: _courts.where((c) => c.isActive).length,
+              venue: _venue,
+              pendingCount: _pending,
+              activeCourts: _active,
               totalCourts: _courts.length,
             ),
           ),
@@ -248,7 +356,7 @@ class _DashboardState extends State<Dashboard> {
             padding: EdgeInsets.fromLTRB(16, 24, 16, navH + 24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // ── My Courts ─────────────────────────────────────────────────
+                // ── My Courts ───────────────────────────────────────────────────
                 _SectionTitle('My Courts', sub: '${_courts.length} courts'),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -258,39 +366,43 @@ class _DashboardState extends State<Dashboard> {
                     itemCount: _courts.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
                     itemBuilder: (_, i) => _CourtCard(
-                      court: _courts[i],
-                      onToggle: () => _toggleCourt(_courts[i].id),
-                      onManage: () => _openCourtManage(_courts[i]),
+                      mc: _courts[i],
+                      onManage: () => _openCourtSheet(_courts[i]),
                     ),
                   ),
                 ),
                 const SizedBox(height: 32),
 
-                // ── Today's Schedule ──────────────────────────────────────────
+                // ── Today's Schedule ────────────────────────────────────────────
                 _SectionTitle(
                   "Today's Schedule",
-                  sub: '${_bookings.length} bookings · $pending pending',
-                  pendingBadge: pending > 0 ? pending : null,
+                  sub: '${_bookings.length} bookings · $_pending pending',
+                  pendingBadge: _pending > 0 ? _pending : null,
                 ),
                 const SizedBox(height: 14),
                 ..._bookings.map(
                   (b) => _BookingCard(
                     booking: b,
-                    onTap: () => _openBookingDetail(b),
+                    onTap: () => _openBookingSheet(b),
                   ),
                 ),
                 const SizedBox(height: 32),
 
-                // ── Tournaments ───────────────────────────────────────────────
+                // ── Tournaments ─────────────────────────────────────────────────
                 _SectionTitle(
                   'Tournaments',
                   sub: '${_tournaments.length} active',
                 ),
                 const SizedBox(height: 14),
                 ..._tournaments.map(
-                  (t) => _TournamentPosterCard(
+                  (t) => _TournamentCard(
                     tournament: t,
-                    onManage: () => _openManageTournament(t),
+                    onManage: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ManageTournamentPage(tournament: t),
+                      ),
+                    ),
                   ),
                 ),
               ]),
@@ -301,275 +413,262 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  void _openCourtManage(_Court court) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CourtManageSheet(
-        court: court,
-        onToggle: () {
-          _toggleCourt(court.id);
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
+  void _openCourtSheet(ManagerCourt mc) => showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _CourtManageSheet(
+      mc: mc,
+      onToggle: () {
+        _toggleCourt(mc.court.id);
+        Navigator.pop(context);
+      },
+    ),
+  );
 
-  void _openBookingDetail(_Booking b) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _BookingDetailSheet(
-        booking: b,
-        onConfirm: b.isPending
-            ? () {
-                _confirmBooking(b.id);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(_snack('Booking confirmed ✓', kGreen));
-              }
-            : null,
-        onDecline: b.isPending
-            ? () {
-                _declineBooking(b.id);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(_snack('Booking declined', kRed));
-              }
-            : null,
-      ),
-    );
-  }
+  void _openBookingSheet(ManagerBooking b) => showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _BookingDetailSheet(
+      booking: b,
+      onConfirm: b.isPending
+          ? () {
+              _confirmBooking(b.id);
+              Navigator.pop(context);
+              _snack('Booking confirmed ✓', kGreen);
+            }
+          : null,
+      onDecline: b.isPending
+          ? () {
+              _declineBooking(b.id);
+              Navigator.pop(context);
+              _snack('Booking declined', kRed);
+            }
+          : null,
+    ),
+  );
 
-  void _openManageTournament(TournamentData t) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => manage.ManageTournamentPage(tournament: t),
-      ),
-    );
-  }
-
-  SnackBar _snack(String msg, Color color) => SnackBar(
-    content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-    backgroundColor: color,
-    behavior: SnackBarBehavior.floating,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    margin: const EdgeInsets.all(16),
-    duration: const Duration(seconds: 2),
+  void _snack(
+    String msg,
+    Color color,
+  ) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
+      backgroundColor: color,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 2),
+    ),
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DASHBOARD HERO HEADER
+// HEADER
 // ─────────────────────────────────────────────────────────────────────────────
 class _DashboardHeader extends StatelessWidget {
-  final int pendingCount, courtsActive, totalCourts;
+  final VenueModel venue;
+  final int pendingCount, activeCourts, totalCourts;
   const _DashboardHeader({
+    required this.venue,
     required this.pendingCount,
-    required this.courtsActive,
+    required this.activeCourts,
     required this.totalCourts,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF001F20), Color(0xFF003D3E), kPrimary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+  Widget build(BuildContext context) => Container(
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xFF001F20), Color(0xFF003D3E), kPrimary],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top row
-              Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(color: Colors.white.withOpacity(0.18)),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.sports_tennis,
+    ),
+    child: SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: Colors.white.withOpacity(0.18)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      venue.managerAvatar,
+                      style: const TextStyle(
                         color: Colors.white,
-                        size: 22,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Good morning',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.65),
+                        ),
+                      ),
+                      Text(
+                        venue.managerName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Stack(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_outlined,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    if (pendingCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          width: 9,
+                          height: 9,
+                          decoration: BoxDecoration(
+                            color: kAmber,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF003D3E),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(
+                      Icons.stadium_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome back 👋',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.65),
+                          venue.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
                           ),
                         ),
-                        const Text(
-                          'Arena Sport Center', // Changed from "Mohamed Karim" to venue name
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: -0.4,
-                          ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_rounded,
+                              size: 11,
+                              color: Colors.white.withOpacity(0.55),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              venue.location,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.6),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  // Notification bell
-                  Stack(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                      _Chip(
+                        '$activeCourts/$totalCourts courts',
+                        Colors.white.withOpacity(0.15),
+                        Colors.white,
                       ),
-                      if (pendingCount > 0)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            width: 9,
-                            height: 9,
-                            decoration: BoxDecoration(
-                              color: kAmber,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF003D3E),
-                                width: 1.5,
-                              ),
+                      const SizedBox(height: 6),
+                      pendingCount > 0
+                          ? _Chip(
+                              '$pendingCount pending',
+                              kAmber.withOpacity(0.25),
+                              kAmber,
+                            )
+                          : _Chip(
+                              'All clear ✓',
+                              kGreen.withOpacity(0.2),
+                              kGreen,
                             ),
-                          ),
-                        ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // Venue card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withOpacity(0.12)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: const Icon(
-                        Icons.stadium_rounded,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Arena Sport Center',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on_rounded,
-                                size: 11,
-                                color: Colors.white.withOpacity(0.55),
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                'Lac 2, Tunis',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        _HeaderChip(
-                          '$courtsActive/$totalCourts active',
-                          Colors.white.withOpacity(0.15),
-                          Colors.white,
-                        ),
-                        const SizedBox(height: 6),
-                        if (pendingCount > 0)
-                          _HeaderChip(
-                            '$pendingCount pending',
-                            kAmber.withOpacity(0.25),
-                            kAmber,
-                          )
-                        else
-                          _HeaderChip(
-                            'All clear ✓',
-                            kGreen.withOpacity(0.2),
-                            kGreen,
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _HeaderChip extends StatelessWidget {
+class _Chip extends StatelessWidget {
   final String text;
   final Color bg, fg;
-  const _HeaderChip(this.text, this.bg, this.fg);
+  const _Chip(this.text, this.bg, this.fg);
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -592,71 +691,58 @@ class _SectionTitle extends StatelessWidget {
   final int? pendingBadge;
   const _SectionTitle(this.title, {required this.sub, this.pendingBadge});
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: kTextDark,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-                if (pendingBadge != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: kAmber,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '$pendingBadge pending',
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+      Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: kTextDark,
+              letterSpacing: -0.4,
             ),
-            const SizedBox(height: 2),
-            Text(sub, style: const TextStyle(fontSize: 12, color: kTextMid)),
+          ),
+          if (pendingBadge != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: kAmber,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$pendingBadge pending',
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ],
-        ),
+        ],
       ),
+      const SizedBox(height: 2),
+      Text(sub, style: const TextStyle(fontSize: 12, color: kTextMid)),
     ],
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COURT CARD — no /hr, no hall, tappable → manage sheet
+// COURT CARD — wraps CourtModel via ManagerCourt
 // ─────────────────────────────────────────────────────────────────────────────
 class _CourtCard extends StatelessWidget {
-  final _Court court;
-  final VoidCallback onToggle, onManage;
-  const _CourtCard({
-    required this.court,
-    required this.onToggle,
-    required this.onManage,
-  });
+  final ManagerCourt mc;
+  final VoidCallback onManage;
+  const _CourtCard({required this.mc, required this.onManage});
 
   @override
   Widget build(BuildContext context) {
-    final c = court;
-    final sc = c.sport.color;
+    final c = mc.court;
+    final sc = c.color;
     return GestureDetector(
       onTap: onManage,
       child: Container(
@@ -669,17 +755,19 @@ class _CourtCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Photo
-            Image.network(
-              c.imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: sc.withOpacity(0.12),
-                child: Icon(c.sport.icon, color: sc, size: 40),
-              ),
-            ),
-
-            // Gradient
+            c.imageUrl != null
+                ? Image.network(
+                    c.imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: sc.withOpacity(0.12),
+                      child: Icon(c.sport.icon, color: sc, size: 40),
+                    ),
+                  )
+                : Container(
+                    color: sc.withOpacity(0.12),
+                    child: Icon(c.sport.icon, color: sc, size: 40),
+                  ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -690,8 +778,6 @@ class _CourtCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Top badges
             Positioned(
               top: 10,
               left: 10,
@@ -730,7 +816,7 @@ class _CourtCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: c.isActive
+                      color: mc.isActive
                           ? kGreen.withOpacity(0.85)
                           : kRed.withOpacity(0.85),
                       borderRadius: BorderRadius.circular(20),
@@ -748,7 +834,7 @@ class _CourtCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          c.isActive ? 'Open' : 'Closed',
+                          mc.isActive ? 'Open' : 'Closed',
                           style: const TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
@@ -761,8 +847,6 @@ class _CourtCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Bottom info
             Positioned(
               left: 12,
               right: 12,
@@ -783,7 +867,7 @@ class _CourtCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '${c.price.toInt()} DT',
+                        '${c.pricePerHour.toInt()} DT',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -824,7 +908,7 @@ class _CourtCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${c.bookingsToday} today',
+                        '${mc.bookingsToday} today',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.75),
                           fontSize: 10,
@@ -846,14 +930,14 @@ class _CourtCard extends StatelessWidget {
 // COURT MANAGE SHEET
 // ─────────────────────────────────────────────────────────────────────────────
 class _CourtManageSheet extends StatelessWidget {
-  final _Court court;
+  final ManagerCourt mc;
   final VoidCallback onToggle;
-  const _CourtManageSheet({required this.court, required this.onToggle});
+  const _CourtManageSheet({required this.mc, required this.onToggle});
 
   @override
   Widget build(BuildContext context) {
-    final c = court;
-    final sc = c.sport.color;
+    final c = mc.court;
+    final sc = c.color;
     final bot = MediaQuery.of(context).padding.bottom;
     return Container(
       decoration: const BoxDecoration(
@@ -871,7 +955,6 @@ class _CourtManageSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Photo hero
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             child: Stack(
@@ -879,12 +962,14 @@ class _CourtManageSheet extends StatelessWidget {
                 SizedBox(
                   height: 180,
                   width: double.infinity,
-                  child: Image.network(
-                    c.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        Container(color: sc.withOpacity(0.1)),
-                  ),
+                  child: c.imageUrl != null
+                      ? Image.network(
+                          c.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              Container(color: sc.withOpacity(0.1)),
+                        )
+                      : Container(color: sc.withOpacity(0.1)),
                 ),
                 Positioned.fill(
                   child: Container(
@@ -949,7 +1034,7 @@ class _CourtManageSheet extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${c.price.toInt()} DT per session',
+                              '${c.pricePerHour.toInt()} DT · ${c.sport.label}',
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.7),
                                 fontSize: 12,
@@ -964,13 +1049,13 @@ class _CourtManageSheet extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: c.isActive
+                          color: mc.isActive
                               ? kGreen.withOpacity(0.85)
                               : kRed.withOpacity(0.85),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          c.isActive ? 'Open' : 'Closed',
+                          mc.isActive ? 'Open' : 'Closed',
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -984,17 +1069,15 @@ class _CourtManageSheet extends StatelessWidget {
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
               children: [
-                // Stats row
                 Row(
                   children: [
                     _StatBox(
                       Icons.calendar_today_rounded,
-                      '${c.bookingsToday}',
+                      '${mc.bookingsToday}',
                       'Today',
                       sc,
                     ),
@@ -1003,38 +1086,21 @@ class _CourtManageSheet extends StatelessWidget {
                     const SizedBox(width: 10),
                     _StatBox(
                       Icons.attach_money_rounded,
-                      '${c.price.toInt()} DT',
+                      '${c.pricePerHour.toInt()} DT',
                       'Price',
                       sc,
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // Actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: _SheetBtn(
-                        icon: c.isActive
-                            ? Icons.pause_circle_rounded
-                            : Icons.play_circle_rounded,
-                        label: c.isActive ? 'Close Court' : 'Open Court',
-                        color: c.isActive ? kRed : kGreen,
-                        onTap: onToggle,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SheetBtn(
-                        icon: Icons.edit_rounded,
-                        label: 'Edit Details',
-                        color: kPrimary,
-                        filled: true,
-                        onTap: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ],
+                _SheetBtn(
+                  icon: mc.isActive
+                      ? Icons.pause_circle_rounded
+                      : Icons.play_circle_rounded,
+                  label: mc.isActive ? 'Close Court' : 'Open Court',
+                  color: mc.isActive ? kRed : kGreen,
+                  filled: true,
+                  onTap: onToggle,
                 ),
               ],
             ),
@@ -1046,17 +1112,18 @@ class _CourtManageSheet extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BOOKING CARD — tappable
+// BOOKING CARD — uses ManagerBooking (wraps CourtReservation)
 // ─────────────────────────────────────────────────────────────────────────────
 class _BookingCard extends StatelessWidget {
-  final _Booking booking;
+  final ManagerBooking booking;
   final VoidCallback onTap;
   const _BookingCard({required this.booking, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final b = booking;
-    final sc = b.sport.color;
+    final r = b.reservation;
+    final sc = r.sport.color;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1071,7 +1138,6 @@ class _BookingCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Time thumbnail
             Container(
               width: 64,
               height: 64,
@@ -1085,19 +1151,21 @@ class _BookingCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    b.courtImage,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        Container(color: sc.withOpacity(0.1)),
-                  ),
+                  r.courtImageUrl != null
+                      ? Image.network(
+                          r.courtImageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              Container(color: sc.withOpacity(0.1)),
+                        )
+                      : Container(color: sc.withOpacity(0.1)),
                   Container(color: Colors.black.withOpacity(0.35)),
                   Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          b.time,
+                          r.startTime,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -1106,7 +1174,7 @@ class _BookingCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 1),
                         Icon(
-                          b.sport.icon,
+                          r.sport.icon,
                           color: Colors.white.withOpacity(0.8),
                           size: 11,
                         ),
@@ -1116,9 +1184,7 @@ class _BookingCard extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(width: 14),
-
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1126,7 +1192,7 @@ class _BookingCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      b.courtName,
+                      r.courtName,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -1144,7 +1210,7 @@ class _BookingCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          b.player,
+                          b.playerName,
                           style: const TextStyle(fontSize: 12, color: kTextMid),
                         ),
                       ],
@@ -1153,7 +1219,6 @@ class _BookingCard extends StatelessWidget {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(right: 14),
               child: Container(
@@ -1199,10 +1264,10 @@ class _BookingCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BOOKING DETAIL SHEET — beautiful, confirmed or confirm/decline
+// BOOKING DETAIL SHEET
 // ─────────────────────────────────────────────────────────────────────────────
 class _BookingDetailSheet extends StatelessWidget {
-  final _Booking booking;
+  final ManagerBooking booking;
   final VoidCallback? onConfirm, onDecline;
   const _BookingDetailSheet({
     required this.booking,
@@ -1213,9 +1278,9 @@ class _BookingDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = booking;
-    final sc = b.sport.color;
+    final r = b.reservation;
+    final sc = r.sport.color;
     final bot = MediaQuery.of(context).padding.bottom;
-
     return Container(
       decoration: const BoxDecoration(
         color: kCard,
@@ -1232,7 +1297,6 @@ class _BookingDetailSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Hero with photo
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             child: Stack(
@@ -1240,14 +1304,19 @@ class _BookingDetailSheet extends StatelessWidget {
                 SizedBox(
                   height: 160,
                   width: double.infinity,
-                  child: Image.network(
-                    b.courtImage,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: sc.withOpacity(0.15),
-                      child: Icon(b.sport.icon, color: sc, size: 48),
-                    ),
-                  ),
+                  child: r.courtImageUrl != null
+                      ? Image.network(
+                          r.courtImageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: sc.withOpacity(0.15),
+                            child: Icon(r.sport.icon, color: sc, size: 48),
+                          ),
+                        )
+                      : Container(
+                          color: sc.withOpacity(0.15),
+                          child: Icon(r.sport.icon, color: sc, size: 48),
+                        ),
                 ),
                 Positioned.fill(
                   child: Container(
@@ -1278,7 +1347,6 @@ class _BookingDetailSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Status badge
                 Positioned(
                   top: 28,
                   right: 16,
@@ -1336,7 +1404,7 @@ class _BookingDetailSheet extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
-                          b.sport.icon,
+                          r.sport.icon,
                           color: Colors.white,
                           size: 18,
                         ),
@@ -1347,7 +1415,7 @@ class _BookingDetailSheet extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              b.courtName,
+                              r.courtName,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -1356,7 +1424,7 @@ class _BookingDetailSheet extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              b.time,
+                              '${r.startTime} – ${r.endTime}',
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.7),
                                 fontSize: 12,
@@ -1376,77 +1444,159 @@ class _BookingDetailSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             child: Column(
               children: [
-                // Player info card
+                // Player card
                 Container(
-                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: kBg,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [sc, sc.withOpacity(0.6)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            b.player.split(' ').map((e) => e[0]).take(2).join(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
                           children: [
-                            Text(
-                              b.player,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: kTextDark,
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [sc, sc.withOpacity(0.6)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  b.playerName
+                                      .split(' ')
+                                      .map((e) => e[0])
+                                      .take(2)
+                                      .join(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              b.sport.label,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: kTextMid,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    b.playerName,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: kTextDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.phone_outlined,
+                                        size: 12,
+                                        color: kTextLight,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        b.playerPhone,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: kTextMid,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Call button
+                            GestureDetector(
+                              onTap: () {},
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: kGreen.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(11),
+                                ),
+                                child: const Icon(
+                                  Icons.phone_rounded,
+                                  size: 18,
+                                  color: kGreen,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
+                      // Payment + price row
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                          horizontal: 14,
+                          vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: sc.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          b.time,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: sc,
+                          color:
+                              (r.paymentOption == PaymentOption.payNow
+                                      ? kGreen
+                                      : kAmber)
+                                  .withOpacity(0.07),
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(14),
                           ),
+                          border: Border(
+                            top: BorderSide(
+                              color:
+                                  (r.paymentOption == PaymentOption.payNow
+                                          ? kGreen
+                                          : kAmber)
+                                      .withOpacity(0.15),
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              r.paymentOption == PaymentOption.payNow
+                                  ? Icons.bolt_rounded
+                                  : Icons.storefront_rounded,
+                              size: 14,
+                              color: r.paymentOption == PaymentOption.payNow
+                                  ? kGreen
+                                  : kAmber,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                r.paymentOption == PaymentOption.payNow
+                                    ? 'Paid online — confirmed automatically'
+                                    : 'Pay at venue — call player to confirm',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: r.paymentOption == PaymentOption.payNow
+                                      ? kGreen
+                                      : kAmber,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${r.totalPrice.toInt()} DT',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: sc,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1454,8 +1604,7 @@ class _BookingDetailSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Actions
-                if (b.isPending) ...[
+                if (b.isPending)
                   Row(
                     children: [
                       Expanded(
@@ -1477,8 +1626,8 @@ class _BookingDetailSheet extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ),
-                ] else
+                  )
+                else
                   Container(
                     height: 50,
                     width: double.infinity,
@@ -1519,15 +1668,12 @@ class _BookingDetailSheet extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TOURNAMENT POSTER CARD — full image, no progress bar
+// TOURNAMENT CARD — uses TournamentModel (same as player matches_page)
 // ─────────────────────────────────────────────────────────────────────────────
-class _TournamentPosterCard extends StatelessWidget {
-  final TournamentData tournament;
+class _TournamentCard extends StatelessWidget {
+  final TournamentModel tournament;
   final VoidCallback onManage;
-  const _TournamentPosterCard({
-    required this.tournament,
-    required this.onManage,
-  });
+  const _TournamentCard({required this.tournament, required this.onManage});
 
   @override
   Widget build(BuildContext context) {
@@ -1544,7 +1690,6 @@ class _TournamentPosterCard extends StatelessWidget {
         clipBehavior: Clip.hardEdge,
         child: Stack(
           children: [
-            // Poster image
             SizedBox(
               height: 200,
               width: double.infinity,
@@ -1562,8 +1707,6 @@ class _TournamentPosterCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Gradient overlay
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -1578,8 +1721,6 @@ class _TournamentPosterCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Sport badge top-left
             Positioned(
               top: 14,
               left: 14,
@@ -1609,8 +1750,6 @@ class _TournamentPosterCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Spots badge top-right
             Positioned(
               top: 14,
               right: 14,
@@ -1635,8 +1774,6 @@ class _TournamentPosterCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Bottom info
             Positioned(
               bottom: 0,
               left: 0,
@@ -1651,7 +1788,7 @@ class _TournamentPosterCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            t.name,
+                            t.title,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -1669,7 +1806,7 @@ class _TournamentPosterCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                t.date,
+                                t.dateLabel,
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12,
@@ -1683,7 +1820,15 @@ class _TournamentPosterCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${t.teams}/${t.max}',
+                                '${t.registeredTeams}/${t.maxTeams}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                '${t.entryFee} DT entry',
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12,
@@ -1741,7 +1886,7 @@ class _TournamentPosterCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SHARED MICRO WIDGETS
+// MICRO WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
 class _StatBox extends StatelessWidget {
   final IconData icon;
@@ -1790,7 +1935,6 @@ class _SheetBtn extends StatelessWidget {
     required this.onTap,
     this.filled = false,
   });
-
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,

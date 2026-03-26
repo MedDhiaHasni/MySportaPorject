@@ -19,8 +19,8 @@ class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _remember = false;
-  bool _obscure = true;
+  bool _remember = false; // New state variable to track "Remember me" checkbox
+  bool _obscure = true; // State variable to toggle password visibility
 
   @override
   void dispose() {
@@ -30,6 +30,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _submit() {
+    // called when login button is pressed
     if (_formKey.currentState!.validate()) {
       Navigator.pushReplacement(
         context,

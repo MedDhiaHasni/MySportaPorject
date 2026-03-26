@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../Constants/app_colors.dart';
 
 class AppTheme {
@@ -7,6 +8,10 @@ class AppTheme {
   static ThemeData get light => ThemeData(
     useMaterial3: false,
     scaffoldBackgroundColor: kBg,
+
+    // ── Nunito — applies to every Text widget in the whole app ───────────────
+    textTheme: GoogleFonts.nunitoTextTheme(ThemeData.light().textTheme),
+
     colorScheme: const ColorScheme.light(
       primary: kPrimary,
       secondary: kGreen,

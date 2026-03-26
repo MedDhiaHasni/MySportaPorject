@@ -1,5 +1,5 @@
 // chat_page.dart — Views/Player/chat_page.dart
-// Completely rebuilt: no contacts tab, premium sporty messaging UI
+// Light premium design: soft whites, teal accents, clean typography
 
 import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
@@ -11,23 +11,16 @@ import 'package:sporta/Models/sample_data.dart';
 // DATA
 // ─────────────────────────────────────────────────────────────────────────────
 class _ChatThread {
-  final String id;
-  final String name;
-  final String initials;
-  final bool isCourt; // venue vs player
-  final bool online;
-  final String preview;
-  final String time;
+  final String id, name, initials, preview, time;
+  final bool isCourt;
   final int unread;
   final Color accentColor;
   final List<_Msg> messages;
-
   const _ChatThread({
     required this.id,
     required this.name,
     required this.initials,
     required this.isCourt,
-    required this.online,
     required this.preview,
     required this.time,
     required this.unread,
@@ -37,10 +30,8 @@ class _ChatThread {
 }
 
 class _Msg {
-  final String text;
-  final String time;
-  final bool isMe;
-  final bool isLocation;
+  final String text, time;
+  final bool isMe, isLocation;
   const _Msg({
     required this.text,
     required this.time,
@@ -55,7 +46,6 @@ final _threads = <_ChatThread>[
     name: 'Arena Sport Center',
     initials: '🏟',
     isCourt: true,
-    online: true,
     preview: 'Your booking for tomorrow is confirmed!',
     time: '5m',
     unread: 2,
@@ -90,7 +80,6 @@ final _threads = <_ChatThread>[
     name: 'Ahmed Ben Ali',
     initials: 'AB',
     isCourt: false,
-    online: false,
     preview: 'See you at the game tonight!',
     time: '1h',
     unread: 0,
@@ -111,7 +100,6 @@ final _threads = <_ChatThread>[
     name: 'Padel Club Marsa',
     initials: '🎾',
     isCourt: true,
-    online: true,
     preview: 'Your court has been rescheduled to 19:00',
     time: '3h',
     unread: 1,
@@ -135,7 +123,6 @@ final _threads = <_ChatThread>[
     name: 'Sarra Mahjoubi',
     initials: 'SM',
     isCourt: false,
-    online: true,
     preview: 'Thanks for organizing the match!',
     time: '1d',
     unread: 0,
@@ -163,7 +150,6 @@ final _threads = <_ChatThread>[
     name: 'City Basketball Arena',
     initials: '🏀',
     isCourt: true,
-    online: false,
     preview: 'Reminder: Your game starts in 2 hours',
     time: '2d',
     unread: 0,
@@ -187,7 +173,6 @@ final _threads = <_ChatThread>[
     name: 'Nadia Ben Salah',
     initials: 'NB',
     isCourt: false,
-    online: false,
     preview: 'Are you joining the padel tournament?',
     time: '2d',
     unread: 0,
@@ -213,7 +198,7 @@ final _threads = <_ChatThread>[
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MAIN CHAT PAGE
+// MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 class Chat extends StatefulWidget {
   const Chat({super.key});
@@ -225,12 +210,9 @@ class _ChatState extends State<Chat> with SingleTickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
   _ChatThread? _openThread;
   late final List<_ChatThread> _data;
-
-  // compose sheet
   bool _showCompose = false;
   late final AnimationController _composeAnim;
-  late final Animation<double> _slideAnim;
-  late final Animation<double> _fadeAnim;
+  late final Animation<double> _slideAnim, _fadeAnim;
 
   @override
   void initState() {
@@ -239,7 +221,7 @@ class _ChatState extends State<Chat> with SingleTickerProviderStateMixin {
     _searchCtrl.addListener(() => setState(() {}));
     _composeAnim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 360),
+      duration: const Duration(milliseconds: 380),
     );
     _slideAnim = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _composeAnim, curve: Curves.easeOutCubic),
@@ -282,7 +264,6 @@ class _ChatState extends State<Chat> with SingleTickerProviderStateMixin {
       backgroundColor: kBg,
       body: Stack(
         children: [
-          // ── Main content ────────────────────────────────────────────────
           _openThread != null
               ? _ConversationScreen(
                   thread: _openThread!,
@@ -295,15 +276,13 @@ class _ChatState extends State<Chat> with SingleTickerProviderStateMixin {
                   onOpenThread: (t) => setState(() => _openThread = t),
                   onOpenCompose: _openCompose,
                 ),
-
-          // ── Compose overlay ─────────────────────────────────────────────
           if (_showCompose) ...[
             AnimatedBuilder(
               animation: _fadeAnim,
               builder: (_, __) => GestureDetector(
                 onTap: _closeCompose,
                 child: Container(
-                  color: Colors.black.withOpacity(0.5 * _fadeAnim.value),
+                  color: Colors.black.withOpacity(0.45 * _fadeAnim.value),
                 ),
               ),
             ),
@@ -339,7 +318,6 @@ class _ListScreen extends StatelessWidget {
   final int totalUnread;
   final ValueChanged<_ChatThread> onOpenThread;
   final VoidCallback onOpenCompose;
-
   const _ListScreen({
     required this.filtered,
     required this.searchCtrl,
@@ -354,7 +332,7 @@ class _ListScreen extends StatelessWidget {
         kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
     return Column(
       children: [
-        // ── Header ──────────────────────────────────────────────────────────
+        // ── Header ─────────────────────────────────────────────────────────────
         Container(
           color: kCard,
           child: SafeArea(
@@ -362,40 +340,36 @@ class _ListScreen extends StatelessWidget {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Messages',
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              color: kTextDark,
-                              letterSpacing: -0.6,
-                            ),
-                          ),
-                          if (totalUnread > 0)
-                            Text(
-                              '$totalUnread unread',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: kPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            )
-                          else
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             const Text(
-                              'All caught up',
-                              style: TextStyle(fontSize: 12, color: kTextMid),
+                              'Messages',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                color: kTextDark,
+                                letterSpacing: -0.6,
+                              ),
                             ),
-                        ],
+                            const SizedBox(height: 2),
+                            Text(
+                              totalUnread > 0
+                                  ? '$totalUnread unread'
+                                  : 'All caught up',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: totalUnread > 0 ? kPrimary : kTextMid,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const Spacer(),
-                      // Compose button — styled differently
                       GestureDetector(
                         onTap: onOpenCompose,
                         child: Container(
@@ -404,6 +378,13 @@ class _ListScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: kPrimary,
                             borderRadius: BorderRadius.circular(13),
+                            boxShadow: [
+                              BoxShadow(
+                                color: kPrimary.withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
                           child: const Icon(
                             Icons.edit_rounded,
@@ -415,45 +396,46 @@ class _ListScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // ── Search bar ─────────────────────────────────────────────────
+                const SizedBox(height: 14),
+                // Search bar
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
-                    height: 46,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7F8FA),
-                      borderRadius: BorderRadius.circular(26),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.07),
+                          blurRadius: 12,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
-                        const SizedBox(width: 16),
-                        const Icon(
-                          Icons.search_rounded,
-                          color: Color(0xFFB0B7C3),
-                          size: 18,
-                        ),
+                        const SizedBox(width: 14),
+                        Icon(Icons.search_rounded, color: kTextLight, size: 18),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             controller: searchCtrl,
                             style: const TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF0D1117),
+                              color: kTextDark,
                             ),
-                            textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText: 'Search conversations…',
-                              hintStyle: TextStyle(
-                                color: Color(0xFFB0B7C3),
+                              hintStyle: const TextStyle(
+                                color: kTextLight,
                                 fontSize: 14,
                               ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
                               isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
+                              contentPadding: const EdgeInsets.symmetric(
                                 vertical: 10,
                               ),
                             ),
@@ -463,11 +445,11 @@ class _ListScreen extends StatelessWidget {
                           GestureDetector(
                             onTap: searchCtrl.clear,
                             child: const Padding(
-                              padding: EdgeInsets.only(right: 14),
+                              padding: EdgeInsets.only(right: 12),
                               child: Icon(
                                 Icons.close_rounded,
                                 size: 15,
-                                color: Color(0xFFB0B7C3),
+                                color: kTextLight,
                               ),
                             ),
                           ),
@@ -480,10 +462,9 @@ class _ListScreen extends StatelessWidget {
             ),
           ),
         ),
-
         Divider(height: 1, color: Colors.black.withOpacity(0.06)),
 
-        // ── Thread list ──────────────────────────────────────────────────────
+        // ── Thread list ─────────────────────────────────────────────────────────
         Expanded(
           child: filtered.isEmpty
               ? Center(
@@ -535,41 +516,70 @@ class _ThreadTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        splashColor: kPrimary.withOpacity(0.04),
-        highlightColor: kPrimary.withOpacity(0.02),
+        splashColor: t.accentColor.withOpacity(0.05),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+          padding: const EdgeInsets.fromLTRB(20, 11, 20, 11),
           child: Row(
             children: [
               // Avatar
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: t.accentColor.withOpacity(0.10),
-                  shape: BoxShape.circle,
-                  border: hasUnread
-                      ? Border.all(
-                          color: t.accentColor.withOpacity(0.35),
-                          width: 1.5,
-                        )
-                      : null,
-                ),
-                child: Center(
-                  child: isEmoji
-                      ? Text(t.initials, style: const TextStyle(fontSize: 22))
-                      : Text(
-                          t.initials,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: t.accentColor,
+              Stack(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: t.accentColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                      border: hasUnread
+                          ? Border.all(
+                              color: t.accentColor.withOpacity(0.4),
+                              width: 2,
+                            )
+                          : null,
+                    ),
+                    child: Center(
+                      child: isEmoji
+                          ? Text(
+                              t.initials,
+                              style: const TextStyle(fontSize: 22),
+                            )
+                          : Text(
+                              t.initials,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: t.accentColor,
+                              ),
+                            ),
+                    ),
+                  ),
+                  if (hasUnread)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: t.accentColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: kCard, width: 2),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${t.unread}',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 14),
-
               // Content
               Expanded(
                 child: Column(
@@ -589,57 +599,30 @@ class _ThreadTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Text(
                           t.time,
                           style: TextStyle(
                             fontSize: 11,
                             color: hasUnread ? t.accentColor : kTextLight,
                             fontWeight: hasUnread
-                                ? FontWeight.w700
+                                ? FontWeight.w600
                                 : FontWeight.normal,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            t.preview,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: hasUnread ? kTextDark : kTextMid,
-                              fontWeight: hasUnread
-                                  ? FontWeight.w500
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                        if (hasUnread)
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            width: 22,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              color: t.accentColor,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${t.unread}',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
+                    const SizedBox(height: 3),
+                    Text(
+                      t.preview,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: hasUnread ? kTextDark : kTextMid,
+                        fontWeight: hasUnread
+                            ? FontWeight.w500
+                            : FontWeight.normal,
+                      ),
                     ),
                   ],
                 ),
@@ -717,182 +700,209 @@ class _ConversationScreenState extends State<_ConversationScreen> {
     final isEmoji = t.initials.runes.any((r) => r > 127);
     final bot = MediaQuery.of(context).padding.bottom;
 
-    return Column(
-      children: [
-        // ── Conversation header ─────────────────────────────────────────────
-        Container(
-          color: kCard,
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 10, 16, 12),
-                  child: Row(
-                    children: [
-                      // Back
-                      IconButton(
-                        onPressed: widget.onBack,
-                        icon: const Icon(
-                          Icons.arrow_back_ios_rounded,
-                          size: 18,
-                          color: kTextDark,
-                        ),
-                        padding: EdgeInsets.zero,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F2F5),
+      body: Column(
+        children: [
+          // Header — white with teal gradient top accent line
+          Container(
+            color: kCard,
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Container(
+                    height: 3,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [t.accentColor, t.accentColor.withOpacity(0.3)],
                       ),
-                      // Avatar — no online dot
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: t.accentColor.withOpacity(0.10),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: isEmoji
-                              ? Text(
-                                  t.initials,
-                                  style: const TextStyle(fontSize: 20),
-                                )
-                              : Text(
-                                  t.initials,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    color: t.accentColor,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          t.name,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 10, 16, 14),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: widget.onBack,
+                          icon: const Icon(
+                            Icons.arrow_back_ios_rounded,
+                            size: 18,
                             color: kTextDark,
                           ),
+                          padding: EdgeInsets.zero,
                         ),
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: t.accentColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: t.accentColor.withOpacity(0.25),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: isEmoji
+                                ? Text(
+                                    t.initials,
+                                    style: const TextStyle(fontSize: 18),
+                                  )
+                                : Text(
+                                    t.initials,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: t.accentColor,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t.name,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: kTextDark,
+                                ),
+                              ),
+                              Text(
+                                t.isCourt ? 'Venue' : 'Player',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: t.accentColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: kBg,
+                            borderRadius: BorderRadius.circular(11),
+                          ),
+                          child: Icon(
+                            Icons.more_vert_rounded,
+                            size: 18,
+                            color: kTextMid,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, color: Colors.black.withOpacity(0.06)),
+
+          // Messages
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollCtrl,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              itemCount: _msgs.length,
+              itemBuilder: (_, i) => _BubbleWidget(
+                msg: _msgs[i],
+                accentColor: t.accentColor,
+                initials: t.initials,
+              ),
+            ),
+          ),
+
+          // Input bar
+          Container(
+            color: kCard,
+            padding: EdgeInsets.fromLTRB(14, 10, 14, bot + 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 46),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F8FA),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: _isTyping
+                            ? t.accentColor.withOpacity(0.4)
+                            : Colors.black.withOpacity(0.07),
                       ),
-                      // Only info/more button
-                      _HeaderBtn(icon: Icons.more_vert_rounded, onTap: () {}),
-                    ],
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 6,
+                    ),
+                    child: TextField(
+                      controller: _ctrl,
+                      minLines: 1,
+                      maxLines: 5,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: kTextDark,
+                        height: 1.4,
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText: 'Write a message…',
+                        hintStyle: TextStyle(color: kTextLight, fontSize: 15),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 9),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: _isTyping ? _send : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: _isTyping ? t.accentColor : kBg,
+                      shape: BoxShape.circle,
+                      boxShadow: _isTyping
+                          ? [
+                              BoxShadow(
+                                color: t.accentColor.withOpacity(0.35),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Icon(
+                      Icons.send_rounded,
+                      size: 19,
+                      color: _isTyping ? Colors.white : kTextLight,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-        Divider(height: 1, color: Colors.black.withOpacity(0.06)),
-
-        // ── Messages ────────────────────────────────────────────────────────
-        Expanded(
-          child: Container(
-            color: kBg,
-            child: ListView.builder(
-              controller: _scrollCtrl,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              itemCount: _msgs.length,
-              itemBuilder: (_, i) {
-                // show date divider at start
-                final msg = _msgs[i];
-                return _BubbleWidget(
-                  msg: msg,
-                  accentColor: t.accentColor,
-                  initials: t.initials,
-                );
-              },
-            ),
-          ),
-        ),
-
-        // ── Input bar ───────────────────────────────────────────────────────
-        Container(
-          color: kCard,
-          padding: EdgeInsets.fromLTRB(12, 10, 12, bot + 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // text field
-              Expanded(
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 46),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FA),
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 6,
-                  ),
-                  child: TextField(
-                    controller: _ctrl,
-                    minLines: 1,
-                    maxLines: 5,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF0D1117),
-                      height: 1.4,
-                    ),
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'Write a message…',
-                      hintStyle: TextStyle(
-                        color: Color(0xFFB0B7C3),
-                        fontSize: 15,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              // send button — always visible, activates when typing
-              GestureDetector(
-                onTap: _isTyping ? _send : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: _isTyping ? kPrimary : kBg,
-                    shape: BoxShape.circle,
-                    border: _isTyping
-                        ? null
-                        : Border.all(color: Colors.black.withOpacity(0.08)),
-                    boxShadow: _isTyping
-                        ? [
-                            BoxShadow(
-                              color: kPrimary.withOpacity(0.32),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ]
-                        : [],
-                  ),
-                  child: Icon(
-                    Icons.send_rounded,
-                    size: 19,
-                    color: _isTyping ? Colors.white : kTextLight,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MESSAGE BUBBLE
+// BUBBLES
 // ─────────────────────────────────────────────────────────────────────────────
 class _BubbleWidget extends StatelessWidget {
   final _Msg msg;
@@ -908,7 +918,6 @@ class _BubbleWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMe = msg.isMe;
     final isEmoji = initials.runes.any((r) => r > 127);
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -917,7 +926,6 @@ class _BubbleWidget extends StatelessWidget {
             : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Avatar for received
           if (!isMe) ...[
             Container(
               width: 28,
@@ -929,7 +937,7 @@ class _BubbleWidget extends StatelessWidget {
               ),
               child: Center(
                 child: isEmoji
-                    ? Text(initials, style: const TextStyle(fontSize: 13))
+                    ? Text(initials, style: const TextStyle(fontSize: 12))
                     : Text(
                         initials.substring(0, 1),
                         style: TextStyle(
@@ -941,7 +949,6 @@ class _BubbleWidget extends StatelessWidget {
               ),
             ),
           ],
-
           Flexible(
             child: msg.isLocation
                 ? _LocationBubble(text: msg.text, time: msg.time)
@@ -952,7 +959,6 @@ class _BubbleWidget extends StatelessWidget {
                     accentColor: accentColor,
                   ),
           ),
-
           if (isMe) const SizedBox(width: 4),
         ],
       ),
@@ -982,7 +988,13 @@ class _TextBubble extends StatelessWidget {
         bottomLeft: Radius.circular(isMe ? 18 : 4),
         bottomRight: Radius.circular(isMe ? 4 : 18),
       ),
-      boxShadow: kElevation,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.06),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1003,7 +1015,7 @@ class _TextBubble extends StatelessWidget {
               time,
               style: TextStyle(
                 fontSize: 10,
-                color: isMe ? Colors.white.withOpacity(0.55) : kTextLight,
+                color: isMe ? Colors.white.withOpacity(0.6) : kTextLight,
               ),
             ),
             if (isMe) ...[
@@ -1011,7 +1023,7 @@ class _TextBubble extends StatelessWidget {
               Icon(
                 Icons.done_all_rounded,
                 size: 12,
-                color: Colors.white.withOpacity(0.55),
+                color: Colors.white.withOpacity(0.6),
               ),
             ],
           ],
@@ -1032,7 +1044,13 @@ class _LocationBubble extends StatelessWidget {
       color: kCard,
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: kPrimary.withOpacity(0.15)),
-      boxShadow: kElevation,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -1150,7 +1168,6 @@ class _ComposeSheetState extends State<_ComposeSheet> {
   @override
   Widget build(BuildContext context) {
     final bot = MediaQuery.of(context).padding.bottom;
-
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.88,
       child: Material(
@@ -1161,7 +1178,7 @@ class _ComposeSheetState extends State<_ComposeSheet> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             boxShadow: [
               BoxShadow(
-                color: Color(0x30000000),
+                color: Color(0x28000000),
                 blurRadius: 40,
                 offset: Offset(0, -8),
               ),
@@ -1169,17 +1186,15 @@ class _ComposeSheetState extends State<_ComposeSheet> {
           ),
           child: Column(
             children: [
-              // ── Header ────────────────────────────────────────────────────
+              // Gradient header
               Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [const Color(0xFF003D3E), kPrimary],
+                    colors: [Color(0xFF003D3E), kPrimary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
                 ),
                 child: Column(
                   children: [
@@ -1259,7 +1274,6 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                 ),
               ),
 
-              // ── To field ─────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: _selected != null
@@ -1267,10 +1281,9 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                         thread: _selected!,
                         onClear: _clearRecipient,
                       )
-                    : _ToField(ctrl: _toCtrl, focus: _toFocus),
+                    : _buildToField(),
               ),
 
-              // ── Suggestions ───────────────────────────────────────────────
               if (_selected == null) ...[
                 const SizedBox(height: 14),
                 Padding(
@@ -1301,29 +1314,29 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                   )
                 else
                   SizedBox(
-                    height: 90,
+                    height: 88,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       itemCount: _suggestions.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 14),
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
                       itemBuilder: (_, i) {
                         final t = _suggestions[i];
                         final isEmoji = t.initials.runes.any((r) => r > 127);
                         return GestureDetector(
                           onTap: () => _pick(t),
                           child: SizedBox(
-                            width: 62,
+                            width: 60,
                             child: Column(
                               children: [
                                 Container(
-                                  width: 54,
-                                  height: 54,
+                                  width: 52,
+                                  height: 52,
                                   decoration: BoxDecoration(
-                                    color: t.accentColor.withOpacity(0.10),
+                                    color: t.accentColor.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: t.accentColor.withOpacity(0.3),
+                                      color: t.accentColor.withOpacity(0.25),
                                       width: 1.5,
                                     ),
                                   ),
@@ -1332,7 +1345,7 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                                         ? Text(
                                             t.initials,
                                             style: const TextStyle(
-                                              fontSize: 22,
+                                              fontSize: 20,
                                             ),
                                           )
                                         : Text(
@@ -1349,7 +1362,7 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                                 Text(
                                   t.name.split(' ').first,
                                   style: const TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w600,
                                     color: kTextDark,
                                   ),
@@ -1374,7 +1387,6 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                 ),
               ),
 
-              // ── Message field ─────────────────────────────────────────────
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -1386,28 +1398,25 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFFB0B7C3),
-                          letterSpacing: 0.5,
+                          color: kTextLight,
+                          letterSpacing: 0.4,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Expanded(
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: _msgFocused
                                 ? Colors.white
                                 : const Color(0xFFF7F8FA),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                             boxShadow: _msgFocused
                                 ? [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.07),
-                                      blurRadius: 10,
+                                      color: Colors.black.withOpacity(0.08),
+                                      blurRadius: 12,
                                       offset: const Offset(0, 2),
                                     ),
                                   ]
@@ -1421,7 +1430,7 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                             textAlignVertical: TextAlignVertical.top,
                             style: const TextStyle(
                               fontSize: 15,
-                              color: Color(0xFF0D1117),
+                              color: kTextDark,
                               height: 1.55,
                             ),
                             decoration: InputDecoration(
@@ -1429,7 +1438,7 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                                   ? 'Write to ${_selected!.name.split(' ').first}…'
                                   : 'Select a recipient first…',
                               hintStyle: const TextStyle(
-                                color: Color(0xFFB0B7C3),
+                                color: kTextLight,
                                 fontSize: 15,
                               ),
                               border: InputBorder.none,
@@ -1445,7 +1454,6 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                 ),
               ),
 
-              // ── Bottom bar ────────────────────────────────────────────────
               Container(
                 padding: EdgeInsets.fromLTRB(16, 12, 16, bot + 16),
                 decoration: BoxDecoration(
@@ -1456,19 +1464,6 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: kBg,
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: const Icon(
-                        Icons.sentiment_satisfied_alt_rounded,
-                        color: kTextLight,
-                        size: 22,
-                      ),
-                    ),
                     const Spacer(),
                     GestureDetector(
                       onTap: _canSend ? widget.onClose : null,
@@ -1485,12 +1480,12 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                                   end: Alignment.bottomRight,
                                 )
                               : null,
-                          color: _canSend ? null : kBg,
+                          color: _canSend ? null : kPrimary.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: _canSend
                               ? [
                                   BoxShadow(
-                                    color: kPrimary.withOpacity(0.28),
+                                    color: kPrimary.withOpacity(0.3),
                                     blurRadius: 12,
                                     offset: const Offset(0, 4),
                                   ),
@@ -1503,7 +1498,9 @@ class _ComposeSheetState extends State<_ComposeSheet> {
                             Icon(
                               Icons.send_rounded,
                               size: 18,
-                              color: _canSend ? Colors.white : kTextLight,
+                              color: _canSend
+                                  ? Colors.white
+                                  : kPrimary.withOpacity(0.4),
                             ),
                             if (_canSend) ...[
                               const SizedBox(width: 6),
@@ -1529,87 +1526,64 @@ class _ComposeSheetState extends State<_ComposeSheet> {
       ),
     );
   }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPOSE SUB-WIDGETS
-// ─────────────────────────────────────────────────────────────────────────────
-class _ToField extends StatelessWidget {
-  final TextEditingController ctrl;
-  final FocusNode focus;
-  const _ToField({required this.ctrl, required this.focus});
-
-  @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: focus,
-    builder: (_, __) {
-      final isFocused = focus.hasFocus;
-      return AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        height: 50,
-        decoration: BoxDecoration(
-          color: isFocused ? Colors.white : const Color(0xFFF7F8FA),
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: isFocused
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
+  Widget _buildToField() => Container(
+    height: 50,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.07),
+          blurRadius: 10,
+          offset: const Offset(0, 2),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        child: Row(
-          children: [
-            Text(
-              'To:',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF9CA3AF),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: ctrl,
-                focusNode: focus,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF0D1117),
-                ),
-                decoration: const InputDecoration(
-                  hintText: 'Name or venue…',
-                  hintStyle: TextStyle(color: Color(0xFFB0B7C3), fontSize: 14),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  errorBorder: InputBorder.none,
-                  focusedErrorBorder: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-            if (ctrl.text.isNotEmpty)
-              GestureDetector(
-                onTap: ctrl.clear,
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 4),
-                  child: Icon(
-                    Icons.close_rounded,
-                    size: 16,
-                    color: Color(0xFFB0B7C3),
-                  ),
-                ),
-              ),
-          ],
+      ],
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Row(
+      children: [
+        const Text(
+          'To:',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: kTextMid,
+          ),
         ),
-      );
-    },
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextField(
+            controller: _toCtrl,
+            focusNode: _toFocus,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: kTextDark,
+            ),
+            decoration: const InputDecoration(
+              hintText: 'Name or venue…',
+              hintStyle: TextStyle(color: kTextLight, fontSize: 14),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ),
+        if (_toCtrl.text.isNotEmpty)
+          GestureDetector(
+            onTap: _toCtrl.clear,
+            child: const Padding(
+              padding: EdgeInsets.only(left: 4),
+              child: Icon(Icons.close_rounded, size: 16, color: kTextLight),
+            ),
+          ),
+      ],
+    ),
   );
 }
 
@@ -1625,7 +1599,7 @@ class _RecipientChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: t.accentColor.withOpacity(0.06),
+        color: t.accentColor.withOpacity(0.07),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: t.accentColor.withOpacity(0.2)),
       ),
@@ -1635,7 +1609,7 @@ class _RecipientChip extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: t.accentColor.withOpacity(0.10),
+              color: t.accentColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -1675,26 +1649,4 @@ class _RecipientChip extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SMALL SHARED
-// ─────────────────────────────────────────────────────────────────────────────
-class _HeaderBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _HeaderBtn({required this.icon, required this.onTap});
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        color: kBg,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Icon(icon, size: 18, color: kPrimary),
-    ),
-  );
 }

@@ -6,9 +6,10 @@ class AuthHeader extends StatelessWidget {
   heightFactor; // Proportion of screen height to use for the header
   final Widget? leading; // Optional leading widget (e.g., back button)
   final String? subtitle; // Optional subtitle text below the title
+
   const AuthHeader({
     super.key,
-    this.heightFactor = 0.27,
+    this.heightFactor = 0.23, // Reduced from 0.24 to 0.22
     this.leading,
     this.subtitle,
   });
@@ -18,31 +19,27 @@ class AuthHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: MediaQuery.of(context).size.height * heightFactor,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF003D3E), kPrimary],
+          colors: [kPrimary, kPrimary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(28), // Reduced from 32 to 28
+          bottomRight: Radius.circular(28),
         ),
       ),
-      // lahnee idha fama leading "back button" yemchi 3al lisar w lb9eya logo wala 7aja center
       child: SafeArea(
         child: leading != null
             ? Row(
                 children: [
-                  leading!, // Display the leading widget (e.g., back button) ! : means it's non-nullable
-                  Expanded(
-                    child:
-                        _center(), // Display the logo and text in the center of the remaining space
-                  ), // Center the logo and text in the remaining space
+                  leading!,
+                  Expanded(child: _center()),
                   const SizedBox(width: 56),
                 ],
               )
-            : _center(), // If no leading widget, just display the logo and text centered
+            : _center(),
       ),
     );
   }
@@ -50,53 +47,51 @@ class AuthHeader extends StatelessWidget {
   Widget _center() => Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          color: Colors.white24,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white38, width: 2),
-        ),
-        child: ClipOval(
-          // Clip the image to a circle
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Image.asset('assets/test1.png', fit: BoxFit.contain),
-          ),
-        ),
+      // Logo without background container - clean and simple
+      Image.asset(
+        'assets/sportalogowhite.png',
+        width: 60, // Reduced from 65 to 60
+        height: 60,
+        errorBuilder: (_, __, ___) =>
+            Icon(Icons.sports_tennis_rounded, color: Colors.white, size: 50),
       ),
-      const SizedBox(height: 8),
+      const SizedBox(height: 8), // Reduced from 12 to 8
       const Text(
         'Sporta',
         style: TextStyle(
-          fontSize: 26,
+          fontSize: 22, // Reduced from 24 to 22
           fontWeight: FontWeight.w800,
           color: Colors.white,
           letterSpacing: -0.5,
         ),
       ),
-      const SizedBox(height: 6),
+      const SizedBox(height: 6), // Reduced from 8 to 6
       if (subtitle != null)
         Text(
           subtitle!,
-          style: const TextStyle(fontSize: 12, color: Colors.white70),
+          style: const TextStyle(
+            fontSize: 11, // Reduced from 12 to 11
+            color: Colors.white70,
+            fontWeight: FontWeight.w500,
+          ),
         )
       else
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 3,
+          ), // Reduced padding
           decoration: BoxDecoration(
-            color: Colors.white24,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white38),
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: const Text(
             'BOOK · PLAY · WIN',
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
+              fontSize: 9, // Reduced from 10 to 9
+              fontWeight: FontWeight.w600,
               color: Colors.white70,
-              letterSpacing: 2.0,
+              letterSpacing: 0.6,
             ),
           ),
         ),

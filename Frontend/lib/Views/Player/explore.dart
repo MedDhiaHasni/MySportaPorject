@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
+import 'package:sporta/Models/venue_model.dart';
 import 'dart:ui' as ui;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -11,34 +12,7 @@ import 'package:sporta/Views/Player/court_booking_page.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // VENUE MODEL  (courts live inside venues)
 // ─────────────────────────────────────────────────────────────────────────────
-class VenueModel {
-  final String name;
-  final String location;
-  final List<String> sports; // e.g. ['Football', 'Padel']
-  final List<String> amenities;
-  final int minPrice; // lowest court price in this venue
-  final int maxPrice;
-  final bool available;
-  final String openUntil;
-  final String image;
-  final double lat, lng;
-  final List<Map<String, dynamic>> courts; // courts inside this venue
-
-  const VenueModel({
-    required this.name,
-    required this.location,
-    required this.sports,
-    required this.amenities,
-    required this.minPrice,
-    required this.maxPrice,
-    required this.available,
-    required this.openUntil,
-    required this.image,
-    required this.lat,
-    required this.lng,
-    required this.courts,
-  });
-}
+// VenueModel → see Models/venue_model.dart
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SAMPLE VENUE DATA
@@ -47,6 +21,9 @@ final _sampleVenues = [
   VenueModel(
     name: 'Arena Sport Center',
     location: 'Lac 2, Tunis',
+    managerName: 'Anis Trabelsi',
+    managerPhone: '+216 71 234 567',
+    managerAvatar: 'AT',
     sports: ['Football', 'Padel'],
     amenities: ['Parking', 'Showers', 'Floodlights', 'Locker'],
     minPrice: 90,
@@ -59,18 +36,24 @@ final _sampleVenues = [
     courts: [
       {
         'courtName': 'Football Court A',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=800&q=80',
         'sport': 'Football',
         'price': 90,
         'available': true,
       },
       {
         'courtName': 'Football Court B',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1551958219-acbc1c2edbf8?w=800&q=80',
         'sport': 'Football',
         'price': 90,
         'available': false,
       },
       {
         'courtName': 'Padel Court 1',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80',
         'sport': 'Padel',
         'price': 120,
         'available': true,
@@ -80,6 +63,9 @@ final _sampleVenues = [
   VenueModel(
     name: 'Padel Club Marsa',
     location: 'La Marsa, Tunis',
+    managerName: 'Sami Bouaziz',
+    managerPhone: '+216 71 345 678',
+    managerAvatar: 'SB',
     sports: ['Padel', 'Tennis'],
     amenities: ['Cafe', 'Equipment', 'Coaching', 'AC'],
     minPrice: 105,
@@ -92,18 +78,24 @@ final _sampleVenues = [
     courts: [
       {
         'courtName': 'Padel Court A',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80',
         'sport': 'Padel',
         'price': 120,
         'available': true,
       },
       {
         'courtName': 'Padel Court B',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80',
         'sport': 'Padel',
         'price': 120,
         'available': true,
       },
       {
         'courtName': 'Tennis Court 1',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=800&q=80',
         'sport': 'Tennis',
         'price': 105,
         'available': false,
@@ -113,6 +105,9 @@ final _sampleVenues = [
   VenueModel(
     name: 'City Basketball Arena',
     location: 'Menzah 6, Tunis',
+    managerName: 'Rami Chabbi',
+    managerPhone: '+216 71 456 789',
+    managerAvatar: 'RC',
     sports: ['Basketball'],
     amenities: ['Indoor', 'AC', 'Scoreboard', 'Parking'],
     minPrice: 75,
@@ -125,12 +120,16 @@ final _sampleVenues = [
     courts: [
       {
         'courtName': 'Main Court',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80',
         'sport': 'Basketball',
         'price': 75,
         'available': false,
       },
       {
         'courtName': 'Training Court',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80',
         'sport': 'Basketball',
         'price': 75,
         'available': false,
@@ -140,6 +139,9 @@ final _sampleVenues = [
   VenueModel(
     name: 'Green Field Complex',
     location: 'Ariana, Tunis',
+    managerName: 'Yassine Mzali',
+    managerPhone: '+216 71 567 890',
+    managerAvatar: 'YM',
     sports: ['Football', 'Tennis'],
     amenities: ['Parking', 'Cafe', 'Floodlights', 'Grass'],
     minPrice: 80,
@@ -152,18 +154,24 @@ final _sampleVenues = [
     courts: [
       {
         'courtName': 'Grass Field 1',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1551958219-acbc1c2edbf8?w=800&q=80',
         'sport': 'Football',
         'price': 80,
         'available': true,
       },
       {
         'courtName': 'Grass Field 2',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1551958219-acbc1c2edbf8?w=800&q=80',
         'sport': 'Football',
         'price': 80,
         'available': true,
       },
       {
         'courtName': 'Tennis Court',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=800&q=80',
         'sport': 'Tennis',
         'price': 105,
         'available': true,
@@ -173,6 +181,9 @@ final _sampleVenues = [
   VenueModel(
     name: 'Tennis Academy Tunis',
     location: 'Gammarth, Tunis',
+    managerName: 'Leila Gharbi',
+    managerPhone: '+216 71 678 901',
+    managerAvatar: 'LG',
     sports: ['Tennis'],
     amenities: ['Coaching', 'Equipment', 'Showers', 'Cafe'],
     minPrice: 105,
@@ -185,12 +196,16 @@ final _sampleVenues = [
     courts: [
       {
         'courtName': 'Court Central',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=800&q=80',
         'sport': 'Tennis',
         'price': 105,
         'available': true,
       },
       {
         'courtName': 'Court 2',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1545809074-59472b3f5ecc?w=800&q=80',
         'sport': 'Tennis',
         'price': 105,
         'available': true,
@@ -200,6 +215,9 @@ final _sampleVenues = [
   VenueModel(
     name: 'Beach Volleyball Club',
     location: 'La Goulette, Tunis',
+    managerName: 'Hatem Saidi',
+    managerPhone: '+216 71 789 012',
+    managerAvatar: 'HS',
     sports: ['Volleyball'],
     amenities: ['Beach', 'Showers', 'Cafe', 'Parking'],
     minPrice: 70,
@@ -212,12 +230,16 @@ final _sampleVenues = [
     courts: [
       {
         'courtName': 'Sand Court A',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80',
         'sport': 'Volleyball',
         'price': 70,
         'available': true,
       },
       {
         'courtName': 'Sand Court B',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80',
         'sport': 'Volleyball',
         'price': 70,
         'available': false,
@@ -317,25 +339,10 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _navigateToBooking(VenueModel venue, Map<String, dynamic> court) {
-    final sportType = _mapSport(court['sport'] as String);
-    final courtModel = CourtModel(
-      id: '${venue.name}_${court['courtName']}',
-      name: court['courtName'] as String,
-      location: venue.location,
-      sport: sportType,
-      pricePerHour: (court['price'] as int).toDouble(),
-      color: sportType.color,
-      imageUrl: null,
-    );
+  void _navigateToBooking(VenueModel venue, [Map<String, dynamic>? court]) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => CourtBookingPage(
-          preselectedCourt: courtModel,
-          venueName: venue.name,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => CourtBookingPage(venue: venue)),
     );
   }
 
@@ -660,7 +667,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (_, i) => _VenueCard(
         venue: venues[i],
-        onBookCourt: (court) => _navigateToBooking(venues[i], court),
+        onBookCourt: () => _navigateToBooking(venues[i]),
       ),
     );
   }
@@ -935,14 +942,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
   }
 
   Widget _buildMapCardPreview(VenueModel venue) {
-    void goToBooking() {
-      final firstAvailable = venue.courts.firstWhere(
-        (c) => c['available'] == true,
-        orElse: () => venue.courts.first,
-      );
-      _navigateToBooking(venue, firstAvailable);
-    }
-
+    void goToBooking() => _navigateToBooking(venue);
     return GestureDetector(
       onTap: goToBooking,
       child: Container(
@@ -1077,9 +1077,9 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
       backgroundColor: Colors.transparent,
       builder: (_) => _VenuePreviewSheet(
         venue: venue,
-        onBookCourt: (court) {
+        onBookCourt: () {
           Navigator.pop(context);
-          _navigateToBooking(venue, court);
+          _navigateToBooking(venue);
         },
       ),
     );
@@ -1370,7 +1370,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
 // ─────────────────────────────────────────────────────────────────────────────
 class _VenueCard extends StatelessWidget {
   final VenueModel venue;
-  final ValueChanged<Map<String, dynamic>> onBookCourt;
+  final VoidCallback onBookCourt;
   const _VenueCard({required this.venue, required this.onBookCourt});
 
   Widget _buildImage(String path) {
@@ -1563,13 +1563,7 @@ class _VenueCard extends StatelessWidget {
 
                     // Book Now — goes directly to booking with first available court
                     GestureDetector(
-                      onTap: () {
-                        final firstAvailable = venue.courts.firstWhere(
-                          (c) => c['available'] == true,
-                          orElse: () => venue.courts.first,
-                        );
-                        onBookCourt(firstAvailable);
-                      },
+                      onTap: onBookCourt,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
@@ -1616,7 +1610,7 @@ class _VenueCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 class _CourtsPickerSheet extends StatelessWidget {
   final VenueModel venue;
-  final ValueChanged<Map<String, dynamic>> onBookCourt;
+  final VoidCallback onBookCourt;
   const _CourtsPickerSheet({required this.venue, required this.onBookCourt});
 
   Widget _buildImage(String path) {
@@ -1732,7 +1726,7 @@ class _CourtsPickerSheet extends StatelessWidget {
               onTap: available
                   ? () {
                       Navigator.pop(context);
-                      onBookCourt(court);
+                      onBookCourt();
                     }
                   : null,
               child: Container(
@@ -1862,7 +1856,7 @@ class _CourtsPickerSheet extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 class _VenuePreviewSheet extends StatelessWidget {
   final VenueModel venue;
-  final ValueChanged<Map<String, dynamic>> onBookCourt;
+  final VoidCallback onBookCourt;
   const _VenuePreviewSheet({required this.venue, required this.onBookCourt});
 
   @override

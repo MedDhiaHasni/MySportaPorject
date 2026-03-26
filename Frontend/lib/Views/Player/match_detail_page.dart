@@ -7,7 +7,7 @@ import 'package:sporta/Widgets/Lists/status_badge.dart';
 import 'package:sporta/Widgets/Lists/section_title.dart';
 import 'package:sporta/Widgets/Buttons/primary_button.dart';
 import 'package:sporta/Models/app_enums.dart';
-import 'package:sporta/Models/app_models.dart';
+import 'package:sporta/Models/app_models.dart'; 
 import 'package:sporta/Models/sample_data.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
