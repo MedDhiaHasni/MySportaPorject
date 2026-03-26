@@ -129,3 +129,24 @@ dist
 build
 .strapi-updater.json
 .strapi-cloud.json
+
+############################
+# Flutter (Frontend)
+############################
+
+Frontend/.dart_tool/
+Frontend/.flutter-plugins
+Frontend/.flutter-plugins-dependencies
+Frontend/.packages
+Frontend/build/
+Frontend/.idea/
+
+############################
+# Backend (Strapi project specific)
+############################
+
+Backend/node_modules/
+Backend/.env
+Backend/build/
+Backend/dist/
+Backend/.cache/
