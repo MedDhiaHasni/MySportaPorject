@@ -1,51 +1,223 @@
+// @ts-nocheck
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || "secret";
 
-module.exports = async (ctx, next) => {
-  const authHeader = ctx.request.header.authorization;
+module.exports = async (ctx) => {
+    const authHeader = ctx.request.header.authorization;
 
-  if (!authHeader) {
-    console.log("Middleware JWT : pas de token");
-    ctx.status = 401;
-    ctx.body = { message: "No token" };
-    return;
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!token) {
-    console.log("Middleware JWT : token mal formaté");
-    ctx.status = 401;
-    ctx.body = { message: "Token invalid" };
-    return;
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = typeof decoded === 'object' && decoded !== null ? decoded.id : null;
-
-    if (!userId) {
-      console.log("Middleware JWT : id utilisateur manquant dans token");
-      ctx.status = 401;
-      ctx.body = { message: "Token invalid" };
-      return;
+    if (!authHeader) {
+        return false;
     }
 
-    const user = await strapi.db.query("plugin::users-permissions.user").findOne({ where: { id: userId } });
-    if (!user) {
-      console.log("Middleware JWT : utilisateur introuvable");
-      ctx.status = 401;
-      ctx.body = { message: "Utilisateur introuvable" };
-      return;
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        return false;
     }
 
-    console.log("Middleware JWT : utilisateur connecté", user.email);
-    ctx.state.user = user;
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        // @ts-ignore
+        const userId = decoded?.id;
 
-    // ✅ passer au middleware suivant
-    await next();
-  } catch (err) {
-    console.log("Middleware JWT : token invalide ou expiré", err.message);
-    ctx.status = 401;
-    ctx.body = { message: "Token invalid" };
-  }
+        if (!userId) {
+            return false;
+        }
+
+        const user = await strapi.db
+            .query("plugin::users-permissions.user")
+            .findOne({
+                where: { id: userId },
+            });
+
+        if (!user) {
+            return false;
+        }
+
+        console.log("USER FROM DB:", user);
+
+        // Get manager profile ID if user is a manager
+        let managerId = null;
+        if (user.user_role === 'manager') {
+            const manager = await strapi.db.query("api::manager.manager").findOne({
+                where: { manager: user.id }
+            });
+            managerId = manager?.id;
+            console.log("MANAGER PROFILE ID:", managerId);
+        }
+
+        // Get player profile ID if user is a player
+        let playerId = null;
+        if (user.user_role === 'player') {
+            const player = await strapi.db.query("api::player.player").findOne({
+                where: { player: user.id }
+            });
+            playerId = player?.id;
+            console.log("PLAYER PROFILE ID:", playerId);
+        }
+
+        // Get worker profile ID if user is a worker
+        let workerId = null;
+        if (user.user_role === 'worker') {
+            const worker = await strapi.db.query("api::worker.worker").findOne({
+                where: { worker: user.id }
+            });
+            workerId = worker?.id;
+            console.log("WORKER PROFILE ID:", workerId);
+        }
+
+        ctx.state.user = {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            user_role: user.user_role,
+            managerId: managerId,
+            playerId: playerId,
+            workerId: workerId,
+        };
+
+        return true;
+    } catch (err) {
+        console.log("JWT ERROR:", err.message);
+        return false;
+    }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*// @ts-nocheck
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || "secret";
+
+module.exports = async (ctx) => {
+    const authHeader = ctx.request.header.authorization;
+
+    if (!authHeader) {
+        return false;
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        return false;
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        // @ts-ignore
+        const userId = decoded?.id;
+
+        if (!userId) {
+            return false;
+        }
+
+        const user = await strapi.db
+            .query("plugin::users-permissions.user")
+            .findOne({
+                where: { id: userId },
+            });
+
+        if (!user) {
+            return false;
+        }
+
+        console.log("USER FROM DB:", user);
+
+        // Get manager profile ID if user is a manager
+        let managerId = null;
+        if (user.user_role === 'manager') {
+            const manager = await strapi.db.query("api::manager.manager").findOne({
+                where: { manager: user.id }
+            });
+            managerId = manager?.id;
+            console.log("MANAGER PROFILE ID:", managerId);
+        }
+
+        // Get player profile ID if user is a player
+        let playerId = null;
+        if (user.user_role === 'player') {
+            const player = await strapi.db.query("api::player.player").findOne({
+                where: { player: user.id }
+            });
+            playerId = player?.id;
+            console.log("PLAYER PROFILE ID:", playerId);
+        }
+
+        ctx.state.user = {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            user_role: user.user_role,
+            managerId: managerId,
+            playerId: playerId,  // Add playerId for player users
+        };
+
+        return true;
+    } catch (err) {
+        console.log("JWT ERROR:", err.message);
+        return false;
+    }
+};
+
+************************
+
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || "secret";
+
+module.exports = async (ctx) => {
+    const authHeader = ctx.request.header.authorization;
+
+    if (!authHeader) {
+        return false;
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        return false;
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        // @ts-ignore
+        const userId = decoded?.id;
+
+        if (!userId) {
+            return false;
+        }
+
+        const user = await strapi.db
+            .query("plugin::users-permissions.user")
+            .findOne({
+                where: { id: userId },
+            });
+
+        if (!user) {
+            return false;
+        }
+
+        console.log("USER FROM DB:", user);
+
+        ctx.state.user = {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            user_role: user.user_role,
+        };
+
+        return true;
+    } catch (err) {
+        console.log("JWT ERROR:", err.message);
+        return false;
+    }
+};*/ 

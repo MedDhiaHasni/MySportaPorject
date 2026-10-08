@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "355473863624",
+    "project_id": "sporta-58907",
+    "storage_bucket": "sporta-58907.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:355473863624:android:b8cfac8e1937348569c6fd",
+        "android_client_info": {
+          "package_name": "com.example.sporta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0KrDylwapPc7XQj8gczXQHJuXoU72vnE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

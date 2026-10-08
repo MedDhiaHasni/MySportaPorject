@@ -1,0 +1,105 @@
+{
+  "kind": "collectionType",
+  "collectionName": "venues",
+  "info": {
+    "singularName": "venue",
+    "pluralName": "venues",
+    "displayName": "venue"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "location": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "openTime": {
+      "type": "string",
+      "required": true
+    },
+    "closeTime": {
+      "type": "string",
+      "required": true
+    },
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "sports": {
+      "type": "enumeration",
+      "required": false,
+      "enum": [
+        "football",
+        "tennis",
+        "padel",
+        "basketball"
+      ]
+    },
+    "amenities": {
+      "type": "enumeration",
+      "enum": [
+        "Parking",
+        "Showers",
+        "Changing Rooms",
+        "Cafe",
+        "WiFi",
+        "First Aid",
+        "Seating",
+        "Coaching",
+        "Equipment Rental",
+        "AC",
+        "Lockers",
+        "Pro Shop"
+      ]
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "manager": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::manager.manager",
+      "inversedBy": "venues"
+    },
+    "courts": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::court.court",
+      "mappedBy": "venue"
+    },
+    "ratings": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::rating.rating",
+      "mappedBy": "venue"
+    },
+    "lat": {
+      "type": "decimal"
+    },
+    "lng": {
+      "type": "decimal"
+    },
+    "avg_rating": {
+      "type": "float"
+    },
+    "total_rating": {
+      "type": "integer"
+    }
+  }
+}

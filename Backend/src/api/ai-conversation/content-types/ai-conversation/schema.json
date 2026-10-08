@@ -1,0 +1,44 @@
+{
+  "kind": "collectionType",
+  "collectionName": "ai_conversations",
+  "info": {
+    "singularName": "ai-conversation",
+    "pluralName": "ai-conversations",
+    "displayName": "AI Conversation"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "sessionId": {
+      "type": "string",
+      "required": true
+    },
+    "question": {
+      "type": "text",
+      "required": true
+    },
+    "answer": {
+      "type": "text",
+      "required": true
+    },
+    "usedDatabaseContext": {
+      "type": "boolean",
+      "default": false
+    },
+    "contextType": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "tokensUsed": {
+      "type": "integer"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}

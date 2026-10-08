@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 
 class AvatarWidget extends StatefulWidget {
-  final String initials; // The initials to display in the avatar 
+  final String initials; // el inisitals li tet7at blaset l'avatar
   final double
   size; // A widget that displays a circular avatar with initials, customizable size and background color
   final Color?
@@ -27,9 +27,9 @@ class _AvatarWidgetState extends State<AvatarWidget> {
         colors: [
           (widget.bg ?? kPrimary).withOpacity(
             0.8,
-          ), // The background color of the avatar, using the provided color or a default primary color with reduced opacity
+          ), 
           widget.bg ??
-              kPrimary, // The background color of the avatar, using the provided color or a default primary color
+              kPrimary, // background color mta3 l'avatar 
         ],
       ),
       borderRadius: BorderRadius.circular(widget.size * 0.3),

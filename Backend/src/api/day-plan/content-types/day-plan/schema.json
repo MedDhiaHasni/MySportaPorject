@@ -1,0 +1,53 @@
+{
+  "kind": "collectionType",
+  "collectionName": "day_plans",
+  "info": {
+    "singularName": "day-plan",
+    "pluralName": "day-plans",
+    "displayName": "DayPlan"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "dayOfWeek": {
+      "type": "enumeration",
+      "enum": [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday"
+      ]
+    },
+    "date": {
+      "type": "date"
+    },
+    "dayType": {
+      "type": "enumeration",
+      "enum": [
+        "normal",
+        "urgent_only",
+        "day_off"
+      ]
+    },
+    "notes": {
+      "type": "text"
+    },
+    "week_agend": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::week-agenda.week-agenda",
+      "inversedBy": "day_plans"
+    },
+    "time_slots": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::time-slot.time-slot",
+      "mappedBy": "day_plan"
+    }
+  }
+}

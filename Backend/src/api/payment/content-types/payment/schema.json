@@ -1,0 +1,41 @@
+{
+  "kind": "collectionType",
+  "collectionName": "payments",
+  "info": {
+    "singularName": "payment",
+    "pluralName": "payments",
+    "displayName": "Payment",
+    "description": "Payment records for reservations"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "amount": {
+      "type": "decimal",
+      "required": true,
+      "min": 0
+    },
+    "currency": {
+      "type": "string",
+      "default": "eur",
+      "maxLength": 3
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "succeeded", "failed"],
+      "default": "pending",
+      "required": true
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "unique": true
+    },
+    "reservation": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::reservation.reservation",
+      "inversedBy": "payments"
+    }
+  }
+}

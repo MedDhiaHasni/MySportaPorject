@@ -1,0 +1,60 @@
+{
+  "kind": "collectionType",
+  "collectionName": "workers",
+  "info": {
+    "singularName": "worker",
+    "pluralName": "workers",
+    "displayName": "Worker",
+    "description": "Court workers who work under managers"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "phone": {
+      "type": "string"
+    },
+    "worker": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "courts": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::court.court",
+      "mappedBy": "worker",
+      "description": "Courts this worker is assigned to (one worker can have many courts)"
+    },
+    "manager": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::manager.manager",
+      "inversedBy": "workers",
+      "description": "Manager who supervises this worker"
+    },
+    "firebaseUid": {
+      "type": "string"
+    },
+    "fcmToken": {
+      "type": "string"
+    },
+    "nom": {
+      "type": "string"
+    },
+    "photo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images", "files", "videos", "audios"]
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "joinedAt": {
+      "type": "datetime",
+      "default": "${new Date().toISOString()}"
+    }
+  }
+}

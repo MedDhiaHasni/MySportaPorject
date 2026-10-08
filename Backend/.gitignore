@@ -141,12 +141,25 @@ Frontend/.packages
 Frontend/build/
 Frontend/.idea/
 
+# Android build outputs
+Frontend/android/build/
+Frontend/android/.gradle/
+Frontend/android/app/build/
+
+# iOS build outputs
+Frontend/ios/Pods/
+Frontend/ios/.symlinks/
+Frontend/ios/Flutter/Flutter.framework
+Frontend/ios/Flutter/Flutter.podspec
+
+# Firebase config (contains project keys)
+Frontend/android/app/google-services.json
+Frontend/ios/Runner/GoogleService-Info.plist
+
 ############################
-# Backend (Strapi project specific)
+# Root-level npm files (unintentional)
 ############################
 
-Backend/node_modules/
-Backend/.env
-Backend/build/
-Backend/dist/
-Backend/.cache/
+/package.json
+/package-lock.json
+/node_modules/

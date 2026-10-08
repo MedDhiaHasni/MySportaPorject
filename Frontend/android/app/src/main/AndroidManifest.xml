@@ -1,8 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- ========== ADD THESE PERMISSIONS HERE ========== -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- ================================================ -->
+    
     <application
         android:label="sporta"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data
+    android:name="com.mapbox.token"
+    android:value="pk.eyJ1IjoiaGFzbmk3IiwiYSI6ImNtcHZud2M2ODAwamsycHF1emJiaG53NjcifQ.d4idEEQc51YuabZjcVR0RA" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -31,10 +40,10 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
-
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
         <intent>
@@ -42,4 +51,18 @@
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
+    
 </manifest>
+
+
+
+
+
+
+
+
+
+
+
+
+

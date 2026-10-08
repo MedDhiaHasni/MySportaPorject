@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Utils/validators.dart';
-import 'package:sporta/Views/Player/navigation.dart';
+import 'package:sporta/Views/Auth/login_page.dart';
 import 'package:sporta/Widgets/Inputs/app_input_field.dart';
 import 'package:sporta/Widgets/Shared/auth_header.dart';
+import 'package:sporta/Services/player_manager_auth_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -22,11 +24,89 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _obscure = true;
   bool _obscureConfirm = true;
   bool _agreed = false;
+  bool _isLoading = false;
+
+  final _storage = const FlutterSecureStorage();
 
   @override
   void dispose() {
     for (final c in [_name, _email, _phone, _password, _confirm]) c.dispose();
     super.dispose();
+  }
+
+  Future<void> _register() async {
+    if (!_agreed) {
+      _showErrorDialog('Please agree to the Terms of Service and Privacy Policy');
+      return;
+    }
+
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+
+      try {
+        print('=== REGISTRATION ATTEMPT ===');
+        print('Username: ${_name.text.trim()}');
+        print('Email: ${_email.text.trim()}');
+        print('Phone: ${_phone.text.trim()}');
+
+        final response = await PlayerManagerAuthService.register(
+          username: _name.text.trim(),
+          email: _email.text.trim(),
+          password: _password.text.trim(),
+          phone: _phone.text.trim(),
+        );
+
+        print('Response: $response');
+
+        if (response['id'] != null) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Account created successfully! Please login.'),
+              backgroundColor: kGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+          
+          // Navigate back to login page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+          );
+        } else {
+          setState(() => _isLoading = false);
+          _showErrorDialog('Registration failed. Please try again.');
+        }
+      } catch (error) {
+        print('Registration error: $error');
+        setState(() => _isLoading = false);
+        _showErrorDialog(error.toString());
+      }
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Registration Failed',
+          style: TextStyle(color: kRed, fontWeight: FontWeight.w800),
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -178,11 +258,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _agreed
-                          ? () {
-                              if (_formKey.currentState!.validate()) {}
-                            }
-                          : null,
+                      onPressed: _isLoading ? null : (_agreed ? _register : null),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimary,
                         disabledBackgroundColor: Colors.grey[300],
@@ -191,27 +267,38 @@ class _SignUpPageState extends State<SignUpPage> {
                         ),
                         elevation: 4,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Create Account',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: _agreed ? Colors.white : Colors.grey[500],
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Create Account',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: _agreed ? Colors.white : Colors.grey[500],
+                                  ),
+                                ),
+                                if (_agreed) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ],
+                              ],
                             ),
-                          ),
-                          if (_agreed) ...[
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ],
-                        ],
-                      ),
                     ),
                   ),
                   const SizedBox(height: 24),

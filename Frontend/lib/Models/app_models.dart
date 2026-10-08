@@ -15,16 +15,17 @@ class AppPlayer {
 }
 
 class CourtModel {
-  final String id, name, location;
+  final String id, name; // location removed
   final SportType sport;
   final double pricePerHour;
   final Color color;
   final String? imageUrl;
   final List<String> availableTimeSlots;
+  final bool isActive; // NEW: Court availability status
+  
   const CourtModel({
     required this.id,
     required this.name,
-    required this.location,
     required this.sport,
     required this.pricePerHour,
     required this.color,
@@ -44,6 +45,7 @@ class CourtModel {
       '20:00',
       '21:00',
     ],
+    this.isActive = true, // NEW: Default to true
   });
 }
 

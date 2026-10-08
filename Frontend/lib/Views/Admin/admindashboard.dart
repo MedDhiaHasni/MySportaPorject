@@ -1,715 +1,701 @@
+// lib/Views/Admin/admin_dashboard.dart
+// Fully wired admin dashboard:
+//   - Add / Edit / Delete players, managers, workers
+//   - Block / Unblock any user
+//   - Admin profile view + update
+//   - Logout
+//   - Real data from backend
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
+import 'package:sporta/Core/Constants/api_constants.dart';
 import 'package:sporta/Models/app_enums.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// THEME PROVIDER
-// ─────────────────────────────────────────────────────────────────────────────
-class ThemeProvider extends ChangeNotifier {
-  bool _isDarkMode = false;
-  bool get isDarkMode => _isDarkMode;
-
-  void toggleTheme() {
-    _isDarkMode = !_isDarkMode;
-    notifyListeners();
-  }
-
-  void setTheme(bool isDark) {
-    _isDarkMode = isDark;
-    notifyListeners();
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// THEME EXTENSIONS
-// ─────────────────────────────────────────────────────────────────────────────
-class AdminThemeColors extends ThemeExtension<AdminThemeColors> {
-  final Color background;
-  final Color surface;
-  final Color card;
-  final Color border;
-  final Color text;
-  final Color textMid;
-  final Color textLight;
-  final Color hover;
-  final Color divider;
-
-  AdminThemeColors({
-    required this.background,
-    required this.surface,
-    required this.card,
-    required this.border,
-    required this.text,
-    required this.textMid,
-    required this.textLight,
-    required this.hover,
-    required this.divider,
-  });
-
-  // Light theme only - using app colors
-  static final light = AdminThemeColors(
-    background: kBg,
-    surface: Colors.white,
-    card: Colors.white,
-    border: const Color(0xFFE5E5E5),
-    text: kTextDark,
-    textMid: kTextMid,
-    textLight: kTextLight,
-    hover: const Color(0xFFF5F5F5),
-    divider: const Color(0xFFEEEEEE),
-  );
-
-  @override
-  ThemeExtension<AdminThemeColors> copyWith({
-    Color? background,
-    Color? surface,
-    Color? card,
-    Color? border,
-    Color? text,
-    Color? textMid,
-    Color? textLight,
-    Color? hover,
-    Color? divider,
-  }) {
-    return AdminThemeColors(
-      background: background ?? this.background,
-      surface: surface ?? this.surface,
-      card: card ?? this.card,
-      border: border ?? this.border,
-      text: text ?? this.text,
-      textMid: textMid ?? this.textMid,
-      textLight: textLight ?? this.textLight,
-      hover: hover ?? this.hover,
-      divider: divider ?? this.divider,
-    );
-  }
-
-  @override
-  ThemeExtension<AdminThemeColors> lerp(
-    covariant ThemeExtension<AdminThemeColors>? other,
-    double t,
-  ) {
-    if (other is! AdminThemeColors) return this;
-    return AdminThemeColors(
-      background: Color.lerp(background, other.background, t)!,
-      surface: Color.lerp(surface, other.surface, t)!,
-      card: Color.lerp(card, other.card, t)!,
-      border: Color.lerp(border, other.border, t)!,
-      text: Color.lerp(text, other.text, t)!,
-      textMid: Color.lerp(textMid, other.textMid, t)!,
-      textLight: Color.lerp(textLight, other.textLight, t)!,
-      hover: Color.lerp(hover, other.hover, t)!,
-      divider: Color.lerp(divider, other.divider, t)!,
-    );
-  }
-}
+import 'package:sporta/Services/admin_auth_service.dart';
+import 'package:sporta/Views/Admin/admin_login.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODELS
 // ─────────────────────────────────────────────────────────────────────────────
-enum AdminSection {
-  overview,
-  players,
-  managers,
-  venues,
-  bookings,
-  tournaments,
-  reports,
-  settings,
-}
+enum AdminSection { overview, players, managers, workers, complexes, bookings, settings }
 
 class AdminPlayer {
-  final String id, name, email, phone, avatar;
+  final String id, name, email, phone;
   final int bookings;
   final double spent;
   final bool isActive;
   final DateTime joined;
-
-  AdminPlayer({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.avatar,
-    required this.bookings,
-    required this.spent,
-    required this.isActive,
-    required this.joined,
-  });
-
-  AdminPlayer copyWith({bool? isActive}) => AdminPlayer(
-    id: id,
-    name: name,
-    email: email,
-    phone: phone,
-    avatar: avatar,
-    bookings: bookings,
-    spent: spent,
-    isActive: isActive ?? this.isActive,
-    joined: joined,
-  );
-}
-
-class ManagerVenue {
-  String name;
-  String city;
-  int courts;
-  List<SportType> sports;
-
-  ManagerVenue({
-    required this.name,
-    required this.city,
-    required this.courts,
-    required this.sports,
-  });
+  const AdminPlayer({required this.id, required this.name, required this.email, required this.phone, required this.bookings, required this.spent, required this.isActive, required this.joined});
+  AdminPlayer copyWith({bool? isActive}) => AdminPlayer(id: id, name: name, email: email, phone: phone, bookings: bookings, spent: spent, isActive: isActive ?? this.isActive, joined: joined);
 }
 
 class AdminManager {
-  final String id, name, email, phone, avatar;
-  final List<ManagerVenue> venues;
-  final int bookingsMonth;
+  final String id, name, email, phone;
+  final List<dynamic> complexes;
+  final int totalCourts, totalBookings;
   final double revenue;
   final bool isActive;
   final DateTime joined;
-
-  AdminManager({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.avatar,
-    required this.venues,
-    required this.bookingsMonth,
-    required this.revenue,
-    required this.isActive,
-    required this.joined,
-  });
-
-  int get totalCourts => venues.fold(0, (sum, v) => sum + v.courts);
-  String get firstVenueName =>
-      venues.isNotEmpty ? venues.first.name : 'No venue';
-  String get firstVenueCity =>
-      venues.isNotEmpty ? venues.first.city : 'Unknown';
-
-  // FIX: Added missing copyWith method
-  AdminManager copyWith({bool? isActive}) => AdminManager(
-    id: id,
-    name: name,
-    email: email,
-    phone: phone,
-    avatar: avatar,
-    venues: venues,
-    bookingsMonth: bookingsMonth,
-    revenue: revenue,
-    isActive: isActive ?? this.isActive,
-    joined: joined,
-  );
+  const AdminManager({required this.id, required this.name, required this.email, required this.phone, required this.complexes, required this.totalCourts, required this.totalBookings, required this.revenue, required this.isActive, required this.joined});
+  AdminManager copyWith({bool? isActive, double? revenue, int? totalCourts, int? totalBookings}) => AdminManager(id: id, name: name, email: email, phone: phone, complexes: complexes, totalCourts: totalCourts ?? this.totalCourts, totalBookings: totalBookings ?? this.totalBookings, revenue: revenue ?? this.revenue, isActive: isActive ?? this.isActive, joined: joined);
 }
 
-class AdminBooking {
-  final String id, player, venue, court, time, date;
-  final SportType sport;
-  final double price;
-  final String status;
-  const AdminBooking({
-    required this.id,
-    required this.player,
-    required this.venue,
-    required this.court,
-    required this.time,
-    required this.date,
-    required this.sport,
-    required this.price,
-    required this.status,
-  });
+class AdminWorker {
+  final String id, name, email, phone, managerId, managerName;
+  final List<dynamic> courts;
+  final bool isActive;
+  final DateTime joined;
+  const AdminWorker({required this.id, required this.name, required this.email, required this.phone, required this.managerId, required this.managerName, required this.courts, required this.isActive, required this.joined});
+  AdminWorker copyWith({bool? isActive}) => AdminWorker(id: id, name: name, email: email, phone: phone, managerId: managerId, managerName: managerName, courts: courts, isActive: isActive ?? this.isActive, joined: joined);
 }
 
-class AdminVenue {
-  final String id, name, city, manager, address;
+class AdminComplex {
+  final String id, name, city, manager, managerId;
   final int courts, bookingsMonth;
   final double revenue, rating;
   final bool isActive;
   final List<SportType> sports;
-  AdminVenue({
-    required this.id,
-    required this.name,
-    required this.city,
-    required this.manager,
-    required this.address,
-    required this.courts,
-    required this.bookingsMonth,
-    required this.revenue,
-    required this.rating,
-    required this.isActive,
-    required this.sports,
-  });
+  const AdminComplex({required this.id, required this.name, required this.city, required this.manager, required this.managerId, required this.courts, required this.bookingsMonth, required this.revenue, required this.rating, required this.isActive, required this.sports});
+}
+
+class AdminBooking {
+  final String id, player, complex, court, time, date, status;
+  final SportType sport;
+  final double price;
+  const AdminBooking({required this.id, required this.player, required this.complex, required this.court, required this.time, required this.date, required this.status, required this.sport, required this.price});
+}
+
+class MonthlyRevenue {
+  final String month;
+  final double amount;
+  const MonthlyRevenue({required this.month, required this.amount});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SEED DATA
+// HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
-List<AdminPlayer> _seedPlayers() => [
-  AdminPlayer(
-    id: 'p1',
-    name: 'Karim Jaziri',
-    email: 'karim@email.com',
-    phone: '+216 55 100 001',
-    avatar: 'KJ',
-    bookings: 34,
-    spent: 2840,
-    isActive: true,
-    joined: DateTime(2023, 3, 12),
-  ),
-  AdminPlayer(
-    id: 'p2',
-    name: 'Nadia Ben Salah',
-    email: 'nadia@email.com',
-    phone: '+216 55 100 002',
-    avatar: 'NB',
-    bookings: 21,
-    spent: 1560,
-    isActive: true,
-    joined: DateTime(2023, 6, 4),
-  ),
-  AdminPlayer(
-    id: 'p3',
-    name: 'Mehdi Trabelsi',
-    email: 'mehdi@email.com',
-    phone: '+216 55 100 003',
-    avatar: 'MT',
-    bookings: 47,
-    spent: 4120,
-    isActive: true,
-    joined: DateTime(2023, 1, 28),
-  ),
-  AdminPlayer(
-    id: 'p4',
-    name: 'Leila Mallouli',
-    email: 'leila@email.com',
-    phone: '+216 55 100 004',
-    avatar: 'LM',
-    bookings: 12,
-    spent: 890,
-    isActive: false,
-    joined: DateTime(2024, 2, 14),
-  ),
-  AdminPlayer(
-    id: 'p5',
-    name: 'Ahmed Ben Ali',
-    email: 'ahmed@email.com',
-    phone: '+216 55 100 005',
-    avatar: 'AB',
-    bookings: 28,
-    spent: 2100,
-    isActive: true,
-    joined: DateTime(2023, 9, 7),
-  ),
-  AdminPlayer(
-    id: 'p6',
-    name: 'Yasmine Khelifi',
-    email: 'yasmine@email.com',
-    phone: '+216 55 100 006',
-    avatar: 'YK',
-    bookings: 19,
-    spent: 1440,
-    isActive: true,
-    joined: DateTime(2024, 1, 3),
-  ),
-  AdminPlayer(
-    id: 'p7',
-    name: 'Sami Bouazizi',
-    email: 'sami@email.com',
-    phone: '+216 55 100 007',
-    avatar: 'SB',
-    bookings: 55,
-    spent: 5300,
-    isActive: true,
-    joined: DateTime(2022, 11, 20),
-  ),
-  AdminPlayer(
-    id: 'p8',
-    name: 'Rania Hammami',
-    email: 'rania@email.com',
-    phone: '+216 55 100 008',
-    avatar: 'RH',
-    bookings: 8,
-    spent: 560,
-    isActive: false,
-    joined: DateTime(2024, 4, 18),
-  ),
-];
+String _initials(String name) {
+  final p = name.trim().split(' ');
+  if (p.length >= 2) return '${p[0][0]}${p[1][0]}'.toUpperCase();
+  return name.isNotEmpty ? name[0].toUpperCase() : 'U';
+}
 
-List<AdminManager> _seedManagers() => [
-  AdminManager(
-    id: 'm1',
-    name: 'Mohamed Karim',
-    email: 'mk@arena.tn',
-    phone: '+216 55 200 001',
-    avatar: 'MK',
-    venues: [
-      ManagerVenue(
-        name: 'Arena Sport Center',
-        city: 'Tunis',
-        courts: 4,
-        sports: [
-          SportType.football,
-          SportType.padel,
-          SportType.tennis,
-          SportType.basketball,
-        ],
-      ),
-    ],
-    bookingsMonth: 142,
-    revenue: 12800,
-    isActive: true,
-    joined: DateTime(2022, 8, 1),
-  ),
-  AdminManager(
-    id: 'm2',
-    name: 'Fares Bouslama',
-    email: 'fares@sport.tn',
-    phone: '+216 55 200 002',
-    avatar: 'FB',
-    venues: [
-      ManagerVenue(
-        name: 'Tunis Sport Hub',
-        city: 'Ariana',
-        courts: 3,
-        sports: [SportType.football, SportType.padel],
-      ),
-    ],
-    bookingsMonth: 89,
-    revenue: 7400,
-    isActive: true,
-    joined: DateTime(2023, 2, 15),
-  ),
-  AdminManager(
-    id: 'm3',
-    name: 'Inès Sahli',
-    email: 'ines@club.tn',
-    phone: '+216 55 200 003',
-    avatar: 'IS',
-    venues: [
-      ManagerVenue(
-        name: 'Padel Club Nord',
-        city: 'La Marsa',
-        courts: 2,
-        sports: [SportType.padel, SportType.tennis],
-      ),
-    ],
-    bookingsMonth: 61,
-    revenue: 5200,
-    isActive: true,
-    joined: DateTime(2023, 5, 22),
-  ),
-  AdminManager(
-    id: 'm4',
-    name: 'Walid Cherif',
-    email: 'walid@field.tn',
-    phone: '+216 55 200 004',
-    avatar: 'WC',
-    venues: [
-      ManagerVenue(
-        name: 'City Field',
-        city: 'Sfax',
-        courts: 5,
-        sports: [SportType.football, SportType.basketball],
-      ),
-    ],
-    bookingsMonth: 203,
-    revenue: 18600,
-    isActive: true,
-    joined: DateTime(2022, 12, 3),
-  ),
-  AdminManager(
-    id: 'm5',
-    name: 'Sara Mrad',
-    email: 'sara@fit.tn',
-    phone: '+216 55 200 005',
-    avatar: 'SM',
-    venues: [
-      ManagerVenue(
-        name: 'FitZone Courts',
-        city: 'Sousse',
-        courts: 2,
-        sports: [SportType.tennis],
-      ),
-    ],
-    bookingsMonth: 44,
-    revenue: 3800,
-    isActive: false,
-    joined: DateTime(2024, 1, 9),
-  ),
-];
-
-List<AdminBooking> _seedBookings() => [
-  AdminBooking(
-    id: 'b1',
-    player: 'Karim Jaziri',
-    venue: 'Arena Sport Center',
-    court: 'Court Alpha',
-    time: '08:00 – 09:00',
-    date: 'Today',
-    sport: SportType.football,
-    price: 90,
-    status: 'confirmed',
-  ),
-  AdminBooking(
-    id: 'b2',
-    player: 'Nadia Ben Salah',
-    venue: 'Padel Club Nord',
-    court: 'Court 1',
-    time: '09:30 – 11:00',
-    date: 'Today',
-    sport: SportType.padel,
-    price: 180,
-    status: 'confirmed',
-  ),
-  AdminBooking(
-    id: 'b3',
-    player: 'Mehdi Trabelsi',
-    venue: 'Arena Sport Center',
-    court: 'Court Gamma',
-    time: '11:00 – 13:00',
-    date: 'Today',
-    sport: SportType.basketball,
-    price: 210,
-    status: 'pending',
-  ),
-  AdminBooking(
-    id: 'b4',
-    player: 'Leila Mallouli',
-    venue: 'Tunis Sport Hub',
-    court: 'Court B',
-    time: '14:00 – 15:00',
-    date: 'Today',
-    sport: SportType.tennis,
-    price: 105,
-    status: 'confirmed',
-  ),
-  AdminBooking(
-    id: 'b5',
-    player: 'Ahmed Ben Ali',
-    venue: 'City Field',
-    court: 'Field 3',
-    time: '19:00 – 20:00',
-    date: 'Today',
-    sport: SportType.football,
-    price: 75,
-    status: 'pending',
-  ),
-  AdminBooking(
-    id: 'b6',
-    player: 'Yasmine Khelifi',
-    venue: 'Arena Sport Center',
-    court: 'Court Beta',
-    time: '10:00 – 11:30',
-    date: 'Yesterday',
-    sport: SportType.padel,
-    price: 180,
-    status: 'confirmed',
-  ),
-  AdminBooking(
-    id: 'b7',
-    player: 'Sami Bouazizi',
-    venue: 'City Field',
-    court: 'Field 1',
-    time: '16:00 – 17:00',
-    date: 'Yesterday',
-    sport: SportType.football,
-    price: 75,
-    status: 'cancelled',
-  ),
-  AdminBooking(
-    id: 'b8',
-    player: 'Rania Hammami',
-    venue: 'FitZone Courts',
-    court: 'Court A',
-    time: '08:00 – 09:00',
-    date: 'Jun 10',
-    sport: SportType.tennis,
-    price: 95,
-    status: 'confirmed',
-  ),
-];
-
-List<AdminVenue> _seedVenues() => [
-  AdminVenue(
-    id: 'v1',
-    name: 'Arena Sport Center',
-    city: 'Tunis',
-    manager: 'Mohamed Karim',
-    address: 'Lac 2, Tunis',
-    courts: 4,
-    bookingsMonth: 142,
-    revenue: 12800,
-    rating: 4.8,
-    isActive: true,
-    sports: [
-      SportType.football,
-      SportType.padel,
-      SportType.tennis,
-      SportType.basketball,
-    ],
-  ),
-  AdminVenue(
-    id: 'v2',
-    name: 'Tunis Sport Hub',
-    city: 'Ariana',
-    manager: 'Fares Bouslama',
-    address: 'Cité Ennasr, Ariana',
-    courts: 3,
-    bookingsMonth: 89,
-    revenue: 7400,
-    rating: 4.5,
-    isActive: true,
-    sports: [SportType.football, SportType.padel],
-  ),
-  AdminVenue(
-    id: 'v3',
-    name: 'Padel Club Nord',
-    city: 'La Marsa',
-    manager: 'Inès Sahli',
-    address: 'Corniche, La Marsa',
-    courts: 2,
-    bookingsMonth: 61,
-    revenue: 5200,
-    rating: 4.7,
-    isActive: true,
-    sports: [SportType.padel, SportType.tennis],
-  ),
-  AdminVenue(
-    id: 'v4',
-    name: 'City Field',
-    city: 'Sfax',
-    manager: 'Walid Cherif',
-    address: 'Route Nationale, Sfax',
-    courts: 5,
-    bookingsMonth: 203,
-    revenue: 18600,
-    rating: 4.9,
-    isActive: true,
-    sports: [SportType.football, SportType.basketball],
-  ),
-  AdminVenue(
-    id: 'v5',
-    name: 'FitZone Courts',
-    city: 'Sousse',
-    manager: 'Sara Mrad',
-    address: 'Sousse Médina',
-    courts: 2,
-    bookingsMonth: 44,
-    revenue: 3800,
-    rating: 4.2,
-    isActive: false,
-    sports: [SportType.tennis],
-  ),
-];
+String _fmtDate(DateTime d) {
+  const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return '${d.day} ${m[d.month - 1]} ${d.year}';
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ROOT — ADMIN DASHBOARD
+// FIX 1: Robust sport parser — handles plain strings, objects, and any casing
+// ─────────────────────────────────────────────────────────────────────────────
+SportType? _parseSport(dynamic raw) {
+  // Extract the string value whether raw is a String or a Map {id, name}
+  String s;
+  if (raw is Map) {
+    s = (raw['name'] ?? raw['sport'] ?? raw['type'] ?? '').toString();
+  } else {
+    s = raw.toString();
+  }
+
+  switch (s.trim().toLowerCase()) {
+    case 'football':   return SportType.football;
+    case 'tennis':     return SportType.tennis;
+    case 'padel':      return SportType.padel;
+    case 'basketball': return SportType.basketball;
+    default:           return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX 2: Robust sports list extractor — handles all backend formats
+// ─────────────────────────────────────────────────────────────────────────────
+List<SportType> _parseSportsList(dynamic raw) {
+  if (raw == null) return [];
+
+  List<dynamic> list;
+
+  if (raw is List) {
+    list = raw;
+  } else if (raw is String) {
+    // Sometimes a JSON array is accidentally returned as a string
+    try {
+      final decoded = json.decode(raw);
+      if (decoded is List) {
+        list = decoded;
+      } else {
+        // Single sport as a plain string e.g. "football"
+        final sp = _parseSport(raw);
+        return sp != null ? [sp] : [];
+      }
+    } catch (_) {
+      final sp = _parseSport(raw);
+      return sp != null ? [sp] : [];
+    }
+  } else {
+    return [];
+  }
+
+  final result = <SportType>[];
+  for (final item in list) {
+    final sp = _parseSport(item);
+    if (sp != null) result.add(sp);
+  }
+  return result;
+}
+
+extension _Cap on String {
+  String get cap => isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THEME
+// ─────────────────────────────────────────────────────────────────────────────
+class AdminTheme extends ThemeExtension<AdminTheme> {
+  final Color bg, surface, card, border, text, mid, light, hover, divider;
+  const AdminTheme({
+    required this.bg,
+    required this.surface,
+    required this.card,
+    required this.border,
+    required this.text,
+    required this.mid,
+    required this.light,
+    required this.hover,
+    required this.divider,
+  });
+
+  static const AdminTheme lightTheme = AdminTheme(
+    bg: Color(0xFFF2F4F7),
+    surface: Colors.white,
+    card: Colors.white,
+    border: Color(0xFFE5E5E5),
+    text: Color(0xFF0A0E1A),
+    mid: Color(0xFF64748B),
+    light: Color(0xFFB0B7C3),
+    hover: Color(0xFFF5F5F5),
+    divider: Color(0xFFEEEEEE),
+  );
+
+  @override
+  ThemeExtension<AdminTheme> copyWith({
+    Color? bg, Color? surface, Color? card, Color? border,
+    Color? text, Color? mid, Color? light, Color? hover, Color? divider,
+  }) {
+    return AdminTheme(
+      bg: bg ?? this.bg, surface: surface ?? this.surface, card: card ?? this.card,
+      border: border ?? this.border, text: text ?? this.text, mid: mid ?? this.mid,
+      light: light ?? this.light, hover: hover ?? this.hover, divider: divider ?? this.divider,
+    );
+  }
+
+  @override
+  ThemeExtension<AdminTheme> lerp(covariant ThemeExtension<AdminTheme>? other, double t) => this;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DASHBOARD ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({super.key});
-  @override
-  State<AdminDashboard> createState() => _AdminDashboardState();
+  final String adminToken;
+  const AdminDashboard({super.key, required this.adminToken, required Null Function() onLogout});
+  @override State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
   AdminSection _section = AdminSection.overview;
   bool _sidebarCollapsed = false;
 
-  late List<AdminPlayer> _players = _seedPlayers();
-  late List<AdminManager> _managers = _seedManagers();
-  late List<AdminBooking> _bookings = _seedBookings();
-  late List<AdminVenue> _venues = _seedVenues();
+  List<AdminPlayer> _players = [];
+  List<AdminManager> _managers = [];
+  List<AdminWorker> _workers = [];
+  List<AdminComplex> _complexes = [];
+  List<AdminBooking> _bookings = [];
 
-  void _togglePlayerStatus(String id) => setState(() {
-    final i = _players.indexWhere((p) => p.id == id);
-    if (i != -1) {
-      _players[i] = _players[i].copyWith(isActive: !_players[i].isActive);
+  bool _loadingPlayers = false;
+  bool _loadingManagers = false;
+  bool _loadingWorkers = false;
+  bool _loadingComplexes = false;
+  bool _loadingBookings = false;
+
+  String? _errPlayers, _errManagers, _errWorkers, _errComplexes, _errBookings;
+
+  List<MonthlyRevenue> _monthlyRevenues = [];
+  Map<SportType, int> _bookingsBySport = {};
+  double _totalRevenue = 0;
+
+  String _adminUsername = 'Admin';
+  String _adminEmail = '';
+
+  final _smKey = GlobalKey<ScaffoldMessengerState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAll();
+    _loadAdminProfile();
+  }
+
+  // ── Loaders ───────────────────────────────────────────────────────────────
+
+  Future<void> _loadAll() async {
+    await Future.wait([_loadPlayers(), _loadManagers(), _loadWorkers(), _loadComplexes(), _loadBookings()]);
+    _calcAnalytics();
+  }
+
+  Future<void> _loadAdminProfile() async {
+    try {
+      final me = await AdminAuthService.getMe(widget.adminToken);
+      final user = me['user'] ?? me;
+      setState(() {
+        _adminUsername = user['username']?.toString() ?? 'Admin';
+        _adminEmail = user['email']?.toString() ?? '';
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _loadPlayers() async {
+    setState(() { _loadingPlayers = true; _errPlayers = null; });
+    try {
+      final raw = await AdminAuthService.getPlayers(widget.adminToken);
+      setState(() {
+        _players = raw.map((j) {
+          final m = j as Map<String, dynamic>;
+          return AdminPlayer(
+            id: m['id'].toString(),
+            name: m['username']?.toString() ?? 'Unknown',
+            email: m['email']?.toString() ?? '',
+            phone: m['phone']?.toString() ?? '',
+            bookings: (m['bookings'] as num?)?.toInt() ?? 0,
+            spent: (m['totalSpent'] as num?)?.toDouble() ?? 0,
+            isActive: m['isActive'] ?? true,
+            joined: m['createdAt'] != null
+                ? DateTime.tryParse(m['createdAt'].toString()) ?? DateTime.now()
+                : DateTime.now(),
+          );
+        }).toList();
+        _loadingPlayers = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errPlayers = e.toString().replaceAll('Exception: ', '');
+        _loadingPlayers = false;
+      });
     }
-  });
+  }
 
-  void _toggleManagerStatus(String id) => setState(() {
-    final i = _managers.indexWhere((m) => m.id == id);
-    if (i != -1) {
-      _managers[i] = _managers[i].copyWith(isActive: !_managers[i].isActive);
+  Future<void> _loadManagers() async {
+    setState(() { _loadingManagers = true; _errManagers = null; });
+    try {
+      final raw = await AdminAuthService.getManagers(widget.adminToken);
+      setState(() {
+        _managers = raw.map((j) {
+          final m = j as Map<String, dynamic>;
+          return AdminManager(
+            id: m['id'].toString(),
+            name: m['username']?.toString() ?? 'Unknown',
+            email: m['email']?.toString() ?? '',
+            phone: m['phone']?.toString() ?? '',
+            complexes: (m['complexes'] as List?) ?? [],
+            totalCourts: (m['totalCourts'] as num?)?.toInt() ?? 0,
+            totalBookings: (m['totalBookings'] as num?)?.toInt() ?? 0,
+            revenue: (m['totalRevenue'] as num?)?.toDouble() ?? 0,
+            isActive: m['isActive'] ?? true,
+            joined: m['createdAt'] != null
+                ? DateTime.tryParse(m['createdAt'].toString()) ?? DateTime.now()
+                : DateTime.now(),
+          );
+        }).toList();
+        _loadingManagers = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errManagers = e.toString().replaceAll('Exception: ', '');
+        _loadingManagers = false;
+      });
     }
-  });
+  }
 
-  void _addManager(AdminManager m) => setState(() => _managers.insert(0, m));
-  void _deletePlayer(String id) =>
-      setState(() => _players.removeWhere((p) => p.id == id));
-  void _deleteManager(String id) =>
-      setState(() => _managers.removeWhere((m) => m.id == id));
+  Future<void> _loadWorkers() async {
+    setState(() { _loadingWorkers = true; _errWorkers = null; });
+    try {
+      final raw = await AdminAuthService.getWorkers(widget.adminToken);
+      setState(() {
+        _workers = raw.map((j) {
+          final m = j as Map<String, dynamic>;
+          return AdminWorker(
+            id: m['id'].toString(),
+            name: m['username']?.toString() ?? m['nom']?.toString() ?? 'Unknown',
+            email: m['email']?.toString() ?? '',
+            phone: m['phone']?.toString() ?? '',
+            managerId: m['managerId']?.toString() ?? '',
+            managerName: m['managerName']?.toString() ?? 'Unknown',
+            courts: (m['courts'] as List?) ?? [],
+            isActive: m['isActive'] ?? true,
+            joined: m['joinedAt'] != null
+                ? DateTime.tryParse(m['joinedAt'].toString()) ?? DateTime.now()
+                : DateTime.now(),
+          );
+        }).toList();
+        _loadingWorkers = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errWorkers = e.toString().replaceAll('Exception: ', '');
+        _loadingWorkers = false;
+      });
+    }
+  }
+
+  Future<void> _loadComplexes() async {
+    setState(() { _loadingComplexes = true; _errComplexes = null; });
+    try {
+      final r = await http.get(
+        Uri.parse(ApiConstants.publicVenues), // API endpoint remains the same but we treat response as complexes
+        headers: {'Authorization': 'Bearer ${widget.adminToken}'},
+      );
+      if (r.statusCode == 200) {
+        final list = json.decode(r.body) as List<dynamic>;
+        setState(() {
+          _complexes = list.map((j) {
+            final m = j as Map<String, dynamic>;
+
+            // ─────────────────────────────────────────────────────────────
+            // FIX 3: Use _parseSportsList for robust sports extraction.
+            // Handles: null, [], ["football"], ["Football"], [{id,name}], "football"
+            // ─────────────────────────────────────────────────────────────
+            final sports = _parseSportsList(m['sports']);
+
+            final mgr = m['manager'];
+            return AdminComplex(
+              id: m['id'].toString(),
+              name: m['name']?.toString() ?? '',
+              city: m['location']?.toString().split(',').first ?? '',
+              manager: mgr is Map ? (mgr['username']?.toString() ?? '') : '',
+              managerId: mgr is Map ? (mgr['id']?.toString() ?? '') : '',
+              courts: (m['courts'] as List?)?.length ?? 0,
+              bookingsMonth: 0,
+              revenue: 0,
+              rating: (m['avg_rating'] as num?)?.toDouble() ?? 0,
+              isActive: m['isActive'] ?? true,
+              sports: sports,
+            );
+          }).toList();
+          _loadingComplexes = false;
+        });
+      } else {
+        throw Exception('Failed to load complexes');
+      }
+    } catch (e) {
+      setState(() {
+        _errComplexes = e.toString().replaceAll('Exception: ', '');
+        _loadingComplexes = false;
+      });
+    }
+  }
+
+  Future<void> _loadBookings() async {
+    setState(() { _loadingBookings = true; _errBookings = null; });
+    try {
+      final r = await http.get(
+        Uri.parse('${ApiConstants.reservations}?populate[court][populate][complex]=*&populate[player][populate][player]=*&populate[time_slot]=*'),
+        headers: {'Authorization': 'Bearer ${widget.adminToken}'},
+      );
+      if (r.statusCode == 200) {
+        final data = json.decode(r.body);
+        final list = (data is Map ? data['data'] : data) as List<dynamic>? ?? [];
+        setState(() {
+          _bookings = list.map((item) {
+            final raw = item is Map && item['attributes'] != null
+                ? Map<String, dynamic>.from(item['attributes'] as Map)['id'] = item['id']
+                : Map<String, dynamic>.from(item as Map);
+            final court = _nested(raw, 'court');
+            final complex = _nested(court, 'complex');
+            final player = _nested(raw, 'player');
+            final user = _nested(player, 'player');
+            final ts = _nested(raw, 'time_slot');
+            return AdminBooking(
+              id: raw['id']?.toString() ?? '',
+              player: user['username']?.toString() ?? player['nom']?.toString() ?? 'Unknown',
+              complex: complex['name']?.toString() ?? '',
+              court: court['name']?.toString() ?? '',
+              time: '${ts['startTime'] ?? raw['start_time'] ?? '--'} – ${ts['endTime'] ?? raw['end_time'] ?? '--'}',
+              date: raw['booking_date_play']?.toString().split('T')[0] ?? '',
+              status: raw['booking_status']?.toString() ?? 'pending',
+              sport: _parseSport(court['sport']?.toString() ?? '') ?? SportType.football,
+              price: (raw['total_price'] as num?)?.toDouble() ?? 0,
+            );
+          }).toList();
+          _loadingBookings = false;
+        });
+      } else {
+        throw Exception('Failed to load bookings');
+      }
+    } catch (e) {
+      setState(() {
+        _errBookings = e.toString().replaceAll('Exception: ', '');
+        _loadingBookings = false;
+      });
+    }
+  }
+
+  Map<String, dynamic> _nested(Map<String, dynamic>? m, String key) {
+    if (m == null) return {};
+    final v = m[key];
+    if (v is Map) {
+      final d = v['data'] ?? v;
+      if (d is Map) return (d['attributes'] ?? d) as Map<String, dynamic>;
+    }
+    return {};
+  }
+
+  void _calcAnalytics() {
+    _totalRevenue = _bookings.fold(0.0, (s, b) => s + b.price);
+    _bookingsBySport = {};
+    for (final b in _bookings) {
+      _bookingsBySport[b.sport] = (_bookingsBySport[b.sport] ?? 0) + 1;
+    }
+    final monthly = <String, double>{};
+    for (final b in _bookings) {
+      if (b.date.length >= 7) {
+        final mo = b.date.substring(0, 7);
+        monthly[mo] = (monthly[mo] ?? 0) + b.price;
+      }
+    }
+    final keys = monthly.keys.toList()..sort();
+    _monthlyRevenues = keys.map((k) {
+      try {
+        return MonthlyRevenue(
+          month: DateFormat('MMM yy').format(DateTime.parse('$k-01')),
+          amount: monthly[k]!,
+        );
+      } catch (_) {
+        return MonthlyRevenue(month: k, amount: monthly[k]!);
+      }
+    }).toList();
+    if (mounted) setState(() {});
+  }
+
+  // ── Snackbar ──────────────────────────────────────────────────────────────
+
+  void _snack(String msg, Color color) {
+    _smKey.currentState?.showSnackBar(SnackBar(
+      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
+      backgroundColor: color,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 3),
+    ));
+  }
+
+  // ── Actions — Players ─────────────────────────────────────────────────────
+
+  Future<void> _createPlayer(Map<String, String> data) async {
+    try {
+      await AdminAuthService.createPlayer(
+        adminToken: widget.adminToken,
+        username: data['username']!,
+        email: data['email']!,
+        password: data['password']!,
+        phone: data['phone'] ?? '',
+      );
+      _snack('Player created!', kGreen);
+      await _loadPlayers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  Future<void> _updatePlayer(String id, Map<String, String> data) async {
+    try {
+      await AdminAuthService.updatePlayer(
+        adminToken: widget.adminToken,
+        playerId: id,
+        data: data,
+      );
+      _snack('Player updated!', kGreen);
+      await _loadPlayers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  Future<void> _deletePlayer(String id) async {
+    final ok = await _confirmDialog('Delete Player', 'This will permanently delete the player. Continue?');
+    if (!ok) return;
+    try {
+      await AdminAuthService.deletePlayer(adminToken: widget.adminToken, playerId: id);
+      _snack('Player deleted.', kGreen);
+      await _loadPlayers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  // ── Actions — Managers ────────────────────────────────────────────────────
+
+  Future<void> _createManager(Map<String, String> data) async {
+    try {
+      await AdminAuthService.createManager(
+        adminToken: widget.adminToken,
+        username: data['username']!,
+        email: data['email']!,
+        password: data['password']!,
+        phone: data['phone'] ?? '',
+      );
+      _snack('Manager created!', kGreen);
+      await _loadManagers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  Future<void> _updateManager(String id, Map<String, String> data) async {
+    try {
+      await AdminAuthService.updateManager(
+        adminToken: widget.adminToken,
+        managerId: id,
+        data: data,
+      );
+      _snack('Manager updated!', kGreen);
+      await _loadManagers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  Future<void> _deleteManager(String id) async {
+    final ok = await _confirmDialog('Delete Manager', 'This will permanently delete the manager and their profile. Continue?');
+    if (!ok) return;
+    try {
+      await AdminAuthService.deleteManager(adminToken: widget.adminToken, managerId: id);
+      _snack('Manager deleted.', kGreen);
+      await _loadManagers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  // ── Actions — Workers ─────────────────────────────────────────────────────
+
+  Future<void> _createWorker(Map<String, String> data) async {
+    try {
+      await AdminAuthService.createWorker(
+        adminToken: widget.adminToken,
+        username: data['username']!,
+        email: data['email']!,
+        password: data['password']!,
+        phone: data['phone'] ?? '',
+        nom: data['nom'] ?? data['username']!,
+        managerId: data['managerId']!,
+      );
+      _snack('Worker created!', kGreen);
+      await _loadWorkers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  Future<void> _updateWorker(String id, Map<String, String> data) async {
+    try {
+      await AdminAuthService.updateWorker(
+        adminToken: widget.adminToken,
+        workerId: id,
+        data: data,
+      );
+      _snack('Worker updated!', kGreen);
+      await _loadWorkers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  Future<void> _deleteWorker(String id) async {
+    final ok = await _confirmDialog('Delete Worker', 'This will permanently delete the worker. Continue?');
+    if (!ok) return;
+    try {
+      await AdminAuthService.deleteWorker(adminToken: widget.adminToken, workerId: id);
+      _snack('Worker deleted.', kGreen);
+      await _loadWorkers();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  // ── Toggle status ─────────────────────────────────────────────────────────
+
+  Future<void> _toggleStatus(String userId, String label) async {
+    try {
+      await AdminAuthService.toggleUserStatus(token: widget.adminToken, userId: userId);
+      _snack('$label status updated.', kGreen);
+      await _loadAll();
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+    }
+  }
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+
+  Future<void> _logout() async {
+    await const FlutterSecureStorage().deleteAll();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AdminLoginPage()),
+        (_) => false,
+      );
+    }
+  }
+
+  // ── Confirm dialog ────────────────────────────────────────────────────────
+
+  Future<bool> _confirmDialog(String title, String body) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => _ConfirmDialog(title: title, body: body),
+    );
+    return ok == true;
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: _buildLightTheme(),
-            home: Scaffold(
-              backgroundColor:
-                  Theme.of(context).extension<AdminThemeColors>()?.background ??
-                  kBg,
-              body: Row(
+    return MaterialApp(
+      scaffoldMessengerKey: _smKey,
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.light().copyWith(extensions: [AdminTheme.lightTheme]),
+      home: Scaffold(
+        backgroundColor: AdminTheme.lightTheme.bg,
+        body: Row(
+          children: [
+            _Sidebar(
+              current: _section,
+              collapsed: _sidebarCollapsed,
+              onSelect: (s) => setState(() => _section = s),
+              onToggle: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+            ),
+            Expanded(
+              child: Column(
                 children: [
-                  _Sidebar(
-                    current: _section,
-                    collapsed: _sidebarCollapsed,
-                    onSelect: (s) => setState(() => _section = s),
-                    onToggle: () =>
-                        setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+                  _TopBar(
+                    section: _section,
+                    adminName: _adminUsername,
+                    onLogout: () async {
+                      final ok = await _confirmDialog('Logout', 'Are you sure you want to log out?');
+                      if (ok) _logout();
+                    },
+                    onSettings: () => setState(() => _section = AdminSection.settings),
                   ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _TopBar(section: _section),
-                        Expanded(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 220),
-                            transitionBuilder: (child, anim) => FadeTransition(
-                              opacity: anim,
-                              child: SlideTransition(
-                                position:
-                                    Tween(
-                                      begin: const Offset(0.015, 0),
-                                      end: Offset.zero,
-                                    ).animate(
-                                      CurvedAnimation(
-                                        parent: anim,
-                                        curve: Curves.easeOut,
-                                      ),
-                                    ),
-                                child: child,
-                              ),
-                            ),
-                            child: KeyedSubtree(
-                              key: ValueKey(_section),
-                              child: _buildSection(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  Expanded(child: _buildSection()),
                 ],
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
-  }
-
-  ThemeData _buildLightTheme() {
-    return ThemeData.light().copyWith(extensions: [AdminThemeColors.light]);
   }
 
   Widget _buildSection() {
@@ -718,42 +704,82 @@ class _AdminDashboardState extends State<AdminDashboard> {
         return _OverviewSection(
           players: _players,
           managers: _managers,
+          workers: _workers,
           bookings: _bookings,
-          venues: _venues,
+          complexes: _complexes,
+          monthlyRevenues: _monthlyRevenues,
+          bookingsBySport: _bookingsBySport,
+          totalRevenue: _totalRevenue,
           onNavigate: (s) => setState(() => _section = s),
         );
       case AdminSection.players:
         return _PlayersSection(
           players: _players,
-          onToggle: _togglePlayerStatus,
+          loading: _loadingPlayers,
+          error: _errPlayers,
+          onAdd: _createPlayer,
+          onEdit: _updatePlayer,
           onDelete: _deletePlayer,
+          onToggle: (id) => _toggleStatus(id, 'Player'),
+          onRefresh: _loadPlayers,
         );
       case AdminSection.managers:
         return _ManagersSection(
           managers: _managers,
-          onToggle: _toggleManagerStatus,
-          onAdd: _addManager,
+          loading: _loadingManagers,
+          error: _errManagers,
+          onAdd: _createManager,
+          onEdit: _updateManager,
           onDelete: _deleteManager,
+          onToggle: (id) => _toggleStatus(id, 'Manager'),
+          onRefresh: _loadManagers,
         );
-      case AdminSection.venues:
-        return _VenuesSection(venues: _venues);
-      case AdminSection.bookings:
-        return _BookingsSection(bookings: _bookings);
-      case AdminSection.tournaments:
-        return _PlaceholderSection(
-          icon: Icons.emoji_events_rounded,
-          label: 'Tournaments',
-          sub: 'Tournament management coming soon',
-        );
-      case AdminSection.reports:
-        return _ReportsSection(
-          players: _players,
+      case AdminSection.workers:
+        return _WorkersSection(
+          workers: _workers,
           managers: _managers,
+          loading: _loadingWorkers,
+          error: _errWorkers,
+          onAdd: _createWorker,
+          onEdit: _updateWorker,
+          onDelete: _deleteWorker,
+          onToggle: (id) => _toggleStatus(id, 'Worker'),
+          onRefresh: _loadWorkers,
+        );
+      case AdminSection.complexes:
+        return _ComplexesSection(
+          complexes: _complexes,
+          loading: _loadingComplexes,
+          error: _errComplexes,
+          onRefresh: _loadComplexes,
+        );
+      case AdminSection.bookings:
+        return _BookingsSection(
           bookings: _bookings,
-          venues: _venues,
+          loading: _loadingBookings,
+          error: _errBookings,
+          onRefresh: _loadBookings,
         );
       case AdminSection.settings:
-        return _SettingsSection();
+        return _SettingsSection(
+          adminName: _adminUsername,
+          adminEmail: _adminEmail,
+          token: widget.adminToken,
+          onSaved: (name, email, pw) async {
+            try {
+              await AdminAuthService.updateAdminProfile(
+                token: widget.adminToken,
+                username: name.isEmpty ? null : name,
+                email: email.isEmpty ? null : email,
+                password: pw.isEmpty ? null : pw,
+              );
+              _snack('Profile updated!', kGreen);
+              await _loadAdminProfile();
+            } catch (e) {
+              _snack(e.toString().replaceAll('Exception: ', ''), kRed);
+            }
+          },
+        );
     }
   }
 }
@@ -761,12 +787,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
 // ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR
 // ─────────────────────────────────────────────────────────────────────────────
-class _Sidebar extends StatefulWidget {
+class _Sidebar extends StatelessWidget {
   final AdminSection current;
   final bool collapsed;
   final ValueChanged<AdminSection> onSelect;
   final VoidCallback onToggle;
-
   const _Sidebar({
     required this.current,
     required this.collapsed,
@@ -774,251 +799,141 @@ class _Sidebar extends StatefulWidget {
     required this.onToggle,
   });
 
-  @override
-  State<_Sidebar> createState() => _SidebarState();
-}
-
-class _SidebarState extends State<_Sidebar> {
-  final List<_NavItem> _items = [
-    _NavItem(AdminSection.overview, Icons.grid_view_rounded, 'Overview'),
-    _NavItem(AdminSection.players, Icons.person_rounded, 'Players'),
-    _NavItem(AdminSection.managers, Icons.manage_accounts_rounded, 'Managers'),
-    _NavItem(AdminSection.venues, Icons.stadium_rounded, 'Venues'),
-    _NavItem(AdminSection.bookings, Icons.calendar_today_rounded, 'Bookings'),
-    _NavItem(
-      AdminSection.tournaments,
-      Icons.emoji_events_rounded,
-      'Tournaments',
-    ),
-    _NavItem(AdminSection.reports, Icons.bar_chart_rounded, 'Reports'),
-  ];
-
-  final List<_NavItem> _bottomItems = [
-    _NavItem(AdminSection.settings, Icons.settings_rounded, 'Settings'),
+  static const _items = [
+    (AdminSection.overview, Icons.grid_view_rounded, 'Report'),
+    (AdminSection.players, Icons.person_rounded, 'Players'),
+    (AdminSection.managers, Icons.manage_accounts_rounded, 'Managers'),
+    (AdminSection.workers, Icons.engineering_rounded, 'Workers'),
+    (AdminSection.complexes, Icons.stadium_rounded, 'Complexes'),
+    (AdminSection.bookings, Icons.calendar_today_rounded, 'Bookings'),
+    (AdminSection.settings, Icons.settings_rounded, 'Settings'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final w = widget.collapsed ? 72.0 : 240.0;
-
+    final theme = AdminTheme.lightTheme;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 260),
+      duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
-      width: w,
-      color: colors.surface,
+      width: collapsed ? 68.0 : 232.0,
+      color: theme.surface,
       child: Column(
         children: [
-          _buildLogo(colors),
-          const SizedBox(height: 8),
-          Expanded(child: _buildNavItems(colors)),
-          _buildBottomItems(colors),
-          _buildCollapseToggle(colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLogo(AdminThemeColors colors) {
-    return Container(
-      height: 64,
-      padding: EdgeInsets.symmetric(horizontal: widget.collapsed ? 0 : 20),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colors.divider)),
-      ),
-      child: Row(
-        mainAxisAlignment: widget.collapsed
-            ? MainAxisAlignment.center
-            : MainAxisAlignment.start,
-        children: [
           Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [kPrimary, kPrimary.withOpacity(0.8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(9),
+            height: 64,
+            padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 20),
+            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.divider))),
+            child: Row(
+              mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(9)),
+                  child: const Center(
+                    child: Text('S', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                  ),
+                ),
+                if (!collapsed) ...[
+                  const SizedBox(width: 10),
+                  Text('Sporta', style: TextStyle(color: theme.text, fontSize: 17, fontWeight: FontWeight.w800)),
+                ],
+              ],
             ),
-            child: const Center(
-              child: Text(
-                'S',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Column(
+                children: _items.map((item) {
+                  final active = current == item.$1;
+                  return _SidebarItem(
+                    icon: item.$2,
+                    label: item.$3,
+                    active: active,
+                    collapsed: collapsed,
+                    onTap: () => onSelect(item.$1),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: onToggle,
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.divider))),
+              child: Center(
+                child: Icon(
+                  collapsed ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+                  color: theme.light,
+                  size: 18,
                 ),
               ),
             ),
           ),
-          if (!widget.collapsed) ...[
-            const SizedBox(width: 10),
-            Text(
-              'Sporta',
-              style: TextStyle(
-                color: colors.text,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
-
-  Widget _buildNavItems(AdminThemeColors colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: ListView.builder(
-        itemCount: _items.length,
-        itemBuilder: (context, index) {
-          return _SidebarItem(
-            item: _items[index],
-            current: widget.current,
-            collapsed: widget.collapsed,
-            onTap: () => widget.onSelect(_items[index].section),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildBottomItems(AdminThemeColors colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        children: [
-          Divider(height: 1, color: colors.divider),
-          const SizedBox(height: 8),
-          ..._bottomItems.map(
-            (item) => _SidebarItem(
-              item: item,
-              current: widget.current,
-              collapsed: widget.collapsed,
-              onTap: () => widget.onSelect(item.section),
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCollapseToggle(AdminThemeColors colors) {
-    return GestureDetector(
-      onTap: widget.onToggle,
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: colors.divider)),
-        ),
-        child: Center(
-          child: Icon(
-            widget.collapsed
-                ? Icons.chevron_right_rounded
-                : Icons.chevron_left_rounded,
-            color: colors.textLight,
-            size: 18,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem {
-  final AdminSection section;
-  final IconData icon;
-  final String label;
-  const _NavItem(this.section, this.icon, this.label);
 }
 
 class _SidebarItem extends StatefulWidget {
-  final _NavItem item;
-  final AdminSection current;
+  final IconData icon;
+  final String label;
+  final bool active;
   final bool collapsed;
   final VoidCallback onTap;
-
   const _SidebarItem({
-    required this.item,
-    required this.current,
+    required this.icon,
+    required this.label,
+    required this.active,
     required this.collapsed,
     required this.onTap,
   });
-
   @override
   State<_SidebarItem> createState() => _SidebarItemState();
 }
 
 class _SidebarItemState extends State<_SidebarItem> {
   bool _hover = false;
-
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final active = widget.current == widget.item.section;
-
+    final theme = AdminTheme.lightTheme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: const Duration(milliseconds: 140),
           margin: const EdgeInsets.only(bottom: 3),
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.collapsed ? 0 : 12,
-            vertical: 10,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: widget.collapsed ? 0 : 12, vertical: 10),
           decoration: BoxDecoration(
-            color: active
+            color: widget.active
                 ? kPrimary.withOpacity(0.1)
-                : _hover
-                ? colors.hover
-                : Colors.transparent,
+                : (_hover ? theme.hover : Colors.transparent),
             borderRadius: BorderRadius.circular(10),
-            border: active
-                ? Border.all(color: kPrimary.withOpacity(0.3))
-                : null,
+            border: widget.active ? Border.all(color: kPrimary.withOpacity(0.25)) : null,
           ),
           child: Row(
-            mainAxisAlignment: widget.collapsed
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.start,
+            mainAxisAlignment: widget.collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
-              Icon(
-                widget.item.icon,
-                size: 18,
-                color: active
-                    ? kPrimary
-                    : (_hover ? colors.text : colors.textLight),
-              ),
+              Icon(widget.icon, size: 18, color: widget.active ? kPrimary : (_hover ? theme.text : theme.light)),
               if (!widget.collapsed) ...[
                 const SizedBox(width: 11),
-                Text(
-                  widget.item.label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    color: active
-                        ? colors.text
-                        : (_hover ? colors.text : colors.textLight),
-                  ),
-                ),
-                if (active) ...[
-                  const Spacer(),
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: kPrimary,
-                      shape: BoxShape.circle,
+                Expanded(
+                  child: Text(
+                    widget.label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: widget.active ? FontWeight.w700 : FontWeight.w500,
+                      color: widget.active ? theme.text : (_hover ? theme.text : theme.light),
                     ),
                   ),
-                ],
+                ),
+                if (widget.active)
+                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: kPrimary, shape: BoxShape.circle)),
               ],
             ],
           ),
@@ -1031,240 +946,94 @@ class _SidebarItemState extends State<_SidebarItem> {
 // ─────────────────────────────────────────────────────────────────────────────
 // TOP BAR
 // ─────────────────────────────────────────────────────────────────────────────
-class _TopBar extends StatefulWidget {
+class _TopBar extends StatelessWidget {
   final AdminSection section;
+  final String adminName;
+  final VoidCallback onLogout, onSettings;
+  const _TopBar({
+    required this.section,
+    required this.adminName,
+    required this.onLogout,
+    required this.onSettings,
+  });
 
-  const _TopBar({required this.section});
-
-  @override
-  State<_TopBar> createState() => _TopBarState();
-}
-
-class _TopBarState extends State<_TopBar> {
-  bool _searchHover = false;
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  String get _title {
-    switch (widget.section) {
-      case AdminSection.overview:
-        return 'Overview';
-      case AdminSection.players:
-        return 'Players';
-      case AdminSection.managers:
-        return 'Managers';
-      case AdminSection.venues:
-        return 'Venues';
-      case AdminSection.bookings:
-        return 'Bookings';
-      case AdminSection.tournaments:
-        return 'Tournaments';
-      case AdminSection.reports:
-        return 'Reports';
-      case AdminSection.settings:
-        return 'Settings';
-    }
-  }
+  String get _title => section.name.cap;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
+    final theme = AdminTheme.lightTheme;
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 28),
       decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(bottom: BorderSide(color: colors.divider)),
+        color: theme.surface,
+        border: Border(bottom: BorderSide(color: theme.divider)),
       ),
       child: Row(
         children: [
-          Text(
-            _title,
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
+          Text(_title, style: TextStyle(color: theme.text, fontSize: 20, fontWeight: FontWeight.w800)),
+          const Spacer(),
+          GestureDetector(
+            onTap: onSettings,
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(10)),
+                  child: Center(
+                    child: Text(_initials(adminName), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(adminName, style: TextStyle(color: theme.text, fontSize: 12, fontWeight: FontWeight.w700)),
+                    Text('Super Admin', style: TextStyle(color: theme.light, fontSize: 10)),
+                  ],
+                ),
+              ],
             ),
           ),
-          const Spacer(),
-          _buildSearchBar(colors),
           const SizedBox(width: 16),
-          _TopBtn(icon: Icons.notifications_outlined, badge: '3', onTap: () {}),
-          const SizedBox(width: 8),
-          _buildUserProfile(colors),
+          _HoverBtn(icon: Icons.logout_rounded, color: kRed, onTap: onLogout),
         ],
       ),
     );
   }
-
-  Widget _buildSearchBar(AdminThemeColors colors) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _searchHover = true),
-      onExit: (_) => setState(() => _searchHover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 240,
-        height: 36,
-        decoration: BoxDecoration(
-          color: _searchHover ? colors.hover : colors.background,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: colors.divider),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 12),
-            Icon(Icons.search_rounded, size: 15, color: colors.textLight),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                style: TextStyle(color: colors.text, fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: 'Search anything...',
-                  hintStyle: TextStyle(color: colors.textLight, fontSize: 13),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-              decoration: BoxDecoration(
-                color: colors.background,
-                borderRadius: BorderRadius.circular(5),
-                border: Border.all(color: colors.divider),
-              ),
-              child: Text(
-                '⌘K',
-                style: TextStyle(
-                  color: colors.textLight,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserProfile(AdminThemeColors colors) {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [kPrimary, kPrimary.withOpacity(0.8)],
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Center(
-            child: Text(
-              'A',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Admin',
-              style: TextStyle(
-                color: colors.text,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            Text(
-              'Super Admin',
-              style: TextStyle(color: colors.textLight, fontSize: 10),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
-class _TopBtn extends StatefulWidget {
+class _HoverBtn extends StatefulWidget {
   final IconData icon;
-  final String? badge;
+  final Color color;
   final VoidCallback onTap;
-
-  const _TopBtn({required this.icon, this.badge, required this.onTap});
-
+  const _HoverBtn({required this.icon, required this.color, required this.onTap});
   @override
-  State<_TopBtn> createState() => _TopBtnState();
+  State<_HoverBtn> createState() => _HoverBtnState();
 }
 
-class _TopBtnState extends State<_TopBtn> {
+class _HoverBtnState extends State<_HoverBtn> {
   bool _hover = false;
-
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
+    final theme = AdminTheme.lightTheme;
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: _hover ? colors.hover : colors.background,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: colors.divider),
-              ),
-              child: Icon(widget.icon, size: 17, color: colors.textLight),
-            ),
-            if (widget.badge != null)
-              Positioned(
-                top: -4,
-                right: -4,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: kRed,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      widget.badge!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: _hover ? widget.color.withOpacity(0.1) : theme.bg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _hover ? widget.color.withOpacity(0.3) : theme.divider),
+          ),
+          child: Icon(widget.icon, size: 16, color: _hover ? widget.color : theme.light),
         ),
       ),
     );
@@ -1274,714 +1043,185 @@ class _TopBtnState extends State<_TopBtn> {
 // ─────────────────────────────────────────────────────────────────────────────
 // OVERVIEW SECTION
 // ─────────────────────────────────────────────────────────────────────────────
-class _OverviewSection extends StatefulWidget {
+class _OverviewSection extends StatelessWidget {
   final List<AdminPlayer> players;
   final List<AdminManager> managers;
+  final List<AdminWorker> workers;
   final List<AdminBooking> bookings;
-  final List<AdminVenue> venues;
+  final List<AdminComplex> complexes;
+  final List<MonthlyRevenue> monthlyRevenues;
+  final Map<SportType, int> bookingsBySport;
+  final double totalRevenue;
   final ValueChanged<AdminSection> onNavigate;
-
   const _OverviewSection({
     required this.players,
     required this.managers,
+    required this.workers,
     required this.bookings,
-    required this.venues,
+    required this.complexes,
+    required this.monthlyRevenues,
+    required this.bookingsBySport,
+    required this.totalRevenue,
     required this.onNavigate,
   });
 
   @override
-  State<_OverviewSection> createState() => _OverviewSectionState();
-}
-
-class _OverviewSectionState extends State<_OverviewSection> {
-  @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final totalRevenue = widget.venues.fold(0.0, (s, v) => s + v.revenue);
-    final pending = widget.bookings.where((b) => b.status == 'pending').length;
+    final theme = AdminTheme.lightTheme;
+    final pending = bookings.where((b) => b.status == 'pending').length;
+    final today = DateTime.now().toString().split(' ')[0];
+    final todayBk = bookings.where((b) => b.date == today).length;
+    final totalCts = complexes.fold(0, (s, v) => s + v.courts);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildWelcomeCard(pending, colors),
-          const SizedBox(height: 24),
-          _buildKpiRow(pending, totalRevenue, colors),
-          const SizedBox(height: 28),
-          _buildTwoColumnRow(colors),
-          const SizedBox(height: 18),
-          _buildSecondRow(colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWelcomeCard(int pending, AdminThemeColors colors) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [kPrimary, kPrimary.withOpacity(0.8)]),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Good morning, Admin 👋',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  "Here's what's happening today",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [kPrimary, kPrimary.withOpacity(0.8)]),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _WelcomePill(
-                      '${widget.bookings.where((b) => b.date == 'Today').length} bookings today',
-                      Icons.calendar_today_rounded,
-                    ),
-                    const SizedBox(width: 10),
-                    _WelcomePill(
-                      '$pending pending approvals',
-                      Icons.pending_actions_rounded,
+                    Text('Welcome back, Admin 👋', style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13)),
+                    const SizedBox(height: 6),
+                    const Text("Here's your platform at a glance", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        _Pill('$todayBk bookings today', Icons.calendar_today_rounded),
+                        const SizedBox(width: 10),
+                        _Pill('$pending pending', Icons.pending_actions_rounded),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 24),
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
-            ),
-            child: const Icon(
-              Icons.shield_rounded,
-              color: Colors.white,
-              size: 36,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKpiRow(
-    int pending,
-    double totalRevenue,
-    AdminThemeColors colors,
-  ) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _KpiCard(
-            label: 'Total Players',
-            value: '${widget.players.length}',
-            icon: Icons.person_rounded,
-            color: kPrimary,
-            sub: '+3 this week',
-            trend: true,
-          ),
-          const SizedBox(width: 16),
-          _KpiCard(
-            label: 'Managers',
-            value: '${widget.managers.length}',
-            icon: Icons.manage_accounts_rounded,
-            color: kPurple,
-            sub: '${widget.managers.length} active',
-            trend: false,
-          ),
-          const SizedBox(width: 16),
-          _KpiCard(
-            label: 'Total Revenue',
-            value: '${(totalRevenue / 1000).toStringAsFixed(1)}K DT',
-            icon: Icons.payments_rounded,
-            color: kGreen,
-            sub: '+18% vs last month',
-            trend: true,
-          ),
-          const SizedBox(width: 16),
-          _KpiCard(
-            label: 'Bookings Today',
-            value: '${widget.bookings.where((b) => b.date == 'Today').length}',
-            icon: Icons.calendar_today_rounded,
-            color: kAmber,
-            sub: '$pending pending',
-            trend: null,
-          ),
-          const SizedBox(width: 16),
-          _KpiCard(
-            label: 'Active Venues',
-            value:
-                '${widget.venues.where((v) => v.isActive).length}/${widget.venues.length}',
-            icon: Icons.stadium_rounded,
-            color: kBlue,
-            sub: '${widget.venues.fold(0, (s, v) => s + v.courts)} courts',
-            trend: null,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTwoColumnRow(AdminThemeColors colors) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 3,
-          child: _SCard(
-            title: "Recent Bookings",
-            action: 'View all',
-            onAction: () => widget.onNavigate(AdminSection.bookings),
-            child: Column(
-              children: widget.bookings
-                  .take(5)
-                  .map((b) => _BookingRow(booking: b))
-                  .toList(),
-            ),
-          ),
-        ),
-        const SizedBox(width: 18),
-        Expanded(
-          flex: 2,
-          child: _SCard(
-            title: 'Top Venues',
-            action: 'View all',
-            onAction: () => widget.onNavigate(AdminSection.venues),
-            child: Column(
-              children: widget.venues
-                  .take(4)
-                  .map((v) => _VenueSnippet(venue: v))
-                  .toList(),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSecondRow(AdminThemeColors colors) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _SCard(
-            title: 'New Players',
-            action: 'View all',
-            onAction: () => widget.onNavigate(AdminSection.players),
-            child: Column(
-              children: widget.players
-                  .take(4)
-                  .map((p) => _PlayerSnippet(player: p))
-                  .toList(),
-            ),
-          ),
-        ),
-        const SizedBox(width: 18),
-        Expanded(
-          child: _SCard(
-            title: 'Managers',
-            action: 'View all',
-            onAction: () => widget.onNavigate(AdminSection.managers),
-            child: Column(
-              children: widget.managers
-                  .take(4)
-                  .map((m) => _ManagerSnippet(manager: m))
-                  .toList(),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _WelcomePill extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  const _WelcomePill(this.label, this.icon);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: Colors.white.withOpacity(0.9)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// KPI CARD
-// ─────────────────────────────────────────────────────────────────────────────
-class _KpiCard extends StatefulWidget {
-  final String label, value, sub;
-  final IconData icon;
-  final Color color;
-  final bool? trend;
-  const _KpiCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-    required this.sub,
-    required this.trend,
-  });
-
-  @override
-  State<_KpiCard> createState() => _KpiCardState();
-}
-
-class _KpiCardState extends State<_KpiCard> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return SizedBox(
-      width: 200,
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: _hover ? colors.hover : colors.card,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _hover ? widget.color.withOpacity(0.3) : colors.divider,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: widget.color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(widget.icon, size: 17, color: widget.color),
-                  ),
-                  if (widget.trend != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (widget.trend! ? kGreen : kRed).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            widget.trend!
-                                ? Icons.arrow_upward_rounded
-                                : Icons.arrow_downward_rounded,
-                            size: 10,
-                            color: widget.trend! ? kGreen : kRed,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '18%',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: widget.trend! ? kGreen : kRed,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
               ),
-              const SizedBox(height: 14),
-              Text(
-                widget.value,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: colors.textLight,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                widget.sub,
-                style: TextStyle(
-                  color: widget.color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.shield_rounded, color: Colors.white, size: 32),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION CARD
-// ─────────────────────────────────────────────────────────────────────────────
-class _SCard extends StatelessWidget {
-  final String title;
-  final String? action;
-  final VoidCallback? onAction;
-  final Widget child;
-  const _SCard({
-    required this.title,
-    required this.child,
-    this.action,
-    this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        const SizedBox(height: 24),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
+              _KPI('Players', '${players.length}', Icons.person_rounded, kPrimary),
+              const SizedBox(width: 14),
+              _KPI('Managers', '${managers.length}', Icons.manage_accounts_rounded, const Color(0xFF9333EA)),
+              const SizedBox(width: 14),
+              _KPI('Workers', '${workers.length}', Icons.engineering_rounded, kAmber),
+              const SizedBox(width: 14),
+              _KPI('Revenue', '${(totalRevenue / 1000).toStringAsFixed(1)}K DT', Icons.payments_rounded, kGreen),
+              const SizedBox(width: 14),
+              _KPI('Complexes', '${complexes.length}', Icons.stadium_rounded, Colors.blue),
+              const SizedBox(width: 14),
+              _KPI('Courts', '$totalCts', Icons.sports_tennis_rounded, kOrange),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: _Card(
+                title: 'Revenue by Month',
+                child: monthlyRevenues.isEmpty
+                    ? const _Empty('No revenue data')
+                    : Column(
+                        children: monthlyRevenues.take(6).map((m) {
+                          return _Bar(
+                            label: m.month,
+                            value: m.amount,
+                            max: monthlyRevenues.fold(0.0, (s, x) => x.amount > s ? x.amount : s),
+                            color: kPrimary,
+                            suffix: ' DT',
+                          );
+                        }).toList(),
+                      ),
               ),
-              if (action != null) ...[
-                const Spacer(),
-                GestureDetector(
-                  onTap: onAction,
-                  child: Text(
-                    action!,
-                    style: const TextStyle(
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              flex: 2,
+              child: _Card(
+                title: 'By Sport',
+                child: bookingsBySport.isEmpty
+                    ? const _Empty('No booking data')
+                    : Column(
+                        children: SportType.values.map((s) {
+                          final count = bookingsBySport[s] ?? 0;
+                          final total = bookingsBySport.values.fold(0, (a, b) => a + b);
+                          return _Bar(
+                            label: s.label,
+                            value: count.toDouble(),
+                            max: total.toDouble(),
+                            color: s.color,
+                            suffix: '',
+                          );
+                        }).toList(),
+                      ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: _Card(
+                title: 'Recent Players',
+                action: 'View all',
+                onAction: () => onNavigate(AdminSection.players),
+                child: Column(
+                  children: players.take(5).map((p) {
+                    return _SnippetRow(
+                      initials: _initials(p.name),
                       color: kPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-// Snippet widgets
-class _BookingRow extends StatelessWidget {
-  final AdminBooking booking;
-  const _BookingRow({required this.booking});
-
-  Color get _statusColor {
-    switch (booking.status) {
-      case 'confirmed':
-        return kGreen;
-      case 'pending':
-        return kAmber;
-      case 'cancelled':
-        return kRed;
-      default:
-        return kTextLight;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: colors.background,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: booking.sport.color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Icon(
-              booking.sport.icon,
-              size: 16,
-              color: booking.sport.color,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  booking.player,
-                  style: TextStyle(
-                    color: colors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '${booking.venue} · ${booking.time}',
-                  style: TextStyle(color: colors.textLight, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _ABadge(booking.status.capitalize(), _statusColor),
-              const SizedBox(height: 3),
-              Text(
-                '${booking.price.toInt()} DT',
-                style: TextStyle(
-                  color: colors.textLight,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                      title: p.name,
+                      sub: p.email,
+                      badge: p.isActive ? 'Active' : 'Inactive',
+                      badgeColor: p.isActive ? kGreen : kRed,
+                    );
+                  }).toList(),
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _VenueSnippet extends StatelessWidget {
-  final AdminVenue venue;
-  const _VenueSnippet({required this.venue});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: colors.background,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: kPrimary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(9),
             ),
-            child: const Icon(Icons.stadium_rounded, size: 16, color: kPrimary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  venue.name,
-                  style: TextStyle(
-                    color: colors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '${venue.city} · ${venue.courts} courts',
-                  style: TextStyle(color: colors.textLight, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${(venue.revenue / 1000).toStringAsFixed(1)}K DT',
-                style: const TextStyle(
-                  color: kGreen,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+            const SizedBox(width: 18),
+            Expanded(
+              child: _Card(
+                title: 'Recent Managers',
+                action: 'View all',
+                onAction: () => onNavigate(AdminSection.managers),
+                child: Column(
+                  children: managers.take(5).map((m) {
+                    return _SnippetRow(
+                      initials: _initials(m.name),
+                      color: const Color(0xFF9333EA),
+                      title: m.name,
+                      sub: '${m.complexes.length} complexes · ${m.totalCourts} courts',
+                      badge: m.isActive ? 'Active' : 'Inactive',
+                      badgeColor: m.isActive ? kGreen : kRed,
+                    );
+                  }).toList(),
                 ),
               ),
-              Row(
-                children: [
-                  const Icon(Icons.star_rounded, size: 11, color: kAmber),
-                  const SizedBox(width: 2),
-                  Text(
-                    '${venue.rating}',
-                    style: TextStyle(color: colors.textLight, fontSize: 11),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayerSnippet extends StatelessWidget {
-  final AdminPlayer player;
-  const _PlayerSnippet({required this.player});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          _Avatar(player.avatar, kPrimary),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  player.name,
-                  style: TextStyle(
-                    color: colors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  player.email,
-                  style: TextStyle(color: colors.textLight, fontSize: 11),
-                ),
-              ],
             ),
-          ),
-          _ABadge(
-            player.isActive ? 'Active' : 'Inactive',
-            player.isActive ? kGreen : kRed,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ManagerSnippet extends StatelessWidget {
-  final AdminManager manager;
-  const _ManagerSnippet({required this.manager});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          _Avatar(manager.avatar, kPurple),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  manager.name,
-                  style: TextStyle(
-                    color: colors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '${manager.venues.length} venue(s) · ${manager.totalCourts} courts',
-                  style: TextStyle(color: colors.textLight, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          _ABadge(
-            manager.isActive ? 'Active' : 'Inactive',
-            manager.isActive ? kGreen : kRed,
-          ),
-        ],
-      ),
+          ],
+        ),
+      ]),
     );
   }
 }
@@ -1991,298 +1231,61 @@ class _ManagerSnippet extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 class _PlayersSection extends StatefulWidget {
   final List<AdminPlayer> players;
-  final ValueChanged<String> onToggle;
-  final ValueChanged<String> onDelete;
+  final bool loading;
+  final String? error;
+  final Future<void> Function(Map<String, String>) onAdd;
+  final Future<void> Function(String, Map<String, String>) onEdit;
+  final Future<void> Function(String) onDelete;
+  final Future<void> Function(String) onToggle;
+  final Future<void> Function() onRefresh;
   const _PlayersSection({
-    required this.players,
-    required this.onToggle,
-    required this.onDelete,
+    required this.players, required this.loading, this.error,
+    required this.onAdd, required this.onEdit, required this.onDelete,
+    required this.onToggle, required this.onRefresh,
   });
-
   @override
   State<_PlayersSection> createState() => _PlayersSectionState();
 }
 
 class _PlayersSectionState extends State<_PlayersSection> {
-  String _filter = 'all';
-  String _search = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  List<AdminPlayer> get _filtered {
-    var list = widget.players;
-    if (_search.isNotEmpty) {
-      list = list
-          .where(
-            (p) =>
-                p.name.toLowerCase().contains(_search.toLowerCase()) ||
-                p.email.toLowerCase().contains(_search.toLowerCase()),
-          )
-          .toList();
-    }
-    if (_filter == 'active') return list.where((p) => p.isActive).toList();
-    if (_filter == 'inactive') return list.where((p) => !p.isActive).toList();
-    return list;
-  }
-
+  String _query = '';
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildStatsRow(),
-          const SizedBox(height: 24),
-          _buildTable(colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _MiniStat(
-            'Total',
-            '${widget.players.length}',
-            Icons.person_rounded,
-            kPrimary,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Active',
-            '${widget.players.where((p) => p.isActive).length}',
-            Icons.check_circle_rounded,
-            kGreen,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Inactive',
-            '${widget.players.where((p) => !p.isActive).length}',
-            Icons.block_rounded,
-            kRed,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTable(AdminThemeColors colors) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Column(
-        children: [
-          _buildToolbar(colors),
-          _TableHeader(
-            cols: const [
-              'Player',
-              'Email',
-              'Bookings',
-              'Spent',
-              'Status',
-              'Actions',
-            ],
-          ),
-          ..._filtered.map(
-            (p) => _PlayerRow(
-              player: p,
-              onToggle: () => widget.onToggle(p.id),
-              onDelete: () =>
-                  _confirmDelete(context, p.name, () => widget.onDelete(p.id)),
-            ),
-          ),
-          if (_filtered.isEmpty)
-            _EmptyTable('No players match the current filter'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolbar(AdminThemeColors colors) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-      child: Row(
-        children: [
-          Text(
-            'All Players',
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          _TableSearch(
-            controller: _searchController,
-            onChanged: (v) => setState(() => _search = v),
-          ),
-          const SizedBox(width: 10),
-          ...['all', 'active', 'inactive'].map(
-            (f) => _FilterPill(
-              label: f == 'all' ? 'All' : f.capitalize(),
-              active: _filter == f,
-              onTap: () => setState(() => _filter = f),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmDelete(BuildContext ctx, String name, VoidCallback onConfirm) {
-    showDialog(
-      context: ctx,
-      builder: (_) => _ConfirmDialog(
-        title: 'Delete Player',
-        body: 'Remove "$name"? This action cannot be undone.',
-        color: kRed,
-        onConfirm: onConfirm,
-      ),
-    );
-  }
-}
-
-class _PlayerRow extends StatefulWidget {
-  final AdminPlayer player;
-  final VoidCallback onToggle, onDelete;
-  const _PlayerRow({
-    required this.player,
-    required this.onToggle,
-    required this.onDelete,
-  });
-
-  @override
-  State<_PlayerRow> createState() => _PlayerRowState();
-}
-
-class _PlayerRowState extends State<_PlayerRow> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final p = widget.player;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        decoration: BoxDecoration(
-          color: _hover ? colors.hover : Colors.transparent,
-          border: Border(top: BorderSide(color: colors.divider)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-          child: Row(
-            children: [
-              Expanded(flex: 3, child: _buildPlayerInfo(p, colors)),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  p.email,
-                  style: TextStyle(color: colors.textLight, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  '${p.bookings}',
-                  style: TextStyle(color: colors.text, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '${p.spent.toInt()} DT',
-                  style: const TextStyle(
-                    color: kGreen,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: _ABadge(
-                  p.isActive ? 'Active' : 'Inactive',
-                  p.isActive ? kGreen : kRed,
-                ),
-              ),
-              Expanded(flex: 2, child: _buildActions(colors)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlayerInfo(AdminPlayer p, AdminThemeColors colors) {
-    return Row(
-      children: [
-        _Avatar(p.avatar, kPrimary),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                p.name,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                'Joined ${_formatDate(p.joined)}',
-                style: TextStyle(color: colors.textLight, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
+    final filtered = widget.players.where((p) {
+      return _query.isEmpty || p.name.toLowerCase().contains(_query) || p.email.toLowerCase().contains(_query);
+    }).toList();
+    return _ListLayout(
+      title: 'Players',
+      count: widget.players.length,
+      stats: [
+        ('Total', '${widget.players.length}', kPrimary, Icons.person_rounded),
+        ('Active', '${widget.players.where((p) => p.isActive).length}', kGreen, Icons.check_circle_rounded),
+        ('Blocked', '${widget.players.where((p) => !p.isActive).length}', kRed, Icons.block_rounded),
       ],
-    );
-  }
-
-  Widget _buildActions(AdminThemeColors colors) {
-    return Row(
-      children: [
-        _ActionBtn(Icons.visibility_outlined, kPrimary, () {
-          _showPlayerDetail(context, widget.player);
-        }),
-        const SizedBox(width: 6),
-        _ActionBtn(
-          widget.player.isActive
-              ? Icons.block_rounded
-              : Icons.check_circle_outline_rounded,
-          widget.player.isActive ? kAmber : kGreen,
-          widget.onToggle,
+      onAdd: () => showDialog(
+        context: context,
+        builder: (_) => _UserFormDialog(title: 'Add Player', color: kPrimary, roleFields: const [], onSave: widget.onAdd),
+      ),
+      onRefresh: widget.onRefresh,
+      onSearch: (q) => setState(() => _query = q.toLowerCase()),
+      loading: widget.loading,
+      error: widget.error,
+      headers: const ['Player', 'Email', 'Phone', 'Bookings', 'Spent', 'Status', 'Actions'],
+      rows: filtered.map((p) => _UserRow(
+        initials: _initials(p.name), color: kPrimary, name: p.name, email: p.email,
+        phone: p.phone, isActive: p.isActive, extra1: '${p.bookings}',
+        extra2: '${p.spent.toInt()} DT', extraColor2: kGreen,
+        onToggle: () => widget.onToggle(p.id),
+        onEdit: () => showDialog(
+          context: context,
+          builder: (_) => _UserFormDialog(
+            title: 'Edit Player', color: kPrimary, roleFields: const [],
+            initial: {'username': p.name, 'email': p.email, 'phone': p.phone},
+            onSave: (d) => widget.onEdit(p.id, d),
+          ),
         ),
-        const SizedBox(width: 6),
-        _ActionBtn(Icons.delete_outline_rounded, kRed, widget.onDelete),
-      ],
-    );
-  }
-
-  void _showPlayerDetail(BuildContext ctx, AdminPlayer p) {
-    showDialog(
-      context: ctx,
-      builder: (_) => _PlayerDetailDialog(player: p),
+        onDelete: () => widget.onDelete(p.id),
+      )).toList(),
     );
   }
 }
@@ -2292,624 +1295,263 @@ class _PlayerRowState extends State<_PlayerRow> {
 // ─────────────────────────────────────────────────────────────────────────────
 class _ManagersSection extends StatefulWidget {
   final List<AdminManager> managers;
-  final ValueChanged<String> onToggle, onDelete;
-  final ValueChanged<AdminManager> onAdd;
+  final bool loading;
+  final String? error;
+  final Future<void> Function(Map<String, String>) onAdd;
+  final Future<void> Function(String, Map<String, String>) onEdit;
+  final Future<void> Function(String) onDelete;
+  final Future<void> Function(String) onToggle;
+  final Future<void> Function() onRefresh;
   const _ManagersSection({
-    required this.managers,
-    required this.onToggle,
-    required this.onAdd,
-    required this.onDelete,
+    required this.managers, required this.loading, this.error,
+    required this.onAdd, required this.onEdit, required this.onDelete,
+    required this.onToggle, required this.onRefresh,
   });
-
   @override
   State<_ManagersSection> createState() => _ManagersSectionState();
 }
 
 class _ManagersSectionState extends State<_ManagersSection> {
-  String _filter = 'all';
-  String _search = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  List<AdminManager> get _filtered {
-    var list = widget.managers;
-    if (_search.isNotEmpty) {
-      list = list
-          .where(
-            (m) =>
-                m.name.toLowerCase().contains(_search.toLowerCase()) ||
-                m.email.toLowerCase().contains(_search.toLowerCase()),
-          )
-          .toList();
-    }
-    if (_filter == 'active') return list.where((m) => m.isActive).toList();
-    if (_filter == 'inactive') return list.where((m) => !m.isActive).toList();
-    return list;
-  }
-
+  String _query = '';
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(colors),
-          const SizedBox(height: 24),
-          _buildTable(colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(AdminThemeColors colors) {
-    return Row(
-      children: [
-        _MiniStat(
-          'Total',
-          '${widget.managers.length}',
-          Icons.manage_accounts_rounded,
-          kPrimary,
-        ),
-        const SizedBox(width: 14),
-        _MiniStat(
-          'Active',
-          '${widget.managers.where((m) => m.isActive).length}',
-          Icons.check_circle_rounded,
-          kGreen,
-        ),
-        const SizedBox(width: 14),
-        _MiniStat(
-          'Inactive',
-          '${widget.managers.where((m) => !m.isActive).length}',
-          Icons.block_rounded,
-          kRed,
-        ),
-        const SizedBox(width: 14),
-        _MiniStat(
-          'Bookings/mo',
-          '${widget.managers.fold(0, (s, m) => s + m.bookingsMonth)}',
-          Icons.calendar_today_rounded,
-          kPurple,
-        ),
-        const Spacer(),
-        _AdminBtn(
-          label: 'Add Manager',
-          icon: Icons.add_rounded,
-          onTap: () => _showAddManager(context),
-        ),
+    final color = const Color(0xFF9333EA);
+    final filtered = widget.managers.where((m) {
+      return _query.isEmpty || m.name.toLowerCase().contains(_query) || m.email.toLowerCase().contains(_query);
+    }).toList();
+    return _ListLayout(
+      title: 'Managers',
+      count: widget.managers.length,
+      stats: [
+        ('Total', '${widget.managers.length}', color, Icons.manage_accounts_rounded),
+        ('Active', '${widget.managers.where((m) => m.isActive).length}', kGreen, Icons.check_circle_rounded),
       ],
-    );
-  }
-
-  Widget _buildTable(AdminThemeColors colors) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider),
+      onAdd: () => showDialog(
+        context: context,
+        builder: (_) => _UserFormDialog(title: 'Add Manager', color: color, roleFields: const [], onSave: widget.onAdd),
       ),
-      child: Column(
-        children: [
-          _buildToolbar(colors),
-          _TableHeader(
-            cols: const [
-              'Manager',
-              'Email',
-              'Venues',
-              'Courts',
-              'Revenue/mo',
-              'Status',
-              'Actions',
-            ],
+      onRefresh: widget.onRefresh,
+      onSearch: (q) => setState(() => _query = q.toLowerCase()),
+      loading: widget.loading,
+      error: widget.error,
+      headers: const ['Manager', 'Email', 'Phone', 'Complexes', 'Revenue', 'Status', 'Actions'],
+      rows: filtered.map((m) => _UserRow(
+        initials: _initials(m.name), color: color, name: m.name, email: m.email,
+        phone: m.phone, isActive: m.isActive, extra1: '${m.complexes.length}',
+        extra2: '${(m.revenue / 1000).toStringAsFixed(1)}K DT', extraColor2: kGreen,
+        onToggle: () => widget.onToggle(m.id),
+        onEdit: () => showDialog(
+          context: context,
+          builder: (_) => _UserFormDialog(
+            title: 'Edit Manager', color: color, roleFields: const [],
+            initial: {'username': m.name, 'email': m.email, 'phone': m.phone},
+            onSave: (d) => widget.onEdit(m.id, d),
           ),
-          ..._filtered.map(
-            (m) => _ManagerRow(
-              manager: m,
-              onToggle: () => widget.onToggle(m.id),
-              onDelete: () =>
-                  _confirmDelete(context, m.name, () => widget.onDelete(m.id)),
-            ),
-          ),
-          if (_filtered.isEmpty)
-            _EmptyTable('No managers match the current filter'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolbar(AdminThemeColors colors) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-      child: Row(
-        children: [
-          Text(
-            'All Managers',
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          _TableSearch(
-            controller: _searchController,
-            onChanged: (v) => setState(() => _search = v),
-          ),
-          const SizedBox(width: 10),
-          ...['all', 'active', 'inactive'].map(
-            (f) => _FilterPill(
-              label: f == 'all' ? 'All' : f.capitalize(),
-              active: _filter == f,
-              onTap: () => setState(() => _filter = f),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddManager(BuildContext ctx) {
-    showDialog(
-      context: ctx,
-      barrierDismissible: false,
-      builder: (_) => _AddManagerDialog(onAdd: widget.onAdd),
-    );
-  }
-
-  void _confirmDelete(BuildContext ctx, String name, VoidCallback onConfirm) {
-    showDialog(
-      context: ctx,
-      builder: (_) => _ConfirmDialog(
-        title: 'Remove Manager',
-        body: 'Remove "$name" and revoke their access? This cannot be undone.',
-        color: kRed,
-        onConfirm: onConfirm,
-      ),
+        ),
+        onDelete: () => widget.onDelete(m.id),
+      )).toList(),
     );
   }
 }
 
-class _ManagerRow extends StatefulWidget {
-  final AdminManager manager;
-  final VoidCallback onToggle, onDelete;
-  const _ManagerRow({
-    required this.manager,
-    required this.onToggle,
-    required this.onDelete,
+// ─────────────────────────────────────────────────────────────────────────────
+// WORKERS SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+class _WorkersSection extends StatefulWidget {
+  final List<AdminWorker> workers;
+  final List<AdminManager> managers;
+  final bool loading;
+  final String? error;
+  final Future<void> Function(Map<String, String>) onAdd;
+  final Future<void> Function(String, Map<String, String>) onEdit;
+  final Future<void> Function(String) onDelete;
+  final Future<void> Function(String) onToggle;
+  final Future<void> Function() onRefresh;
+  const _WorkersSection({
+    required this.workers, required this.managers, required this.loading, this.error,
+    required this.onAdd, required this.onEdit, required this.onDelete,
+    required this.onToggle, required this.onRefresh,
+  });
+  @override
+  State<_WorkersSection> createState() => _WorkersSectionState();
+}
+
+class _WorkersSectionState extends State<_WorkersSection> {
+  String _query = '';
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.workers.where((w) {
+      return _query.isEmpty || w.name.toLowerCase().contains(_query) || w.email.toLowerCase().contains(_query);
+    }).toList();
+    return _ListLayout(
+      title: 'Workers',
+      count: widget.workers.length,
+      stats: [
+        ('Total', '${widget.workers.length}', kAmber, Icons.engineering_rounded),
+        ('Active', '${widget.workers.where((w) => w.isActive).length}', kGreen, Icons.check_circle_rounded),
+      ],
+      onAdd: () => showDialog(
+        context: context,
+        builder: (_) => _UserFormDialog(
+          title: 'Add Worker',
+          color: kAmber,
+          roleFields: [
+            _RoleField('Manager', 'managerId', widget.managers.map((m) => _Option(m.id, m.name)).toList()),
+          ],
+          onSave: widget.onAdd,
+        ),
+      ),
+      onRefresh: widget.onRefresh,
+      onSearch: (q) => setState(() => _query = q.toLowerCase()),
+      loading: widget.loading,
+      error: widget.error,
+      headers: const ['Worker', 'Email', 'Phone', 'Manager', 'Courts', 'Status', 'Actions'],
+      rows: filtered.map((w) => _UserRow(
+        initials: _initials(w.name), color: kAmber, name: w.name, email: w.email,
+        phone: w.phone, isActive: w.isActive, extra1: w.managerName, extra2: '${w.courts.length}',
+        onToggle: () => widget.onToggle(w.id),
+        onEdit: () => showDialog(
+          context: context,
+          builder: (_) => _UserFormDialog(
+            title: 'Edit Worker', color: kAmber, roleFields: const [],
+            initial: {'username': w.name, 'email': w.email, 'phone': w.phone},
+            onSave: (d) => widget.onEdit(w.id, d),
+          ),
+        ),
+        onDelete: () => widget.onDelete(w.id),
+      )).toList(),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPLEXES SECTION
+// FIX 4: Consistent flex values between header and data rows via _ComplexRow
+// ─────────────────────────────────────────────────────────────────────────────
+class _ComplexesSection extends StatelessWidget {
+  final List<AdminComplex> complexes;
+  final bool loading;
+  final String? error;
+  final Future<void> Function() onRefresh;
+  const _ComplexesSection({
+    required this.complexes, required this.loading, this.error, required this.onRefresh,
   });
 
   @override
-  State<_ManagerRow> createState() => _ManagerRowState();
+  Widget build(BuildContext context) {
+    return _ListLayout(
+      title: 'Complexes',
+      count: complexes.length,
+      stats: [
+        ('Total', '${complexes.length}', kPrimary, Icons.stadium_rounded),
+        ('Active', '${complexes.where((v) => v.isActive).length}', kGreen, Icons.check_circle_rounded),
+      ],
+      onAdd: null,
+      onRefresh: onRefresh,
+      onSearch: (_) {},
+      loading: loading,
+      error: error,
+      headers: const ['Complex', 'City', 'Manager', 'Courts', 'Rating', 'Sports', 'Status'],
+      rows: complexes.map((v) => _ComplexRow(complex: v)).toList(),
+    );
+  }
 }
 
-class _ManagerRowState extends State<_ManagerRow> {
-  bool _hover = false;
+/// Dedicated complex row widget with matching flex values to the header.
+class _ComplexRow extends StatelessWidget {
+  final AdminComplex complex;
+  const _ComplexRow({required this.complex});
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final m = widget.manager;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        decoration: BoxDecoration(
-          color: _hover ? colors.hover : Colors.transparent,
-          border: Border(top: BorderSide(color: colors.divider)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-          child: Row(
-            children: [
-              Expanded(flex: 3, child: _buildManagerInfo(m, colors)),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  m.email,
-                  style: TextStyle(color: colors.textLight, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '${m.venues.length}',
-                  style: TextStyle(color: colors.text, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  '${m.totalCourts}',
-                  style: TextStyle(color: colors.text, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '${(m.revenue / 1000).toStringAsFixed(1)}K DT',
-                  style: const TextStyle(
-                    color: kGreen,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+    final theme = AdminTheme.lightTheme;
+    return Container(
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.divider))),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+      child: Row(
+        children: [
+          // Complex name — flex 3
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                _Avatar(complex.name.isNotEmpty ? complex.name[0].toUpperCase() : 'C', kPrimary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    complex.name,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextDark),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-              Expanded(
-                flex: 2,
-                child: _ABadge(
-                  m.isActive ? 'Active' : 'Inactive',
-                  m.isActive ? kGreen : kRed,
-                ),
-              ),
-              Expanded(flex: 2, child: _buildActions(colors)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildManagerInfo(AdminManager m, AdminThemeColors colors) {
-    return Row(
-      children: [
-        _Avatar(m.avatar, kPurple),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                m.name,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                '${m.venues.length} venue(s)',
-                style: TextStyle(color: colors.textLight, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActions(AdminThemeColors colors) {
-    return Row(
-      children: [
-        _ActionBtn(Icons.visibility_outlined, kPrimary, () {
-          _showManagerDetail(context, widget.manager);
-        }),
-        const SizedBox(width: 6),
-        _ActionBtn(
-          widget.manager.isActive
-              ? Icons.block_rounded
-              : Icons.check_circle_outline_rounded,
-          widget.manager.isActive ? kAmber : kGreen,
-          widget.onToggle,
-        ),
-        const SizedBox(width: 6),
-        _ActionBtn(Icons.delete_outline_rounded, kRed, widget.onDelete),
-      ],
-    );
-  }
-
-  void _showManagerDetail(BuildContext ctx, AdminManager m) {
-    showDialog(
-      context: ctx,
-      builder: (_) => _ManagerDetailDialog(manager: m),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VENUES SECTION
-// ─────────────────────────────────────────────────────────────────────────────
-class _VenuesSection extends StatefulWidget {
-  final List<AdminVenue> venues;
-  const _VenuesSection({required this.venues});
-
-  @override
-  State<_VenuesSection> createState() => _VenuesSectionState();
-}
-
-class _VenuesSectionState extends State<_VenuesSection> {
-  String _search = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  List<AdminVenue> get _filtered {
-    if (_search.isEmpty) return widget.venues;
-    return widget.venues
-        .where(
-          (v) =>
-              v.name.toLowerCase().contains(_search.toLowerCase()) ||
-              v.city.toLowerCase().contains(_search.toLowerCase()),
-        )
-        .toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        children: [
-          _buildStatsRow(),
-          const SizedBox(height: 24),
-          _buildTable(colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _MiniStat(
-            'Total',
-            '${widget.venues.length}',
-            Icons.stadium_rounded,
-            kPrimary,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Active',
-            '${widget.venues.where((v) => v.isActive).length}',
-            Icons.check_circle_rounded,
-            kGreen,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Courts',
-            '${widget.venues.fold(0, (s, v) => s + v.courts)}',
-            Icons.sports_tennis_rounded,
-            kAmber,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Revenue',
-            '${(widget.venues.fold(0.0, (s, v) => s + v.revenue) / 1000).toStringAsFixed(1)}K DT',
-            Icons.payments_rounded,
-            kGreen,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTable(AdminThemeColors colors) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Column(
-        children: [
-          _buildToolbar(colors),
-          _TableHeader(
-            cols: const [
-              'Venue',
-              'City',
-              'Manager',
-              'Courts',
-              'Bookings/mo',
-              'Revenue',
-              'Rating',
-              'Status',
-            ],
-          ),
-          ..._filtered.map((v) => _VenueRow(venue: v)),
-          if (_filtered.isEmpty) _EmptyTable('No venues found'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolbar(AdminThemeColors colors) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-      child: Row(
-        children: [
-          Text(
-            'All Venues',
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+              ],
             ),
           ),
-          const Spacer(),
-          _TableSearch(
-            controller: _searchController,
-            onChanged: (v) => setState(() => _search = v),
+          // City — flex 2
+          Expanded(
+            flex: 2,
+            child: Text(complex.city, style: const TextStyle(fontSize: 12, color: kTextMid), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          // Manager — flex 2
+          Expanded(
+            flex: 2,
+            child: Text(complex.manager, style: const TextStyle(fontSize: 12, color: kTextMid), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          // Courts — flex 1
+          Expanded(
+            flex: 1,
+            child: Text('${complex.courts}', style: const TextStyle(fontSize: 12, color: kTextMid)),
+          ),
+          // Rating — flex 1
+          Expanded(
+            flex: 1,
+            child: Row(
+              children: [
+                const Icon(Icons.star_rounded, size: 11, color: kAmber),
+                const SizedBox(width: 3),
+                Text(complex.rating.toStringAsFixed(1), style: const TextStyle(fontSize: 12, color: kTextMid)),
+              ],
+            ),
+          ),
+          // Sports — flex 3 (wider to fit sport badges comfortably)
+          Expanded(
+            flex: 3,
+            child: complex.sports.isEmpty
+                ? Text('—', style: TextStyle(fontSize: 12, color: AdminTheme.lightTheme.light))
+                : Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: complex.sports.map((s) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: s.color.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: s.color.withOpacity(0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(s.icon, size: 9, color: s.color),
+                            const SizedBox(width: 3),
+                            Text(
+                              s.label,
+                              style: TextStyle(fontSize: 10, color: s.color, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ),
+          // Status — flex 2
+          Expanded(
+            flex: 2,
+            child: _Badge(complex.isActive ? 'Active' : 'Inactive', complex.isActive ? kGreen : kRed),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _VenueRow extends StatefulWidget {
-  final AdminVenue venue;
-  const _VenueRow({required this.venue});
-
-  @override
-  State<_VenueRow> createState() => _VenueRowState();
-}
-
-class _VenueRowState extends State<_VenueRow> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(
-      context,
-    ).extension<AdminThemeColors>()!; // This line must be here
-    final v = widget.venue;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        decoration: BoxDecoration(
-          color: _hover ? colors.hover : Colors.transparent,
-          border: Border(top: BorderSide(color: colors.divider)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-          child: Row(
-            children: [
-              Expanded(flex: 3, child: _buildVenueInfo(v, colors)),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  v.city,
-                  style: TextStyle(color: colors.textLight, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  v.manager,
-                  style: TextStyle(color: colors.text, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  '${v.courts}',
-                  style: TextStyle(color: colors.text, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '${v.bookingsMonth}',
-                  style: TextStyle(color: colors.text, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '${(v.revenue / 1000).toStringAsFixed(1)}K DT',
-                  style: const TextStyle(
-                    color: kGreen,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 1,
-                child: _buildRating(v, colors),
-              ), // Pass colors to _buildRating
-              Expanded(
-                flex: 1,
-                child: _ABadge(
-                  v.isActive ? 'Active' : 'Inactive',
-                  v.isActive ? kGreen : kRed,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVenueInfo(AdminVenue v, AdminThemeColors colors) {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: kPrimary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: const Icon(Icons.stadium_rounded, size: 16, color: kPrimary),
-        ),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                v.name,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Wrap(
-                spacing: 4,
-                children: v.sports
-                    .map(
-                      (s) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: s.color.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          s.label,
-                          style: TextStyle(
-                            color: s.color,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRating(AdminVenue v, AdminThemeColors colors) {
-    // Add colors parameter
-    return Row(
-      children: [
-        const Icon(Icons.star_rounded, size: 13, color: kAmber),
-        const SizedBox(width: 4),
-        Text(
-          '${v.rating}',
-          style: TextStyle(color: colors.text, fontSize: 12),
-        ), // Now colors is defined
-      ],
     );
   }
 }
@@ -2917,609 +1559,51 @@ class _VenueRowState extends State<_VenueRow> {
 // ─────────────────────────────────────────────────────────────────────────────
 // BOOKINGS SECTION
 // ─────────────────────────────────────────────────────────────────────────────
-class _BookingsSection extends StatefulWidget {
+class _BookingsSection extends StatelessWidget {
   final List<AdminBooking> bookings;
-  const _BookingsSection({required this.bookings});
+  final bool loading;
+  final String? error;
+  final Future<void> Function() onRefresh;
+  const _BookingsSection({
+    required this.bookings, required this.loading, this.error, required this.onRefresh,
+  });
 
-  @override
-  State<_BookingsSection> createState() => _BookingsSectionState();
-}
-
-class _BookingsSectionState extends State<_BookingsSection> {
-  String _filter = 'all';
-
-  List<AdminBooking> get _filtered {
-    if (_filter == 'all') return widget.bookings;
-    return widget.bookings.where((b) => b.status == _filter).toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        children: [
-          _buildStatsRow(),
-          const SizedBox(height: 24),
-          _buildTable(colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _MiniStat(
-            'Total',
-            '${widget.bookings.length}',
-            Icons.calendar_today_rounded,
-            kPrimary,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Confirmed',
-            '${widget.bookings.where((b) => b.status == 'confirmed').length}',
-            Icons.check_circle_rounded,
-            kGreen,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Pending',
-            '${widget.bookings.where((b) => b.status == 'pending').length}',
-            Icons.pending_rounded,
-            kAmber,
-          ),
-          const SizedBox(width: 14),
-          _MiniStat(
-            'Cancelled',
-            '${widget.bookings.where((b) => b.status == 'cancelled').length}',
-            Icons.cancel_rounded,
-            kRed,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTable(AdminThemeColors colors) {
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Column(
-        children: [
-          _buildToolbar(colors),
-          _TableHeader(
-            cols: const [
-              'Player',
-              'Venue',
-              'Court',
-              'Sport',
-              'Date',
-              'Time',
-              'Price',
-              'Status',
-            ],
-          ),
-          ..._filtered.map((b) => _BookingTableRow(booking: b)),
-          if (_filtered.isEmpty) _EmptyTable('No bookings found'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolbar(AdminThemeColors colors) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-      child: Row(
-        children: [
-          Text(
-            'All Bookings',
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          ...['all', 'confirmed', 'pending', 'cancelled'].map(
-            (f) => _FilterPill(
-              label: f == 'all' ? 'All' : f.capitalize(),
-              active: _filter == f,
-              onTap: () => setState(() => _filter = f),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BookingTableRow extends StatefulWidget {
-  final AdminBooking booking;
-  const _BookingTableRow({required this.booking});
-
-  @override
-  State<_BookingTableRow> createState() => _BookingTableRowState();
-}
-
-class _BookingTableRowState extends State<_BookingTableRow> {
-  bool _hover = false;
-
-  Color get _statusColor {
-    switch (widget.booking.status) {
-      case 'confirmed':
-        return kGreen;
-      case 'pending':
-        return kAmber;
-      case 'cancelled':
-        return kRed;
-      default:
-        return kTextLight;
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'confirmed': return kGreen;
+      case 'pending':   return kAmber;
+      case 'cancelled': return kRed;
+      default:          return kTextLight;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final b = widget.booking;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        decoration: BoxDecoration(
-          color: _hover ? colors.hover : Colors.transparent,
-          border: Border(top: BorderSide(color: colors.divider)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  b.player,
-                  style: TextStyle(color: colors.text, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  b.venue,
-                  style: TextStyle(color: colors.textLight, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  b.court,
-                  style: TextStyle(color: colors.textLight, fontSize: 12),
-                ),
-              ),
-              Expanded(flex: 2, child: _buildSport(b)),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  b.date,
-                  style: TextStyle(color: colors.textLight, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  b.time,
-                  style: TextStyle(color: colors.text, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  '${b.price.toInt()} DT',
-                  style: const TextStyle(color: kGreen, fontSize: 12),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: _ABadge(b.status.capitalize(), _statusColor),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSport(AdminBooking b) {
-    return Row(
-      children: [
-        Icon(b.sport.icon, size: 12, color: b.sport.color),
-        const SizedBox(width: 5),
-        Text(
-          b.sport.label,
-          style: TextStyle(
-            color: b.sport.color,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+    return _ListLayout(
+      title: 'Bookings',
+      count: bookings.length,
+      stats: [
+        ('Total', '${bookings.length}', kPrimary, Icons.calendar_today_rounded),
+        ('Confirmed', '${bookings.where((b) => b.status == 'confirmed').length}', kGreen, Icons.check_circle_rounded),
+        ('Pending', '${bookings.where((b) => b.status == 'pending').length}', kAmber, Icons.pending_rounded),
+        ('Cancelled', '${bookings.where((b) => b.status == 'cancelled').length}', kRed, Icons.cancel_rounded),
       ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// REPORTS SECTION
-// ─────────────────────────────────────────────────────────────────────────────
-class _ReportsSection extends StatefulWidget {
-  final List<AdminPlayer> players;
-  final List<AdminManager> managers;
-  final List<AdminBooking> bookings;
-  final List<AdminVenue> venues;
-  const _ReportsSection({
-    required this.players,
-    required this.managers,
-    required this.bookings,
-    required this.venues,
-  });
-
-  @override
-  State<_ReportsSection> createState() => _ReportsSectionState();
-}
-
-class _ReportsSectionState extends State<_ReportsSection> {
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final totalRevenue = widget.venues.fold(0.0, (s, v) => s + v.revenue);
-    final sportCounts = <SportType, int>{};
-    for (final b in widget.bookings) {
-      sportCounts[b.sport] = (sportCounts[b.sport] ?? 0) + 1;
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Platform Analytics',
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Overview of all platform activity and revenue',
-            style: TextStyle(color: colors.textLight, fontSize: 13),
-          ),
-          const SizedBox(height: 24),
-          _buildSummaryGrid(totalRevenue, colors),
-          const SizedBox(height: 24),
-          _buildChartsRow(sportCounts, colors),
-          const SizedBox(height: 18),
-          _buildTopManagersTable(colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryGrid(double totalRevenue, AdminThemeColors colors) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _ReportCard(
-            title: 'Total Revenue',
-            value: '${(totalRevenue / 1000).toStringAsFixed(1)}K DT',
-            icon: Icons.payments_rounded,
-            color: kGreen,
-            sub: 'Across ${widget.venues.length} venues',
-          ),
-          const SizedBox(width: 16),
-          _ReportCard(
-            title: 'Total Bookings',
-            value: '${widget.bookings.length}',
-            icon: Icons.calendar_today_rounded,
-            color: kPrimary,
-            sub: 'All time',
-          ),
-          const SizedBox(width: 16),
-          _ReportCard(
-            title: 'Platform Users',
-            value: '${widget.players.length + widget.managers.length}',
-            icon: Icons.people_rounded,
-            color: kPurple,
-            sub:
-                '${widget.players.length} players · ${widget.managers.length} managers',
-          ),
-          const SizedBox(width: 16),
-          _ReportCard(
-            title: 'Avg Revenue / Venue',
-            value:
-                '${(totalRevenue / widget.venues.length / 1000).toStringAsFixed(1)}K DT',
-            icon: Icons.analytics_rounded,
-            color: kAmber,
-            sub: 'Per venue',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChartsRow(
-    Map<SportType, int> sportCounts,
-    AdminThemeColors colors,
-  ) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 3,
-          child: _SCard(
-            title: 'Revenue by Venue',
-            child: Column(
-              children: widget.venues
-                  .map(
-                    (v) => _RevenueBar(
-                      label: v.name,
-                      value: v.revenue,
-                      max: widget.venues.fold(
-                        0.0,
-                        (s, x) => x.revenue > s ? x.revenue : s,
-                      ),
-                      color: kPrimary,
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ),
-        const SizedBox(width: 18),
-        Expanded(
-          flex: 2,
-          child: _SCard(
-            title: 'Bookings by Sport',
-            child: Column(
-              children: SportType.values.map((s) {
-                final count = sportCounts[s] ?? 0;
-                final total = widget.bookings.isEmpty
-                    ? 1
-                    : widget.bookings.length;
-                return _RevenueBar(
-                  label: s.label,
-                  value: count.toDouble(),
-                  max: total.toDouble(),
-                  color: s.color,
-                  suffix: ' bookings',
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTopManagersTable(AdminThemeColors colors) {
-    return _SCard(
-      title: 'Top Performing Managers',
-      child: Column(
-        children: [
-          _TableHeader(
-            cols: const [
-              'Manager',
-              'Venues',
-              'Courts',
-              'Bookings/mo',
-              'Revenue',
-            ],
-          ),
-          ...widget.managers
-              .sorted((a, b) => b.revenue.compareTo(a.revenue))
-              .map(
-                (m) => Container(
-                  decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: colors.divider)),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Row(
-                          children: [
-                            _Avatar(m.avatar, kPurple),
-                            const SizedBox(width: 10),
-                            Text(
-                              m.name,
-                              style: TextStyle(
-                                color: colors.text,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '${m.venues.length}',
-                          style: TextStyle(color: colors.text, fontSize: 12),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Text(
-                          '${m.totalCourts}',
-                          style: TextStyle(color: colors.text, fontSize: 12),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '${m.bookingsMonth}',
-                          style: TextStyle(color: colors.text, fontSize: 12),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          '${(m.revenue / 1000).toStringAsFixed(1)}K DT',
-                          style: const TextStyle(
-                            color: kGreen,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReportCard extends StatelessWidget {
-  final String title, value, sub;
-  final IconData icon;
-  final Color color;
-  const _ReportCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-    required this.sub,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return SizedBox(
-      width: 220,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: colors.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colors.divider),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              value,
-              style: TextStyle(
-                color: colors.text,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              title,
-              style: TextStyle(color: colors.textLight, fontSize: 12),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              sub,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RevenueBar extends StatelessWidget {
-  final String label;
-  final double value, max;
-  final Color color;
-  final String suffix;
-  const _RevenueBar({
-    required this.label,
-    required this.value,
-    required this.max,
-    required this.color,
-    this.suffix = ' DT',
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final pct = max == 0 ? 0.0 : (value / max).clamp(0.0, 1.0);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: colors.text,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '${value.toInt()}$suffix',
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 5,
-              backgroundColor: colors.background,
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
-          ),
-        ],
-      ),
+      onAdd: null,
+      onRefresh: onRefresh,
+      onSearch: (_) {},
+      loading: loading,
+      error: error,
+      headers: const ['Player', 'Complex', 'Court', 'Sport', 'Date', 'Time', 'Price', 'Status'],
+      rows: bookings.map((b) => _TableRow(cells: [
+        _TextCell(b.player),
+        _TextCell(b.complex),
+        _TextCell(b.court),
+        _SportCell(b.sport),
+        _TextCell(b.date),
+        _TextCell(b.time),
+        _MoneyCell('${b.price.toInt()} DT'),
+        _BadgeCell(b.status.cap, _statusColor(b.status)),
+      ])).toList(),
     );
   }
 }
@@ -3528,1235 +1612,722 @@ class _RevenueBar extends StatelessWidget {
 // SETTINGS SECTION
 // ─────────────────────────────────────────────────────────────────────────────
 class _SettingsSection extends StatefulWidget {
+  final String adminName, adminEmail, token;
+  final Future<void> Function(String name, String email, String pw) onSaved;
+  const _SettingsSection({
+    required this.adminName, required this.adminEmail, required this.token, required this.onSaved,
+  });
   @override
   State<_SettingsSection> createState() => _SettingsSectionState();
 }
 
 class _SettingsSectionState extends State<_SettingsSection> {
-  final _platformName = TextEditingController(text: 'Sporta');
-  final _supportEmail = TextEditingController(text: 'admin@sporta.tn');
-  final _commissionRate = TextEditingController(text: '8');
-  bool _autoVerify = false;
-  bool _allowSignup = true;
-  bool _emailNotifs = true;
-  bool _maintenanceMode = false;
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _saving = false;
-
-  @override
-  void dispose() {
-    _platformName.dispose();
-    _supportEmail.dispose();
-    _commissionRate.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Settings saved',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: kPrimary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _buildLeftColumn(colors)),
-          const SizedBox(width: 20),
-          Expanded(child: _buildRightColumn(colors)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLeftColumn(AdminThemeColors colors) {
-    return Column(
-      children: [
-        _SettingsGroup(
-          title: 'Platform Settings',
-          icon: Icons.settings_rounded,
-          children: [
-            _SettingsField(
-              'Platform Name',
-              _platformName,
-              Icons.sports_rounded,
-            ),
-            _SettingsField(
-              'Support Email',
-              _supportEmail,
-              Icons.email_outlined,
-            ),
-            _SettingsField(
-              'Commission Rate (%)',
-              _commissionRate,
-              Icons.percent_rounded,
-              type: TextInputType.number,
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _SettingsGroup(
-          title: 'Danger Zone',
-          icon: Icons.warning_amber_rounded,
-          iconColor: kRed,
-          children: [
-            _SettingsToggle(
-              'Maintenance Mode',
-              'Disable public access to the platform',
-              Icons.construction_rounded,
-              _maintenanceMode,
-              kRed,
-              (v) => setState(() => _maintenanceMode = v),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRightColumn(AdminThemeColors colors) {
-    return Column(
-      children: [
-        _SettingsGroup(
-          title: 'Registration & Access',
-          icon: Icons.lock_rounded,
-          children: [
-            _SettingsToggle(
-              'Auto-verify Managers',
-              'Skip manual verification',
-              Icons.verified_rounded,
-              _autoVerify,
-              kPrimary,
-              (v) => setState(() => _autoVerify = v),
-            ),
-            _SettingsToggle(
-              'Allow New Signups',
-              'Enable player registration',
-              Icons.person_add_rounded,
-              _allowSignup,
-              kGreen,
-              (v) => setState(() => _allowSignup = v),
-            ),
-            _SettingsToggle(
-              'Email Notifications',
-              'Send platform alerts',
-              Icons.notifications_rounded,
-              _emailNotifs,
-              kAmber,
-              (v) => setState(() => _emailNotifs = v),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _SettingsGroup(
-          title: 'Admin Account',
-          icon: Icons.admin_panel_settings_rounded,
-          children: [
-            _SettingsField(
-              'Admin Name',
-              TextEditingController(text: 'Super Admin'),
-              Icons.person_rounded,
-            ),
-            _SettingsField(
-              'Admin Email',
-              TextEditingController(text: 'admin@sporta.tn'),
-              Icons.email_outlined,
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _buildSaveButton(),
-      ],
-    );
-  }
-
-  Widget _buildSaveButton() {
-    return GestureDetector(
-      onTap: _saving ? null : _save,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 50,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: _saving
-                ? [kPrimary.withOpacity(0.3), kPrimary.withOpacity(0.3)]
-                : [kPrimary, kPrimary.withOpacity(0.8)],
-          ),
-          borderRadius: BorderRadius.circular(13),
-        ),
-        child: Center(
-          child: _saving
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(color: Colors.white),
-                )
-              : const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.save_rounded, color: Colors.white, size: 16),
-                    SizedBox(width: 8),
-                    Text(
-                      'Save Settings',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsGroup extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color? iconColor;
-  final List<Widget> children;
-  const _SettingsGroup({
-    required this.title,
-    required this.icon,
-    required this.children,
-    this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 15, color: iconColor ?? kPrimary),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...children,
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsField extends StatelessWidget {
-  final String label;
-  final TextEditingController ctrl;
-  final IconData icon;
-  final TextInputType type;
-  const _SettingsField(
-    this.label,
-    this.ctrl,
-    this.icon, {
-    this.type = TextInputType.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: colors.textLight,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: colors.divider),
-            ),
-            child: TextField(
-              controller: ctrl,
-              keyboardType: type,
-              style: TextStyle(color: colors.text, fontSize: 13),
-              decoration: InputDecoration(
-                prefixIcon: Icon(icon, size: 15, color: colors.textLight),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 13),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsToggle extends StatelessWidget {
-  final String label, sub;
-  final IconData icon;
-  final bool value;
-  final Color color;
-  final ValueChanged<bool> onChange;
-  const _SettingsToggle(
-    this.label,
-    this.sub,
-    this.icon,
-    this.value,
-    this.color,
-    this.onChange,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Icon(icon, size: 16, color: color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: colors.text,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  sub,
-                  style: TextStyle(color: colors.textLight, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChange,
-            activeColor: color,
-            inactiveThumbColor: colors.textLight,
-            inactiveTrackColor: colors.divider,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PLAYER DETAIL DIALOG
-// ─────────────────────────────────────────────────────────────────────────────
-class _PlayerDetailDialog extends StatelessWidget {
-  final AdminPlayer player;
-  const _PlayerDetailDialog({required this.player});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final p = player;
-
-    return Dialog(
-      backgroundColor: colors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: colors.divider),
-      ),
-      child: SizedBox(
-        width: 460,
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, p, colors),
-              const SizedBox(height: 20),
-              Divider(color: colors.divider),
-              const SizedBox(height: 16),
-              _buildStats(p),
-              const SizedBox(height: 16),
-              _InfoRow(Icons.phone_outlined, 'Phone', p.phone),
-              _InfoRow(
-                Icons.calendar_today_outlined,
-                'Joined',
-                _formatDate(p.joined),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(
-    BuildContext context,
-    AdminPlayer p,
-    AdminThemeColors colors,
-  ) {
-    return Row(
-      children: [
-        _Avatar(p.avatar, kPrimary, size: 52),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                p.name,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                p.email,
-                style: TextStyle(color: colors.textLight, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        _ABadge(p.isActive ? 'Active' : 'Inactive', p.isActive ? kGreen : kRed),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.close_rounded, size: 16, color: colors.textLight),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStats(AdminPlayer p) {
-    return Row(
-      children: [
-        _DetailStat(
-          'Bookings',
-          '${p.bookings}',
-          Icons.calendar_today_rounded,
-          kPrimary,
-        ),
-        _DetailStat(
-          'Total Spent',
-          '${p.spent.toInt()} DT',
-          Icons.payments_rounded,
-          kGreen,
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MANAGER DETAIL DIALOG
-// ─────────────────────────────────────────────────────────────────────────────
-class _ManagerDetailDialog extends StatelessWidget {
-  final AdminManager manager;
-  const _ManagerDetailDialog({required this.manager});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    final m = manager;
-
-    return Dialog(
-      backgroundColor: colors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: colors.divider),
-      ),
-      child: SizedBox(
-        width: 480,
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, m, colors),
-              const SizedBox(height: 20),
-              Divider(color: colors.divider),
-              const SizedBox(height: 16),
-              _buildStats(m),
-              const SizedBox(height: 16),
-              _buildVenuesList(m, colors),
-              _InfoRow(Icons.phone_outlined, 'Phone', m.phone),
-              _InfoRow(
-                Icons.calendar_today_outlined,
-                'Joined',
-                _formatDate(m.joined),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(
-    BuildContext context,
-    AdminManager m,
-    AdminThemeColors colors,
-  ) {
-    return Row(
-      children: [
-        _Avatar(m.avatar, kPurple, size: 52),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                m.name,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                m.email,
-                style: TextStyle(color: colors.textLight, fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-        _ABadge(m.isActive ? 'Active' : 'Inactive', m.isActive ? kGreen : kRed),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.close_rounded, size: 16, color: colors.textLight),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStats(AdminManager m) {
-    return Row(
-      children: [
-        _DetailStat(
-          'Venues',
-          '${m.venues.length}',
-          Icons.stadium_rounded,
-          kPrimary,
-        ),
-        _DetailStat(
-          'Courts',
-          '${m.totalCourts}',
-          Icons.sports_tennis_rounded,
-          kPurple,
-        ),
-        _DetailStat(
-          'Revenue',
-          '${(m.revenue / 1000).toStringAsFixed(1)}K DT',
-          Icons.payments_rounded,
-          kGreen,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVenuesList(AdminManager m, AdminThemeColors colors) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Venues',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-        ),
-        const SizedBox(height: 8),
-        ...m.venues.map(
-          (v) => Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: colors.divider),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  v.name,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  '${v.city} · ${v.courts} courts',
-                  style: TextStyle(color: colors.textLight, fontSize: 11),
-                ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 4,
-                  children: v.sports
-                      .map(
-                        (s) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: s.color.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            s.label,
-                            style: TextStyle(
-                              color: s.color,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ADD MANAGER DIALOG
-// ─────────────────────────────────────────────────────────────────────────────
-class _AddManagerDialog extends StatefulWidget {
-  final ValueChanged<AdminManager> onAdd;
-  const _AddManagerDialog({required this.onAdd});
-
-  @override
-  State<_AddManagerDialog> createState() => _AddManagerDialogState();
-}
-
-class _AddManagerDialogState extends State<_AddManagerDialog> {
-  final _form = GlobalKey<FormState>();
-  final _name = TextEditingController();
-  final _email = TextEditingController();
-  final _phone = TextEditingController();
-
-  final List<ManagerVenue> _venues = [];
-  bool _sending = false;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _email.dispose();
-    _phone.dispose();
-    super.dispose();
-  }
-
-  void _addVenue() {
-    setState(() {
-      _venues.add(
-        ManagerVenue(
-          name: '',
-          city: '',
-          courts: 1,
-          sports: [SportType.football],
-        ),
-      );
-    });
-  }
-
-  void _removeVenue(int index) {
-    setState(() {
-      _venues.removeAt(index);
-    });
-  }
-
-  void _updateVenue(
-    int index,
-    String name,
-    String city,
-    int courts,
-    List<SportType> sports,
-  ) {
-    setState(() {
-      _venues[index] = ManagerVenue(
-        name: name,
-        city: city,
-        courts: courts,
-        sports: sports,
-      );
-    });
-  }
-
-  void _submit() async {
-    if (!_form.currentState!.validate()) return;
-    if (_venues.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Add at least one venue'),
-          backgroundColor: kAmber,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _sending = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-
-    widget.onAdd(
-      AdminManager(
-        id: 'mgr_${DateTime.now().millisecondsSinceEpoch}',
-        name: _name.text.trim(),
-        email: _email.text.trim(),
-        phone: _phone.text.trim(),
-        avatar: _name.text
-            .trim()
-            .split(' ')
-            .map((w) => w[0])
-            .take(2)
-            .join()
-            .toUpperCase(),
-        venues: _venues,
-        bookingsMonth: 0,
-        revenue: 0,
-        isActive: true,
-        joined: DateTime.now(),
-      ),
-    );
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Dialog(
-      backgroundColor: colors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: colors.divider),
-      ),
-      child: SizedBox(
-        width: 600,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Form(
-            key: _form,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(colors),
-                const SizedBox(height: 24),
-                Divider(color: colors.divider),
-                const SizedBox(height: 20),
-                _DlgSLabel('Personal Information'),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DlgField(
-                        'Full Name',
-                        _name,
-                        Icons.person_outlined,
-                        required: true,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _DlgField('Phone', _phone, Icons.phone_outlined),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _DlgField(
-                  'Email',
-                  _email,
-                  Icons.email_outlined,
-                  required: true,
-                  type: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 20),
-                _buildVenuesSection(colors),
-                const SizedBox(height: 28),
-                _buildActions(colors),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(AdminThemeColors colors) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: kPrimary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: kPrimary.withOpacity(0.3)),
-          ),
-          child: const Icon(
-            Icons.person_add_rounded,
-            color: kPrimary,
-            size: 19,
-          ),
-        ),
-        const SizedBox(width: 13),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Add New Manager',
-                style: TextStyle(
-                  color: kTextDark,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                'Create a manager account and assign their venues',
-                style: TextStyle(color: kTextMid, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.close_rounded, size: 16, color: colors.textLight),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVenuesSection(AdminThemeColors colors) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _DlgSLabel('Venues'),
-            const Spacer(),
-            GestureDetector(
-              onTap: _addVenue,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: kPrimary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.add_rounded, size: 14, color: kPrimary),
-                    SizedBox(width: 4),
-                    Text(
-                      'Add Venue',
-                      style: TextStyle(
-                        color: kPrimary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_venues.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: colors.divider),
-            ),
-            child: Center(
-              child: Text(
-                'No venues added yet. Tap "Add Venue" to add one.',
-                style: TextStyle(color: colors.textLight, fontSize: 12),
-              ),
-            ),
-          )
-        else
-          ..._venues.asMap().entries.map((entry) {
-            final index = entry.key;
-            return _VenueFormTile(
-              index: index,
-              venue: entry.value,
-              onUpdate: (name, city, courts, sports) =>
-                  _updateVenue(index, name, city, courts, sports),
-              onRemove: () => _removeVenue(index),
-            );
-          }).toList(),
-      ],
-    );
-  }
-
-  Widget _buildActions(AdminThemeColors colors) {
-    return Row(
-      children: [
-        Expanded(
-          child: _DlgBtn(
-            'Cancel',
-            colors.textLight,
-            outlined: true,
-            onTap: () => Navigator.pop(context),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _DlgBtn(
-            _sending ? 'Creating...' : 'Create Manager',
-            kPrimary,
-            icon: Icons.add_rounded,
-            onTap: _sending ? null : _submit,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _VenueFormTile extends StatefulWidget {
-  final int index;
-  final ManagerVenue venue;
-  final Function(String, String, int, List<SportType>) onUpdate;
-  final VoidCallback onRemove;
-
-  const _VenueFormTile({
-    required this.index,
-    required this.venue,
-    required this.onUpdate,
-    required this.onRemove,
-  });
-
-  @override
-  State<_VenueFormTile> createState() => _VenueFormTileState();
-}
-
-class _VenueFormTileState extends State<_VenueFormTile> {
-  late TextEditingController _nameCtrl;
-  late TextEditingController _cityCtrl;
-  late TextEditingController _courtsCtrl;
-  late Set<SportType> _selectedSports;
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.venue.name);
-    _cityCtrl = TextEditingController(text: widget.venue.city);
-    _courtsCtrl = TextEditingController(text: widget.venue.courts.toString());
-    _selectedSports = Set.from(widget.venue.sports);
+    _nameController = TextEditingController(text: widget.adminName);
+    _emailController = TextEditingController(text: widget.adminEmail);
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _cityCtrl.dispose();
-    _courtsCtrl.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _update() {
-    widget.onUpdate(
-      _nameCtrl.text,
-      _cityCtrl.text,
-      int.tryParse(_courtsCtrl.text) ?? 1,
-      _selectedSports.toList(),
+  Future<void> _save() async {
+    if (_passwordController.text.isNotEmpty && _passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match'), backgroundColor: kRed),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    await widget.onSaved(
+      _nameController.text.trim(),
+      _emailController.text.trim(),
+      _passwordController.text.trim(),
     );
+    setState(() => _saving = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
+    final theme = AdminTheme.lightTheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Settings', style: TextStyle(color: theme.text, fontSize: 20, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: theme.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: theme.divider),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(14)),
+                  child: Center(
+                    child: Text(
+                      _initials(_nameController.text.isEmpty ? 'Admin' : _nameController.text),
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.adminName, style: TextStyle(color: theme.text, fontSize: 18, fontWeight: FontWeight.w800)),
+                    Text('Super Admin', style: TextStyle(color: theme.light, fontSize: 13)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            Divider(color: theme.divider),
+            const SizedBox(height: 24),
+            Text('Account Information', style: TextStyle(color: theme.mid, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _SettingsField('Display Name', _nameController, Icons.person_outline_rounded)),
+                const SizedBox(width: 16),
+                Expanded(child: _SettingsField('Email', _emailController, Icons.email_outlined, type: TextInputType.emailAddress)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Divider(color: theme.divider),
+            const SizedBox(height: 24),
+            Text('Change Password', style: TextStyle(color: theme.mid, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+            const SizedBox(height: 6),
+            Text('Leave blank to keep your current password', style: TextStyle(color: theme.light, fontSize: 12)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _SettingsField('New Password', _passwordController, Icons.lock_outline_rounded, obscure: true)),
+                const SizedBox(width: 16),
+                Expanded(child: _SettingsField('Confirm Password', _confirmPasswordController, Icons.lock_outline_rounded, obscure: true)),
+              ],
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: 200,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.save_rounded, size: 16),
+                label: Text(_saving ? 'Saving…' : 'Save Changes'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+// ─────────────────────────────────────────────────────────────────────────────
+// GENERIC LIST LAYOUT
+// ─────────────────────────────────────────────────────────────────────────────
+class _ListLayout extends StatelessWidget {
+  final String title;
+  final int count;
+  final List<(String, String, Color, IconData)> stats;
+  final VoidCallback? onAdd;
+  final Future<void> Function() onRefresh;
+  final ValueChanged<String> onSearch;
+  final bool loading;
+  final String? error;
+  final List<String> headers;
+  final List<Widget> rows;
+
+  const _ListLayout({
+    required this.title, required this.count, required this.stats,
+    this.onAdd, required this.onRefresh, required this.onSearch,
+    required this.loading, this.error, required this.headers, required this.rows,
+  });
+
+  int _flex(String header) {
+    switch (header) {
+      case 'Player':
+      case 'Manager':
+      case 'Worker':
+      case 'Complex':
+        return 3;
+      case 'Email':
+        return 3;
+      case 'Sports':
+        return 3;
+      case 'Courts':
+      case 'Rating':
+        return 1;
+      case 'Status':
+      case 'Actions':
+        return 2;
+      default:
+        return 2;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AdminTheme.lightTheme;
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      color: kPrimary,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(
             children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: kPrimary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    '${widget.index + 1}',
-                    style: TextStyle(
-                      color: kPrimary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Venue ${widget.index + 1}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
+              ...stats.map((s) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 14),
+                  child: _MiniStat(label: s.$1, value: s.$2, color: s.$3, icon: s.$4),
+                );
+              }),
               const Spacer(),
-              GestureDetector(
-                onTap: widget.onRemove,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
+              if (onAdd != null) _AddBtn(onTap: onAdd!),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: theme.divider),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                  child: Row(
+                    children: [
+                      Text('All $title', style: TextStyle(color: theme.text, fontSize: 14, fontWeight: FontWeight.w700)),
+                      const Spacer(),
+                      SizedBox(
+                        width: 220,
+                        height: 34,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: theme.bg,
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: theme.divider),
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 10),
+                              const Icon(Icons.search_rounded, size: 14, color: kTextLight),
+                              const SizedBox(width: 7),
+                              Expanded(
+                                child: TextField(
+                                  onChanged: onSearch,
+                                  style: TextStyle(color: theme.text, fontSize: 12),
+                                  decoration: const InputDecoration(
+                                    hintText: 'Search…',
+                                    hintStyle: TextStyle(color: kTextLight, fontSize: 12),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
                   decoration: BoxDecoration(
-                    color: kRed.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    color: theme.bg,
+                    border: Border(top: BorderSide(color: theme.divider), bottom: BorderSide(color: theme.divider)),
                   ),
-                  child: Icon(Icons.close_rounded, size: 14, color: kRed),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Venue Name',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: _nameCtrl,
-                      onChanged: (_) => _update(),
-                      style: const TextStyle(fontSize: 12),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
-                          borderSide: BorderSide(color: colors.divider),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'City',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: _cityCtrl,
-                      onChanged: (_) => _update(),
-                      style: const TextStyle(fontSize: 12),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
-                          borderSide: BorderSide(color: colors.divider),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Number of Courts',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: _courtsCtrl,
-                      onChanged: (_) => _update(),
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 12),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(6),
-                          borderSide: BorderSide(color: colors.divider),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Sports Offered',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: SportType.values.map((s) {
-              final selected = _selectedSports.contains(s);
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (selected) {
-                      _selectedSports.remove(s);
-                    } else {
-                      _selectedSports.add(s);
-                    }
-                    _update();
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected ? s.color : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: selected ? s.color : colors.divider,
-                    ),
-                  ),
-                  child: Text(
-                    s.label,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: selected ? Colors.white : colors.text,
-                    ),
+                  child: Row(
+                    children: headers.map((h) {
+                      return Expanded(flex: _flex(h), child: Text(
+                        h,
+                        style: TextStyle(color: theme.light, fontSize: 11, fontWeight: FontWeight.w700),
+                      ));
+                    }).toList(),
                   ),
                 ),
-              );
-            }).toList(),
+                if (loading)
+                  const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator(color: kPrimary)))
+                else if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      children: [
+                        Icon(Icons.error_outline, color: kRed, size: 32),
+                        const SizedBox(height: 8),
+                        Text(error!, style: const TextStyle(color: kTextMid)),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: onRefresh,
+                          style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (rows.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      children: [
+                        Icon(Icons.inbox_rounded, size: 40, color: theme.light),
+                        const SizedBox(height: 8),
+                        Text('No $title found', style: TextStyle(color: theme.light)),
+                      ],
+                    ),
+                  )
+                else
+                  ...rows,
+              ],
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER ROW
+// ─────────────────────────────────────────────────────────────────────────────
+class _UserRow extends StatelessWidget {
+  final String initials, name, email, phone, extra1, extra2;
+  final Color color;
+  final Color? extraColor2;
+  final bool isActive;
+  final VoidCallback onToggle, onEdit, onDelete;
+  const _UserRow({
+    required this.initials, required this.color, required this.name, required this.email,
+    required this.phone, required this.isActive, required this.extra1, required this.extra2,
+    this.extraColor2, required this.onToggle, required this.onEdit, required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AdminTheme.lightTheme;
+    return Container(
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.divider))),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                _Avatar(initials, color),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: TextStyle(color: theme.text, fontSize: 13, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(phone.isEmpty ? '—' : phone, style: TextStyle(color: theme.light, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(flex: 3, child: Text(email, style: TextStyle(color: theme.mid, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(flex: 2, child: Text(phone.isEmpty ? '—' : phone, style: TextStyle(color: theme.text, fontSize: 12))),
+          Expanded(flex: 2, child: Text(extra1, style: TextStyle(color: theme.text, fontSize: 12))),
+          Expanded(flex: 2, child: Text(extra2, style: TextStyle(color: extraColor2 ?? theme.text, fontSize: 12, fontWeight: FontWeight.w700))),
+          Expanded(flex: 2, child: _Badge(isActive ? 'Active' : 'Blocked', isActive ? kGreen : kRed)),
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                _IconButton(Icons.edit_outlined, kPrimary, onEdit),
+                const SizedBox(width: 6),
+                _IconButton(isActive ? Icons.block_rounded : Icons.check_circle_outline_rounded, isActive ? kAmber : kGreen, onToggle),
+                const SizedBox(width: 6),
+                _IconButton(Icons.delete_outline_rounded, kRed, onDelete),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GENERIC TABLE ROW + CELLS
+// ─────────────────────────────────────────────────────────────────────────────
+class _TableRow extends StatelessWidget {
+  final List<Widget> cells;
+  const _TableRow({required this.cells});
+  @override
+  Widget build(BuildContext context) {
+    final theme = AdminTheme.lightTheme;
+    return Container(
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.divider))),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+      child: Row(children: cells.map((c) => Expanded(child: c)).toList()),
+    );
+  }
+}
+
+class _TextCell extends StatelessWidget {
+  final String text;
+  const _TextCell(this.text);
+  @override
+  Widget build(BuildContext context) {
+    return Text(text, style: const TextStyle(fontSize: 12, color: kTextMid), maxLines: 1, overflow: TextOverflow.ellipsis);
+  }
+}
+
+class _MoneyCell extends StatelessWidget {
+  final String text;
+  const _MoneyCell(this.text);
+  @override
+  Widget build(BuildContext context) {
+    return Text(text, style: const TextStyle(fontSize: 12, color: kGreen, fontWeight: FontWeight.w700));
+  }
+}
+
+class _NameCell extends StatelessWidget {
+  final String initials, name, sub;
+  final Color color;
+  const _NameCell({required this.initials, required this.name, required this.sub, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _Avatar(initials, color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextDark), maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (sub.isNotEmpty) Text(sub, style: const TextStyle(fontSize: 11, color: kTextLight)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BadgeCell extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _BadgeCell(this.label, this.color);
+  @override
+  Widget build(BuildContext context) => _Badge(label, color);
+}
+
+class _SportCell extends StatelessWidget {
+  final SportType sport;
+  const _SportCell(this.sport);
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(sport.icon, size: 12, color: sport.color),
+        const SizedBox(width: 4),
+        Text(sport.label, style: TextStyle(fontSize: 11, color: sport.color, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+}
+
+class _SportsCell extends StatelessWidget {
+  final List<SportType> sports;
+  const _SportsCell(this.sports);
+  @override
+  Widget build(BuildContext context) {
+    if (sports.isEmpty) return Text('—', style: TextStyle(fontSize: 12, color: AdminTheme.lightTheme.light));
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: sports.map((s) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: s.color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(color: s.color.withOpacity(0.25)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(s.icon, size: 9, color: s.color),
+              const SizedBox(width: 3),
+              Text(s.label, style: TextStyle(fontSize: 10, color: s.color, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER FORM DIALOG
+// ─────────────────────────────────────────────────────────────────────────────
+class _Option {
+  final String id, label;
+  const _Option(this.id, this.label);
+}
+
+class _RoleField {
+  final String label, key;
+  final List<_Option> options;
+  const _RoleField(this.label, this.key, this.options);
+}
+
+class _UserFormDialog extends StatefulWidget {
+  final String title;
+  final Color color;
+  final List<_RoleField> roleFields;
+  final Map<String, String>? initial;
+  final Future<void> Function(Map<String, String>) onSave;
+  const _UserFormDialog({
+    required this.title, required this.color, required this.roleFields,
+    this.initial, required this.onSave,
+  });
+  @override
+  State<_UserFormDialog> createState() => _UserFormDialogState();
+}
+
+class _UserFormDialogState extends State<_UserFormDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  final TextEditingController _passwordController = TextEditingController();
+  late TextEditingController _phoneController = TextEditingController();
+  final Map<String, String> _roleSelections = {};
+  bool _saving = false;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initial?['username'] ?? '');
+    _emailController = TextEditingController(text: widget.initial?['email'] ?? '');
+    _phoneController = TextEditingController(text: widget.initial?['phone'] ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: kRed, behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    final isEdit = widget.initial != null;
+    if (!isEdit && _passwordController.text.trim().isEmpty) {
+      _showError('Password is required');
+      return;
+    }
+    for (final field in widget.roleFields) {
+      if (!_roleSelections.containsKey(field.key) || _roleSelections[field.key]!.isEmpty) {
+        _showError('${field.label} is required');
+        return;
+      }
+    }
+    setState(() => _saving = true);
+    final data = <String, String>{
+      'username': _nameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'phone': _phoneController.text.trim(),
+      if (_passwordController.text.trim().isNotEmpty) 'password': _passwordController.text.trim(),
+      ..._roleSelections,
+    };
+    try {
+      await widget.onSave(data);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) _showError(e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AdminTheme.lightTheme;
+    final isEdit = widget.initial != null;
+    return Dialog(
+      backgroundColor: theme.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: BorderSide(color: theme.divider)),
+      child: SizedBox(
+        width: 480,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: Form(
+            key: _formKey,
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(color: widget.color.withOpacity(0.1), borderRadius: BorderRadius.circular(11)),
+                    child: Icon(Icons.person_add_rounded, color: widget.color, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(widget.title, style: TextStyle(color: theme.text, fontSize: 16, fontWeight: FontWeight.w800))),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 28, height: 28,
+                      decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(8)),
+                      child: Icon(Icons.close_rounded, size: 14, color: theme.light),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _FormField('Full Name', _nameController, Icons.person_outline_rounded, required: true),
+              const SizedBox(height: 14),
+              _FormField('Email', _emailController, Icons.email_outlined, type: TextInputType.emailAddress, required: true),
+              const SizedBox(height: 14),
+              _FormField(
+                isEdit ? 'New Password (leave blank to keep)' : 'Password',
+                _passwordController, Icons.lock_outline_rounded,
+                obscure: true, required: !isEdit,
+              ),
+              const SizedBox(height: 14),
+              _FormField('Phone', _phoneController, Icons.phone_outlined, type: TextInputType.phone),
+              for (final field in widget.roleFields) ...[
+                const SizedBox(height: 14),
+                Text(field.label, style: TextStyle(color: theme.light, fontSize: 11, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Container(
+                  decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(10), border: Border.all(color: theme.divider)),
+                  child: DropdownButtonFormField<String>(
+                    value: _roleSelections[field.key],
+                    isExpanded: true,
+                    hint: Text('Select ${field.label}'),
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.manage_accounts_rounded, size: 15),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                    items: field.options.map((o) => DropdownMenuItem(value: o.id, child: Text(o.label))).toList(),
+                    onChanged: (value) => setState(() => _roleSelections[field.key] = value ?? ''),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: _DialogButton('Cancel', onTap: () => Navigator.pop(context), outlined: true)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _DialogButton(
+                    _saving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Create'),
+                    onTap: _saving ? null : _save,
+                    color: widget.color,
+                  )),
+                ],
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SETTINGS FIELD
+// ─────────────────────────────────────────────────────────────────────────────
+class _SettingsField extends StatefulWidget {
+  final String label;
+  final TextEditingController controller;
+  final IconData icon;
+  final bool obscure;
+  final TextInputType type;
+  const _SettingsField(this.label, this.controller, this.icon, {this.obscure = false, this.type = TextInputType.text});
+  @override
+  State<_SettingsField> createState() => _SettingsFieldState();
+}
+
+class _SettingsFieldState extends State<_SettingsField> {
+  bool _visible = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AdminTheme.lightTheme;
+    final isPassword = widget.obscure;
+    final shouldObscure = isPassword && !_visible;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.label, style: TextStyle(color: theme.mid, fontSize: 12, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(10), border: Border.all(color: theme.divider)),
+          child: TextField(
+            controller: widget.controller,
+            obscureText: shouldObscure,
+            keyboardType: widget.type,
+            style: TextStyle(color: theme.text, fontSize: 13),
+            decoration: InputDecoration(
+              prefixIcon: Icon(widget.icon, size: 15, color: theme.light),
+              suffixIcon: isPassword
+                  ? GestureDetector(
+                      onTap: () => setState(() => _visible = !_visible),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Icon(
+                          _visible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 16,
+                          color: _visible ? kPrimary : theme.light,
+                        ),
+                      ),
+                    )
+                  : null,
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 13),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -4766,81 +2337,40 @@ class _VenueFormTileState extends State<_VenueFormTile> {
 // ─────────────────────────────────────────────────────────────────────────────
 class _ConfirmDialog extends StatelessWidget {
   final String title, body;
-  final Color color;
-  final VoidCallback onConfirm;
-  const _ConfirmDialog({
-    required this.title,
-    required this.body,
-    required this.color,
-    required this.onConfirm,
-  });
-
+  const _ConfirmDialog({required this.title, required this.body});
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
+    final theme = AdminTheme.lightTheme;
     return Dialog(
-      backgroundColor: colors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: colors.divider),
-      ),
+      backgroundColor: theme.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: theme.divider)),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: SizedBox(
-          width: 360,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.warning_rounded, color: color, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: colors.text,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                body,
-                style: TextStyle(
-                  color: colors.textLight,
-                  fontSize: 13,
-                  height: 1.5,
+          width: 340,
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(
+              children: [
+                Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(color: kRed.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.warning_amber_rounded, color: kRed, size: 18),
                 ),
-              ),
-              const SizedBox(height: 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: _DlgBtn(
-                      'Cancel',
-                      colors.textLight,
-                      outlined: true,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(child: _DlgBtn('Confirm', color, onTap: onConfirm)),
-                ],
-              ),
-            ],
-          ),
+                const SizedBox(width: 12),
+                Text(title, style: TextStyle(color: theme.text, fontSize: 15, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(body, style: TextStyle(color: theme.mid, fontSize: 13, height: 1.5)),
+            const SizedBox(height: 22),
+            Row(
+              children: [
+                Expanded(child: _DialogButton('Cancel', onTap: () => Navigator.pop(context, false), outlined: true)),
+                const SizedBox(width: 10),
+                Expanded(child: _DialogButton('Confirm', onTap: () => Navigator.pop(context, true), color: kRed)),
+              ],
+            ),
+          ]),
         ),
       ),
     );
@@ -4848,105 +2378,152 @@ class _ConfirmDialog extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PLACEHOLDER SECTION
+// MICRO WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
-class _PlaceholderSection extends StatelessWidget {
+class _Pill extends StatelessWidget {
+  final String label;
   final IconData icon;
-  final String label, sub;
-  const _PlaceholderSection({
-    required this.icon,
-    required this.label,
-    required this.sub,
-  });
-
+  const _Pill(this.label, this.icon);
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Center(
-      child: Column(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: colors.background,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 36, color: colors.textLight),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            label,
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(sub, style: TextStyle(color: colors.textLight, fontSize: 14)),
+          Icon(icon, size: 12, color: Colors.white),
+          const SizedBox(width: 5),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SHARED MICRO WIDGETS
-// ─────────────────────────────────────────────────────────────────────────────
-class _Avatar extends StatelessWidget {
-  final String initials;
+class _KPI extends StatelessWidget {
+  final String label, value;
+  final IconData icon;
   final Color color;
-  final double size;
-  const _Avatar(this.initials, this.color, {this.size = 36});
-
+  const _KPI(this.label, this.value, this.icon, this.color);
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(size * 0.28),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          style: TextStyle(
-            color: color,
-            fontSize: size * 0.33,
-            fontWeight: FontWeight.w800,
+    final theme = AdminTheme.lightTheme;
+    return SizedBox(
+      width: 180,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: theme.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: theme.divider)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(9)),
+            child: Icon(icon, size: 16, color: color),
           ),
-        ),
+          const SizedBox(height: 12),
+          Text(value, style: TextStyle(color: theme.text, fontSize: 24, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 3),
+          Text(label, style: TextStyle(color: theme.light, fontSize: 12)),
+        ]),
       ),
     );
   }
 }
 
-class _ABadge extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _ABadge(this.label, this.color);
-
+class _Card extends StatelessWidget {
+  final String title;
+  final String? action;
+  final VoidCallback? onAction;
+  final Widget child;
+  const _Card({required this.title, required this.child, this.action, this.onAction});
   @override
   Widget build(BuildContext context) {
+    final theme = AdminTheme.lightTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: theme.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: theme.divider)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(
+          children: [
+            Text(title, style: TextStyle(color: theme.text, fontSize: 14, fontWeight: FontWeight.w700)),
+            if (action != null) ...[
+              const Spacer(),
+              GestureDetector(onTap: onAction, child: Text(action!, style: const TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w600))),
+            ],
+          ],
         ),
+        const SizedBox(height: 16),
+        child,
+      ]),
+    );
+  }
+}
+
+class _Bar extends StatelessWidget {
+  final String label, suffix;
+  final double value, max;
+  final Color color;
+  const _Bar({required this.label, required this.value, required this.max, required this.color, this.suffix = ''});
+  @override
+  Widget build(BuildContext context) {
+    final theme = AdminTheme.lightTheme;
+    final percentage = max == 0 ? 0.0 : (value / max).clamp(0.0, 1.0);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(label, style: TextStyle(color: theme.text, fontSize: 12, fontWeight: FontWeight.w600))),
+              Text('${value.toInt()}$suffix', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: percentage, minHeight: 5,
+              backgroundColor: theme.bg,
+              valueColor: AlwaysStoppedAnimation(color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SnippetRow extends StatelessWidget {
+  final String initials, title, sub, badge;
+  final Color color, badgeColor;
+  const _SnippetRow({
+    required this.initials, required this.color, required this.title,
+    required this.sub, required this.badge, required this.badgeColor,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final theme = AdminTheme.lightTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 11),
+      child: Row(
+        children: [
+          _Avatar(initials, color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(color: theme.text, fontSize: 12, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(sub, style: TextStyle(color: theme.light, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          _Badge(badge, badgeColor),
+        ],
       ),
     );
   }
@@ -4954,49 +2531,29 @@ class _ABadge extends StatelessWidget {
 
 class _MiniStat extends StatelessWidget {
   final String label, value;
-  final IconData icon;
   final Color color;
-  const _MiniStat(this.label, this.value, this.icon, this.color);
-
+  final IconData icon;
+  const _MiniStat({required this.label, required this.value, required this.color, required this.icon});
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
+    final theme = AdminTheme.lightTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.divider),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(color: theme.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.divider)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 15, color: color),
+            width: 30, height: 30,
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, size: 14, color: color),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                value,
-                style: TextStyle(
-                  color: colors.text,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                label,
-                style: TextStyle(color: colors.textLight, fontSize: 11),
-              ),
+              Text(value, style: TextStyle(color: theme.text, fontSize: 16, fontWeight: FontWeight.w800)),
+              Text(label, style: TextStyle(color: theme.light, fontSize: 11)),
             ],
           ),
         ],
@@ -5005,501 +2562,180 @@ class _MiniStat extends StatelessWidget {
   }
 }
 
-class _AdminBtn extends StatefulWidget {
-  final String label;
-  final IconData icon;
+class _AddBtn extends StatelessWidget {
   final VoidCallback onTap;
-  const _AdminBtn({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  State<_AdminBtn> createState() => _AdminBtnState();
-}
-
-class _AdminBtnState extends State<_AdminBtn> {
-  bool _hover = false;
-
+  const _AddBtn({required this.onTap});
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _hover
-                  ? [kPrimary, kPrimary.withOpacity(0.8)]
-                  : [kPrimary, kPrimary],
-            ),
-            borderRadius: BorderRadius.circular(11),
-            boxShadow: _hover
-                ? [
-                    BoxShadow(
-                      color: kPrimary.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(widget.icon, size: 15, color: Colors.white),
-              const SizedBox(width: 7),
-              Text(
-                widget.label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(11)),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_rounded, size: 15, color: Colors.white),
+            SizedBox(width: 6),
+            Text('Add New', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ActionBtn extends StatefulWidget {
+class _Avatar extends StatelessWidget {
+  final String initials;
+  final Color color;
+  final double size;
+  const _Avatar(this.initials, this.color, {this.size = 36});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size, height: size,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Center(
+        child: Text(initials, style: TextStyle(color: color, fontSize: size * 0.33, fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _Badge(this.label, this.color);
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  const _ActionBtn(this.icon, this.color, this.onTap);
-
-  @override
-  State<_ActionBtn> createState() => _ActionBtnState();
-}
-
-class _ActionBtnState extends State<_ActionBtn> {
-  bool _hover = false;
-
+  const _IconButton(this.icon, this.color, this.onTap);
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            color: _hover ? widget.color.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(7),
-          ),
-          child: Icon(
-            widget.icon,
-            size: 15,
-            color: _hover ? widget.color : colors.textLight,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TableHeader extends StatelessWidget {
-  final List<String> cols;
-  const _TableHeader({required this.cols});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: colors.background,
-        border: Border(
-          top: BorderSide(color: colors.divider),
-          bottom: BorderSide(color: colors.divider),
-        ),
-      ),
-      child: Row(
-        children: cols.asMap().entries.map((e) {
-          final flex = e.key == 0 ? 3 : (e.key == cols.length - 1 ? 2 : 2);
-          return Expanded(
-            flex: flex,
-            child: Text(
-              e.value,
-              style: TextStyle(
-                color: colors.textLight,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _TableSearch extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  const _TableSearch({required this.controller, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return SizedBox(
-      width: 200,
-      height: 34,
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          color: colors.background,
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: colors.divider),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 10),
-            const Icon(Icons.search_rounded, size: 14, color: kTextLight),
-            const SizedBox(width: 7),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                onChanged: onChanged,
-                style: TextStyle(color: colors.text, fontSize: 12),
-                decoration: const InputDecoration(
-                  hintText: 'Search...',
-                  hintStyle: TextStyle(color: kTextLight, fontSize: 12),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-          ],
-        ),
+        width: 30, height: 30,
+        decoration: BoxDecoration(color: color.withOpacity(0.07), borderRadius: BorderRadius.circular(7)),
+        child: Icon(icon, size: 14, color: color),
       ),
     );
   }
 }
 
-class _FilterPill extends StatelessWidget {
+class _FormField extends StatefulWidget {
   final String label;
-  final bool active;
-  final VoidCallback onTap;
-  const _FilterPill({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 6),
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: active ? kPrimary.withOpacity(0.1) : colors.background,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: active ? kPrimary.withOpacity(0.3) : colors.divider,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: active ? kPrimary : colors.textLight,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyTable extends StatelessWidget {
-  final String message;
-  const _EmptyTable(this.message);
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(Icons.inbox_rounded, size: 36, color: colors.textLight),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              style: TextStyle(color: colors.textLight, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Dialog helpers
-class _DlgSLabel extends StatelessWidget {
-  final String t;
-  const _DlgSLabel(this.t);
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-    return Text(
-      t,
-      style: TextStyle(
-        color: colors.textLight,
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-}
-
-class _DlgField extends StatelessWidget {
-  final String label;
-  final TextEditingController ctrl;
+  final TextEditingController controller;
   final IconData icon;
-  final bool required;
+  final bool required, obscure;
   final TextInputType type;
-  const _DlgField(
-    this.label,
-    this.ctrl,
-    this.icon, {
-    this.required = false,
-    this.type = TextInputType.text,
-  });
+  const _FormField(this.label, this.controller, this.icon, {this.required = false, this.obscure = false, this.type = TextInputType.text});
+  @override
+  State<_FormField> createState() => _FormFieldState();
+}
+
+class _FormFieldState extends State<_FormField> {
+  bool _visible = false;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
+    final theme = AdminTheme.lightTheme;
+    final isPassword = widget.obscure;
+    final shouldObscure = isPassword && !_visible;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _DlgSLabel(label),
-        const SizedBox(height: 6),
+        Text(widget.label, style: TextStyle(color: theme.light, fontSize: 11, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 5),
         Container(
-          decoration: BoxDecoration(
-            color: colors.background,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: colors.divider),
-          ),
+          decoration: BoxDecoration(color: theme.bg, borderRadius: BorderRadius.circular(10), border: Border.all(color: theme.divider)),
           child: TextFormField(
-            controller: ctrl,
-            keyboardType: type,
-            style: TextStyle(color: colors.text, fontSize: 13),
-            validator: required
-                ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
-                : null,
+            controller: widget.controller,
+            keyboardType: widget.type,
+            obscureText: shouldObscure,
+            style: TextStyle(color: theme.text, fontSize: 13),
+            validator: widget.required ? (value) => (value == null || value.trim().isEmpty) ? 'Required' : null : null,
             decoration: InputDecoration(
-              prefixIcon: Icon(icon, size: 15, color: colors.textLight),
+              prefixIcon: Icon(widget.icon, size: 15, color: theme.light),
+              suffixIcon: isPassword
+                  ? GestureDetector(
+                      onTap: () => setState(() => _visible = !_visible),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Icon(
+                          _visible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 16,
+                          color: _visible ? kPrimary : theme.light,
+                        ),
+                      ),
+                    )
+                  : null,
               border: InputBorder.none,
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 13),
             ),
           ),
         ),
-        const SizedBox(height: 12),
       ],
     );
   }
 }
 
-class _DlgBtn extends StatelessWidget {
+class _DialogButton extends StatelessWidget {
   final String label;
-  final Color color;
   final VoidCallback? onTap;
   final bool outlined;
-  final IconData? icon;
-  const _DlgBtn(
-    this.label,
-    this.color, {
-    this.onTap,
-    this.outlined = false,
-    this.icon,
-  });
-
+  final Color? color;
+  const _DialogButton(this.label, {this.onTap, this.outlined = false, this.color});
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
+    final theme = AdminTheme.lightTheme;
+    final buttonColor = color ?? kPrimary;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 44,
         decoration: outlined
-            ? BoxDecoration(
-                border: Border.all(color: colors.divider),
-                borderRadius: BorderRadius.circular(11),
-              )
+            ? BoxDecoration(border: Border.all(color: theme.divider), borderRadius: BorderRadius.circular(11))
             : BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(11),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: buttonColor, borderRadius: BorderRadius.circular(11),
+                boxShadow: [BoxShadow(color: buttonColor.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))],
               ),
         child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 14,
-                  color: outlined ? colors.textLight : Colors.white,
-                ),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: outlined ? colors.textLight : Colors.white,
-                ),
-              ),
-            ],
-          ),
+          child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: outlined ? theme.mid : Colors.white)),
         ),
       ),
     );
   }
 }
 
-class _DetailStat extends StatelessWidget {
-  final String label, value;
-  final IconData icon;
-  final Color color;
-  const _DetailStat(this.label, this.value, this.icon, this.color);
-
+class _Empty extends StatelessWidget {
+  final String message;
+  const _Empty(this.message);
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
-    return Container(
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: colors.background,
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: colors.divider),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(height: 7),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(color: colors.textLight, fontSize: 10)),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label, value;
-  const _InfoRow(this.icon, this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AdminThemeColors>()!;
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: colors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 14, color: colors.textLight),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            '$label: ',
-            style: TextStyle(color: colors.textLight, fontSize: 12),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: colors.text,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(20),
+      child: Center(child: Text(message, style: const TextStyle(color: kTextLight, fontSize: 13))),
     );
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-String _formatDate(DateTime d) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${d.day} ${months[d.month - 1]} ${d.year}';
-}
-
-extension _ListSorted<T> on List<T> {
-  List<T> sorted(int Function(T a, T b) compare) => [...this]..sort(compare);
-}
-
-extension _StringExt on String {
-  String capitalize() =>
-      isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
 }

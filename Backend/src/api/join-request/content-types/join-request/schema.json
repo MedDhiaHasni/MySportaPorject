@@ -1,0 +1,34 @@
+{
+  "kind": "collectionType",
+  "collectionName": "join_requests",
+  "info": {
+    "singularName": "join-request",
+    "pluralName": "join-requests",
+    "displayName": "join-request"
+  },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": {},
+  "attributes": {
+    "message": {
+      "type": "text"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "accepted", "declined"],
+      "default": "pending",
+      "required": true
+    },
+    "announcement": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::announcement.announcement",
+      "inversedBy": "join_requests"
+    },
+    "player": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player.player",
+      "inversedBy": "join_requests"
+    }
+  }
+}

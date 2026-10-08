@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use strict';
 
 module.exports = {
@@ -18,6 +19,11 @@ module.exports = {
    */
  
    async bootstrap({ strapi }) {
+
+     if (!process.env.OPENROUTER_API_KEY) {
+      strapi.log.warn('[ai-agent] OPENROUTER_API_KEY missing in .env');
+    }
+
     const exist = await strapi.db.query("plugin::users-permissions.user").findOne({
       where : {email : "admin@gmail.com"}
     });

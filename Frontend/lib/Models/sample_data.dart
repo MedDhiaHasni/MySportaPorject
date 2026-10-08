@@ -45,7 +45,6 @@ final sampleCourts = [
   const CourtModel(
     id: 'c1',
     name: 'Court Alpha',
-    location: 'Arena Sport, Lac 2',
     sport: SportType.football,
     pricePerHour: 90,
     color: kPrimary,
@@ -56,7 +55,6 @@ final sampleCourts = [
   const CourtModel(
     id: 'c2',
     name: 'Court Beta',
-    location: 'Arena Sport, Lac 2',
     sport: SportType.padel,
     pricePerHour: 120,
     color: kPurple,
@@ -67,7 +65,6 @@ final sampleCourts = [
   const CourtModel(
     id: 'c3',
     name: 'Court Gamma',
-    location: 'Arena Sport, Lac 2',
     sport: SportType.tennis,
     pricePerHour: 105,
     color: kGreen,
@@ -77,7 +74,6 @@ final sampleCourts = [
   const CourtModel(
     id: 'c4',
     name: 'Court Delta',
-    location: 'Arena Sport, Lac 2',
     sport: SportType.basketball,
     pricePerHour: 75,
     color: kAmber,

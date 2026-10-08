@@ -24,7 +24,6 @@ class _OnboardingState extends State<Onboarding> {
     });
   }
 
-  // 7keyet securite
   @override
   void dispose() {
     controlleronboard.dispose();
@@ -39,9 +38,7 @@ class _OnboardingState extends State<Onboarding> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(
-      context,
-    ).size; // mochkelt l'ecran mta3 l'emulateur
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -61,7 +58,6 @@ class _OnboardingState extends State<Onboarding> {
                     'Reserve your slot, organize your game,\nand hit the field — all in seconds.',
                 bgColor: const Color(0xFFFFF8F0),
                 accentColor: const Color(0xFF005D5E),
-                decorColor: const Color(0xFFFFDDB3),
               ),
               _buildPage(
                 context: context,
@@ -73,24 +69,22 @@ class _OnboardingState extends State<Onboarding> {
                     'Find teammates, join open matches,\nand grow your sports network.',
                 bgColor: const Color(0xFFF0F8F8),
                 accentColor: const Color(0xFF005D5E),
-                decorColor: const Color(0xFFB2DFDB),
               ),
               _buildPage(
                 context: context,
                 size: size,
                 imagePath: 'assets/onb3.png',
-                tagline: 'MANAGE & WIN',
-                title: 'Run Your\nComplex Smarter',
+                tagline: 'JUST ASK',
+                title: 'Your AI Assistant\nNever Sleeps',
                 description:
-                    'Manage bookings, track revenue,\nand grow your sports facility effortlessly.',
+                    'Need to book a field at 2 AM? Just chat.\nYour assistant handles the rest.',
                 bgColor: const Color(0xFFF5F0FF),
                 accentColor: const Color(0xFF005D5E),
-                decorColor: const Color(0xFFCFBDFF),
               ),
             ],
           ),
 
-          // Skip button wa7la fih
+          // Skip button
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
@@ -103,9 +97,7 @@ class _OnboardingState extends State<Onboarding> {
                       horizontal: 16,
                       vertical: 8,
                     ),
-                    backgroundColor: Colors.white.withOpacity(
-                      0.8,
-                    ), // yechbah lel bg li fel figma
+                    backgroundColor: Colors.white.withOpacity(0.8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -212,7 +204,6 @@ class _OnboardingState extends State<Onboarding> {
     required String description,
     required Color bgColor,
     required Color accentColor,
-    required Color decorColor,
   }) {
     return Column(
       children: [
@@ -222,52 +213,10 @@ class _OnboardingState extends State<Onboarding> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Background blob
+              // Background color only (circles removed)
               Container(color: bgColor),
 
-              // douwera li mel louta
-              Positioned(
-                bottom: -60,
-                left: -60,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: decorColor.withOpacity(0.5),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-
-              // douwera li mel foug 3al limin
-              Positioned(
-                top: 60,
-                right: -30,
-                child: Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    color: decorColor.withOpacity(0.35),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-
-              // douwera li mel foug 3al lisar
-              Positioned(
-                top: -20,
-                left: 30,
-                child: Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.08),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-
-              // taswira
+              // Image
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.only(

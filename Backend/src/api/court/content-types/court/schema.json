@@ -1,0 +1,111 @@
+{
+  "kind": "collectionType",
+  "collectionName": "courts",
+  "info": {
+    "singularName": "court",
+    "pluralName": "courts",
+    "displayName": "court"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "sports": {
+      "type": "enumeration",
+      "enum": [
+        "football",
+        "padel",
+        "basketball",
+        "tennis"
+      ]
+    },
+    "pricePerHour": {
+      "type": "decimal",
+      "required": true
+    },
+    "capacity": {
+      "type": "integer",
+      "required": true
+    },
+    "photos": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "amenities": {
+      "type": "enumeration",
+      "enum": [
+        "Parking",
+        "Showers",
+        "Changing Rooms",
+        "Cafe",
+        "WiFi",
+        "First Aid",
+        "Seating",
+        "Coaching",
+        "Equipment Rental",
+        "AC",
+        "Lockers",
+        "Pro Shop"
+      ]
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "venue": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::venue.venue",
+      "inversedBy": "courts"
+    },
+    "reservations": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::reservation.reservation",
+      "mappedBy": "court"
+    },
+    "week_agenda": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::week-agenda.week-agenda",
+      "mappedBy": "court"
+    },
+    "manager": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::manager.manager",
+      "inversedBy": "courts"
+    },
+    "worker": {
+    "type": "relation",
+    "relation": "manyToOne",
+    "target": "api::worker.worker",
+    "inversedBy": "courts",
+    "description": "The worker assigned to this court (one court has one worker)"
+    },
+    "court_img": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    }
+  }
+}

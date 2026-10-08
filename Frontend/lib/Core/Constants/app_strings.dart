@@ -15,10 +15,9 @@ class AppStrings {
   static const onb2Title       = 'Connect With\nOther Players';
   static const onb2Description = 'Find teammates, join open matches,\nand grow your sports network.';
 
-  static const onb3Tagline     = 'MANAGE & WIN';
-  static const onb3Title       = 'Run Your\nComplex Smarter';
-  static const onb3Description = 'Manage bookings, track revenue,\nand grow your sports facility effortlessly.';
-
+  static const onb3Tagline     = 'JUST ASK';
+  static const onb3Title       = 'Your AI Assistant\nNever Sleeps';
+  static const onb3Description = 'Need to book a field at 2 AM? Just chat.\nYour assistant handles the rest.';
   // ── Auth ──────────────────────────────────────────────────────────────
   static const welcomeBack      = 'Welcome Back 👋';
   static const loginSubtitle    = 'Login to continue playing';

@@ -1,4 +1,4 @@
-// manage_tournament_page.dart — Views/Manager/manage_tournament_page.dart
+/*// manage_tournament_page.dart — Views/Manager/manage_tournament_page.dart
 // Uses TournamentModel (shared with player side) → no TournamentData dependency
 // Tabs: Overview · Teams · Matches
 
@@ -1357,4 +1357,4 @@ class _ActionBtn extends StatelessWidget {
       ),
     ),
   );
-}
+}*/

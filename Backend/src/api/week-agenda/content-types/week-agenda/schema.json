@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "week_agendas",
+  "info": {
+    "singularName": "week-agenda",
+    "pluralName": "week-agendas",
+    "displayName": "WeekAgenda"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "weekStartDate": {
+      "type": "date"
+    },
+    "statu": {
+      "type": "enumeration",
+      "enum": [
+        "Draft",
+        "Published"
+      ]
+    },
+    "day_plans": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::day-plan.day-plan",
+      "mappedBy": "week_agend"
+    },
+    "court": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::court.court",
+      "inversedBy": "week_agenda"
+    }
+  }
+}

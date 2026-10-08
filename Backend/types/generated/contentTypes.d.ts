@@ -467,6 +467,653 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAiConversationAiConversation
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'ai_conversations';
+  info: {
+    displayName: 'AI Conversation';
+    pluralName: 'ai-conversations';
+    singularName: 'ai-conversation';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    answer: Schema.Attribute.Text & Schema.Attribute.Required;
+    contextType: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::ai-conversation.ai-conversation'
+    > &
+      Schema.Attribute.Private;
+    model: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    question: Schema.Attribute.Text & Schema.Attribute.Required;
+    sessionId: Schema.Attribute.String & Schema.Attribute.Required;
+    tokensUsed: Schema.Attribute.Integer;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usedDatabaseContext: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
+  };
+}
+
+export interface ApiAnnouncementAnnouncement
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'announcements';
+  info: {
+    displayName: 'announcement';
+    pluralName: 'announcements';
+    singularName: 'announcement';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text & Schema.Attribute.Required;
+    join_requests: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::join-request.join-request'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::announcement.announcement'
+    > &
+      Schema.Attribute.Private;
+    player: Schema.Attribute.Relation<'manyToOne', 'api::player.player'>;
+    players_needed: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
+    publishedAt: Schema.Attribute.DateTime;
+    reservation: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::reservation.reservation'
+    >;
+    status: Schema.Attribute.Enumeration<['open', 'full', 'closed']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'open'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCourtCourt extends Struct.CollectionTypeSchema {
+  collectionName: 'courts';
+  info: {
+    displayName: 'court';
+    pluralName: 'courts';
+    singularName: 'court';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    amenities: Schema.Attribute.Enumeration<
+      [
+        'Parking',
+        'Showers',
+        'Changing Rooms',
+        'Cafe',
+        'WiFi',
+        'First Aid',
+        'Seating',
+        'Coaching',
+        'Equipment Rental',
+        'AC',
+        'Lockers',
+        'Pro Shop',
+      ]
+    >;
+    capacity: Schema.Attribute.Integer & Schema.Attribute.Required;
+    court_img: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::court.court'> &
+      Schema.Attribute.Private;
+    manager: Schema.Attribute.Relation<'manyToOne', 'api::manager.manager'>;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    photos: Schema.Attribute.Media<
+      'images' | 'files' | 'videos' | 'audios',
+      true
+    >;
+    pricePerHour: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    reservations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::reservation.reservation'
+    >;
+    sports: Schema.Attribute.Enumeration<
+      ['football', 'padel', 'basketball', 'tennis']
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    venue: Schema.Attribute.Relation<'manyToOne', 'api::venue.venue'>;
+    week_agenda: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::week-agenda.week-agenda'
+    >;
+    worker: Schema.Attribute.Relation<'manyToOne', 'api::worker.worker'>;
+  };
+}
+
+export interface ApiDayPlanDayPlan extends Struct.CollectionTypeSchema {
+  collectionName: 'day_plans';
+  info: {
+    displayName: 'DayPlan';
+    pluralName: 'day-plans';
+    singularName: 'day-plan';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    date: Schema.Attribute.Date;
+    dayOfWeek: Schema.Attribute.Enumeration<
+      [
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+        'sunday',
+      ]
+    >;
+    dayType: Schema.Attribute.Enumeration<['normal', 'urgent_only', 'day_off']>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::day-plan.day-plan'
+    > &
+      Schema.Attribute.Private;
+    notes: Schema.Attribute.Text;
+    publishedAt: Schema.Attribute.DateTime;
+    time_slots: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::time-slot.time-slot'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    week_agend: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::week-agenda.week-agenda'
+    >;
+  };
+}
+
+export interface ApiJoinRequestJoinRequest extends Struct.CollectionTypeSchema {
+  collectionName: 'join_requests';
+  info: {
+    displayName: 'join-request';
+    pluralName: 'join-requests';
+    singularName: 'join-request';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    announcement: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::announcement.announcement'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::join-request.join-request'
+    > &
+      Schema.Attribute.Private;
+    message: Schema.Attribute.Text;
+    player: Schema.Attribute.Relation<'manyToOne', 'api::player.player'>;
+    publishedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<['pending', 'accepted', 'declined']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'pending'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiManagerManager extends Struct.CollectionTypeSchema {
+  collectionName: 'managers';
+  info: {
+    displayName: 'manager';
+    pluralName: 'managers';
+    singularName: 'manager';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    courts: Schema.Attribute.Relation<'oneToMany', 'api::court.court'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fcmToken: Schema.Attribute.String;
+    firebaseUid: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::manager.manager'
+    > &
+      Schema.Attribute.Private;
+    manager: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    nom: Schema.Attribute.String;
+    phone: Schema.Attribute.String;
+    photo: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    publishedAt: Schema.Attribute.DateTime;
+    reservations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::reservation.reservation'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    venues: Schema.Attribute.Relation<'oneToMany', 'api::venue.venue'>;
+    workers: Schema.Attribute.Relation<'oneToMany', 'api::worker.worker'>;
+  };
+}
+
+export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
+  collectionName: 'payments';
+  info: {
+    description: 'Payment records for reservations';
+    displayName: 'Payment';
+    pluralName: 'payments';
+    singularName: 'payment';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    amount: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    currency: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 3;
+      }> &
+      Schema.Attribute.DefaultTo<'eur'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::payment.payment'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    reservation: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::reservation.reservation'
+    >;
+    status: Schema.Attribute.Enumeration<['pending', 'succeeded', 'failed']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'pending'>;
+    stripe_payment_intent_id: Schema.Attribute.String & Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPlayerPlayer extends Struct.CollectionTypeSchema {
+  collectionName: 'players';
+  info: {
+    displayName: 'player';
+    pluralName: 'players';
+    singularName: 'player';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    announcements: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::announcement.announcement'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fcmToken: Schema.Attribute.String;
+    firebaseUid: Schema.Attribute.String;
+    join_requests: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::join-request.join-request'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::player.player'
+    > &
+      Schema.Attribute.Private;
+    nom: Schema.Attribute.String;
+    phone: Schema.Attribute.String;
+    photo: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    player: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    ratings: Schema.Attribute.Relation<'oneToMany', 'api::rating.rating'>;
+    reservations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::reservation.reservation'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiRatingRating extends Struct.CollectionTypeSchema {
+  collectionName: 'ratings';
+  info: {
+    displayName: 'rating';
+    pluralName: 'ratings';
+    singularName: 'rating';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::rating.rating'
+    > &
+      Schema.Attribute.Private;
+    player: Schema.Attribute.Relation<'manyToOne', 'api::player.player'>;
+    publishedAt: Schema.Attribute.DateTime;
+    rating_value: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 5;
+          min: 0.5;
+        },
+        number
+      >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    venue: Schema.Attribute.Relation<'manyToOne', 'api::venue.venue'>;
+  };
+}
+
+export interface ApiReservationReservation extends Struct.CollectionTypeSchema {
+  collectionName: 'reservations';
+  info: {
+    displayName: 'reservation';
+    pluralName: 'reservations';
+    singularName: 'reservation';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    booking_date: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    booking_date_play: Schema.Attribute.Date & Schema.Attribute.Required;
+    booking_reference: Schema.Attribute.String & Schema.Attribute.Required;
+    booking_status: Schema.Attribute.Enumeration<
+      [
+        'pending',
+        'confirmed',
+        'cancel_requested',
+        'cancelled',
+        'completed',
+        'rejected',
+      ]
+    > &
+      Schema.Attribute.Required;
+    cancellation_reason: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
+    court: Schema.Attribute.Relation<'manyToOne', 'api::court.court'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    duration_hours: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    end_time: Schema.Attribute.Time;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::reservation.reservation'
+    > &
+      Schema.Attribute.Private;
+    manager: Schema.Attribute.Relation<'manyToOne', 'api::manager.manager'>;
+    needed_players: Schema.Attribute.Integer;
+    payment_method: Schema.Attribute.Enumeration<['pay_now', 'pay_at_venue']> &
+      Schema.Attribute.Required;
+    payments: Schema.Attribute.Relation<'oneToMany', 'api::payment.payment'>;
+    player: Schema.Attribute.Relation<'manyToOne', 'api::player.player'>;
+    publishedAt: Schema.Attribute.DateTime;
+    rejection_reason: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
+    special_requests: Schema.Attribute.Text;
+    start_time: Schema.Attribute.Time;
+    time_slot: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::time-slot.time-slot'
+    >;
+    total_price: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTimeSlotTimeSlot extends Struct.CollectionTypeSchema {
+  collectionName: 'time_slots';
+  info: {
+    displayName: 'TimeSlot';
+    pluralName: 'time-slots';
+    singularName: 'time-slot';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    day_plan: Schema.Attribute.Relation<'manyToOne', 'api::day-plan.day-plan'>;
+    endTime: Schema.Attribute.String;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::time-slot.time-slot'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    reservation: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::reservation.reservation'
+    >;
+    startTime: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiVenueVenue extends Struct.CollectionTypeSchema {
+  collectionName: 'venues';
+  info: {
+    displayName: 'venue';
+    pluralName: 'venues';
+    singularName: 'venue';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    amenities: Schema.Attribute.Enumeration<
+      [
+        'Parking',
+        'Showers',
+        'Changing Rooms',
+        'Cafe',
+        'WiFi',
+        'First Aid',
+        'Seating',
+        'Coaching',
+        'Equipment Rental',
+        'AC',
+        'Lockers',
+        'Pro Shop',
+      ]
+    >;
+    avg_rating: Schema.Attribute.Float;
+    closeTime: Schema.Attribute.String & Schema.Attribute.Required;
+    courts: Schema.Attribute.Relation<'oneToMany', 'api::court.court'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    lat: Schema.Attribute.Decimal;
+    lng: Schema.Attribute.Decimal;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::venue.venue'> &
+      Schema.Attribute.Private;
+    location: Schema.Attribute.String & Schema.Attribute.Required;
+    manager: Schema.Attribute.Relation<'manyToOne', 'api::manager.manager'>;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    openTime: Schema.Attribute.String & Schema.Attribute.Required;
+    photo: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    publishedAt: Schema.Attribute.DateTime;
+    ratings: Schema.Attribute.Relation<'oneToMany', 'api::rating.rating'>;
+    sports: Schema.Attribute.Enumeration<
+      ['football', 'tennis', 'padel', 'basketball']
+    >;
+    total_rating: Schema.Attribute.Integer;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiWeekAgendaWeekAgenda extends Struct.CollectionTypeSchema {
+  collectionName: 'week_agendas';
+  info: {
+    displayName: 'WeekAgenda';
+    pluralName: 'week-agendas';
+    singularName: 'week-agenda';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    court: Schema.Attribute.Relation<'manyToOne', 'api::court.court'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    day_plans: Schema.Attribute.Relation<'oneToMany', 'api::day-plan.day-plan'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::week-agenda.week-agenda'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    statu: Schema.Attribute.Enumeration<['Draft', 'Published']>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    weekStartDate: Schema.Attribute.Date;
+  };
+}
+
+export interface ApiWorkerWorker extends Struct.CollectionTypeSchema {
+  collectionName: 'workers';
+  info: {
+    description: 'Court workers who work under managers';
+    displayName: 'Worker';
+    pluralName: 'workers';
+    singularName: 'worker';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    courts: Schema.Attribute.Relation<'oneToMany', 'api::court.court'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    fcmToken: Schema.Attribute.String;
+    firebaseUid: Schema.Attribute.String;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    joinedAt: Schema.Attribute.DateTime &
+      Schema.Attribute.DefaultTo<'${new Date().toISOString()}'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::worker.worker'
+    > &
+      Schema.Attribute.Private;
+    manager: Schema.Attribute.Relation<'manyToOne', 'api::manager.manager'>;
+    nom: Schema.Attribute.String;
+    phone: Schema.Attribute.String;
+    photo: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    worker: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+  };
+}
+
 export interface PluginContentReleasesRelease
   extends Struct.CollectionTypeSchema {
   collectionName: 'strapi_releases';
@@ -923,7 +1570,6 @@ export interface PluginUsersPermissionsUser
   };
   options: {
     draftAndPublish: false;
-    timestamps: true;
   };
   attributes: {
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
@@ -958,6 +1604,9 @@ export interface PluginUsersPermissionsUser
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    user_role: Schema.Attribute.Enumeration<
+      ['admin', 'manager', 'player', 'worker']
+    >;
     username: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique &
@@ -979,6 +1628,20 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::ai-conversation.ai-conversation': ApiAiConversationAiConversation;
+      'api::announcement.announcement': ApiAnnouncementAnnouncement;
+      'api::court.court': ApiCourtCourt;
+      'api::day-plan.day-plan': ApiDayPlanDayPlan;
+      'api::join-request.join-request': ApiJoinRequestJoinRequest;
+      'api::manager.manager': ApiManagerManager;
+      'api::payment.payment': ApiPaymentPayment;
+      'api::player.player': ApiPlayerPlayer;
+      'api::rating.rating': ApiRatingRating;
+      'api::reservation.reservation': ApiReservationReservation;
+      'api::time-slot.time-slot': ApiTimeSlotTimeSlot;
+      'api::venue.venue': ApiVenueVenue;
+      'api::week-agenda.week-agenda': ApiWeekAgendaWeekAgenda;
+      'api::worker.worker': ApiWorkerWorker;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
