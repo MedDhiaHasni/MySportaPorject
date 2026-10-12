@@ -1,70 +1,80 @@
-# 🏟️ Sporta — Smart Sports Field Reservation Platform
+# Sporta: Smart Sports Field Reservation Platform
 
-> A full-stack mobile application for booking sports fields in real time.
-> Players discover and reserve venues, join matches, create teams, chat
-> instantly, and manage tournaments. Managers and venue workers get
-> dedicated dashboards, and an AI assistant handles natural-language
-> booking and personalized recommendations.
+Sporta is a full-stack mobile application for booking sports fields in real time. Players discover and reserve venues, join matches, create teams, chat instantly, and take part in tournaments. Managers and venue workers have dedicated dashboards, and an AI assistant handles natural-language booking and personalized recommendations.
 
----
+## Table of Contents
 
-## ✨ Features
-
-### 🎮 For Players
-
-- 🔍 **Discover venues** — browse sports fields near you on an interactive map
-- 📅 **Real-time booking** — pick a time slot and reserve instantly
-- 👥 **Create & join matches** — find teammates or opponents
-- 🏆 **Tournaments** — browse, join, and follow tournament brackets
-- 💬 **Instant chat** — talk with teammates and venue workers in real time
-- 💳 **In-app payments** — secure checkout powered by Stripe
-- ⭐ **Ratings & reviews** — rate venues and players after each game
-- 🤖 **AI assistant** — ask in natural language ("book a football field near me tomorrow at 6pm") and get guided booking + recommendations
-
-### 🏢 For Managers
-
-- 📊 **Dashboard** — overview of bookings, revenue, and occupancy
-- 🏟️ **Venue management** — create/edit courts, pricing, schedules
-- 👷 **Worker management** — assign staff to venues
-- 📆 **Day plans & week agendas** — organize time slots per court
-- 💰 **Bookings & payments** — track reservations and payouts
-- 🏆 **Tournament organizer** — create and run tournaments
-- 📢 **Announcements** — broadcast updates to players
-
-### 👷 For Workers
-
-- 📋 **Assigned venues** — see only the courts you manage
-- 📅 **Reservations queue** — approve, check in, or flag bookings
-- 💬 **Manager & player chat** — coordinate in real time
-- 📆 **Upcoming shifts** — day plan view
-
-### 🛡️ For Admins
-
-- 👥 **User management** — approve managers and workers
-- 💳 **Payment oversight** — review transactions and disputes
-- 📊 **Platform analytics**
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Configuration Reference](#configuration-reference)
+- [Security](#security)
+- [Roadmap](#roadmap)
+- [Screenshots](#screenshots)
+- [Contributing](#contributing)
+- [Author](#author)
 
 ---
 
-## 🛠️ Tech Stack
+## Features
+
+### Players
+
+- **Venue discovery:** browse sports fields near you on an interactive map.
+- **Real-time booking:** pick a time slot and reserve instantly.
+- **Matches:** create and join matches to find teammates or opponents.
+- **Tournaments:** browse, join, and follow tournament brackets.
+- **Instant chat:** talk with teammates and venue workers in real time.
+- **In-app payments:** secure checkout powered by Stripe.
+- **Ratings and reviews:** rate venues and players after each game.
+- **AI assistant:** make requests in natural language (for example, "book a football field near me tomorrow at 6pm") and receive guided booking and recommendations.
+
+### Managers
+
+- **Dashboard:** overview of bookings, revenue, and occupancy.
+- **Venue management:** create and edit courts, pricing, and schedules.
+- **Worker management:** assign staff to venues.
+- **Day plans and week agendas:** organize time slots per court.
+- **Bookings and payments:** track reservations and payouts.
+- **Tournament organizer:** create and run tournaments.
+- **Announcements:** broadcast updates to players.
+
+### Workers
+
+- **Assigned venues:** see only the courts you manage.
+- **Reservations queue:** approve, check in, or flag bookings.
+- **Chat:** coordinate with managers and players in real time.
+- **Upcoming shifts:** day plan view.
+
+### Administrators
+
+- **User management:** approve managers and workers.
+- **Payment oversight:** review transactions and disputes.
+- **Platform analytics:** monitor activity across the platform.
+
+---
+
+## Tech Stack
 
 | Layer              | Technology                                              |
 |--------------------|---------------------------------------------------------|
-| **Mobile app**     | Flutter (Dart) · Material 3                             |
-| **Backend**        | Strapi 5 (Node.js) · REST API                           |
-| **Database**       | MySQL 8                                                 |
-| **Authentication** | Strapi users-permissions + Firebase Auth                |
-| **Real-time chat** | Firebase Cloud Firestore                                |
-| **Notifications**  | Firebase Cloud Messaging (FCM)                          |
-| **Payments**       | Stripe (backend + Flutter SDK)                          |
-| **Maps**           | Mapbox (primary) + flutter_map/OpenStreetMap (fallback) |
-| **Geolocation**    | `geolocator` + `permission_handler`                     |
-| **AI Assistant**   | LLM (Llama and others) via OpenRouter                   |
-| **Email**          | Nodemailer (password reset flows)                       |
+| Mobile app         | Flutter (Dart), Material 3                              |
+| Backend            | Strapi 5 (Node.js), REST API                            |
+| Database           | MySQL 8                                                 |
+| Authentication     | Strapi users-permissions and Firebase Auth              |
+| Real-time chat     | Firebase Cloud Firestore                                |
+| Notifications      | Firebase Cloud Messaging (FCM)                          |
+| Payments           | Stripe (backend and Flutter SDK)                        |
+| Maps               | Mapbox (primary), flutter_map / OpenStreetMap (fallback)|
+| Geolocation        | `geolocator` and `permission_handler`                   |
+| AI assistant       | LLM (Llama and others) via OpenRouter                   |
+| Email              | Nodemailer (password reset flows)                       |
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -94,7 +104,7 @@
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 sporta/
@@ -113,7 +123,7 @@ sporta/
 │   │   │   ├── message/          # Chat messages
 │   │   │   ├── payment/          # Stripe integration
 │   │   │   ├── player/           # Player profiles
-│   │   │   ├── rating/           # Reviews & ratings
+│   │   │   ├── rating/           # Reviews and ratings
 │   │   │   ├── reservation/      # Booking engine
 │   │   │   ├── time-slot/        # Availability
 │   │   │   ├── venue/            # Sports venues
@@ -126,14 +136,14 @@ sporta/
 │   │   │   ├── isManager.js
 │   │   │   ├── isPlayer.js
 │   │   │   └── isWorker.js
-│   │   └── utils/                # Booking + email helpers
+│   │   └── utils/                # Booking and email helpers
 │   └── package.json
 │
 ├── Frontend/                     # Flutter app
 │   ├── lib/
 │   │   ├── Core/                 # Constants, theme, config
 │   │   ├── Models/               # Data models
-│   │   ├── Services/             # API + Firebase wrappers
+│   │   ├── Services/             # API and Firebase wrappers
 │   │   │   ├── admin_auth_service.dart
 │   │   │   ├── ai_chat_service.dart
 │   │   │   ├── chat_service.dart
@@ -149,7 +159,7 @@ sporta/
 │   │   │   ├── Player/
 │   │   │   ├── Worker/
 │   │   │   └── SplashOnboarding/
-│   │   └── Widgets/              # Reusable UI
+│   │   └── Widgets/              # Reusable UI components
 │   └── pubspec.yaml
 │
 ├── .gitignore
@@ -159,7 +169,7 @@ sporta/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -170,10 +180,8 @@ sporta/
 | Flutter SDK        | `^3.10.8`              |
 | MySQL              | 8.x                    |
 | Firebase account   | with a project set up  |
-| Stripe account     | (test keys are fine)   |
-| OpenRouter account | (free tier works)      |
-
----
+| Stripe account     | test keys are sufficient |
+| OpenRouter account | free tier is sufficient |
 
 ### 1. Clone the repository
 
@@ -182,7 +190,7 @@ git clone https://github.com/MedDhiaHasni/MySportaPorject.git
 cd MySportaPorject
 ```
 
-### 2. Set up the Backend (Strapi)
+### 2. Set up the backend (Strapi)
 
 ```bash
 cd Backend
@@ -195,13 +203,13 @@ Create `Backend/.env` from the template:
 cp .env.example .env
 ```
 
-Then fill in the real values:
+Fill in the real values (see the [Configuration Reference](#configuration-reference)):
 
 ```dotenv
 HOST=0.0.0.0
 PORT=1337
 
-# Strapi secrets — generate random ones with:
+# Strapi secrets. Generate random values with:
 #   node -e "console.log(require('crypto').randomBytes(16).toString('base64'))"
 APP_KEYS="key1,key2,key3,key4"
 API_TOKEN_SALT=your_random_salt
@@ -225,14 +233,10 @@ FIREBASE_SERVICE_ACCOUNT_JSON=path/to/service-account.json
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# AI Assistant
+# AI assistant
 OPENROUTER_API_KEY=sk-or-v1-...
 OPENROUTER_MODEL=openrouter/free
 ```
-
-> 💡 `openrouter/free` automatically routes to an available free model. Free
-> models come and go, so this avoids breaking when a specific one is retired.
-> Browse the current catalog at [openrouter.ai/models?max_price=0](https://openrouter.ai/models?max_price=0).
 
 Create the database:
 
@@ -240,33 +244,29 @@ Create the database:
 mysql -u root -p -e "CREATE DATABASE sporta CHARACTER SET utf8mb4;"
 ```
 
-Start Strapi in dev mode:
+Start Strapi in development mode:
 
 ```bash
 npm run develop
 ```
 
-The Strapi admin panel will be available at http://localhost:1337/admin.
-Create your first admin user, then configure roles and permissions under
-**Settings → Users & Permissions**.
+The Strapi admin panel is available at `http://localhost:1337/admin`. Create the first admin user, then configure roles and permissions under **Settings > Users & Permissions**.
 
-### 3. Set up the Frontend (Flutter)
+### 3. Set up the frontend (Flutter)
 
 ```bash
 cd ../Frontend
 flutter pub get
 ```
 
-**Firebase setup** — you need two files:
+**Firebase setup.** Two configuration files are required:
 
 - `android/app/google-services.json`
 - `ios/Runner/GoogleService-Info.plist`
 
-Generate these from your Firebase project console and place them at the
-paths above (they are gitignored — never commit them).
+Generate them from your Firebase project console and place them at the paths above. Both files are gitignored and must never be committed.
 
-**API base URL** — edit `lib/Core/Constants/api_constants.dart` and point it
-to your backend:
+**API base URL.** Edit `lib/Core/Constants/api_constants.dart` and point it to your backend:
 
 ```dart
 const String kApiBaseUrl = "http://10.0.2.2:1337"; // Android emulator
@@ -282,50 +282,76 @@ flutter run
 
 ---
 
-## 🔐 Security Notes
+## Configuration Reference
 
-- All secrets live in `Backend/.env` — never committed.
-- `.env.example` is committed as a template with placeholder values.
-- Firebase config files (`google-services.json`, `GoogleService-Info.plist`) are gitignored.
-- Role-based access control is enforced by Strapi policies (`isAdmin`, `isManager`, `isPlayer`, `isWorker`) on every protected route.
-- Payment intents are created server-side (Stripe) — the client never sees the secret key.
+| Variable                         | Description                                         |
+|----------------------------------|-----------------------------------------------------|
+| `HOST`, `PORT`                   | Network binding for the Strapi server               |
+| `APP_KEYS`                       | Comma-separated session signing keys                |
+| `API_TOKEN_SALT`                 | Salt for API tokens                                 |
+| `ADMIN_JWT_SECRET`               | Secret for admin panel authentication               |
+| `TRANSFER_TOKEN_SALT`            | Salt for data transfer tokens                       |
+| `JWT_SECRET`                     | Secret for users-permissions tokens                 |
+| `ENCRYPTION_KEY`                 | Key for encrypting sensitive fields                 |
+| `DATABASE_*`                     | MySQL connection settings                           |
+| `FIREBASE_SERVICE_ACCOUNT_JSON`  | Path to the Firebase Admin SDK service account file |
+| `STRIPE_SECRET_KEY`              | Stripe secret key (server-side only)                |
+| `STRIPE_WEBHOOK_SECRET`          | Stripe webhook signing secret                       |
+| `OPENROUTER_API_KEY`             | OpenRouter API key for the AI assistant             |
+| `OPENROUTER_MODEL`               | Model identifier used by the AI assistant           |
+
+**Note on the AI model.** `openrouter/free` routes each request to an available free model on OpenRouter. Free models are retired regularly, so a router avoids breakage when a specific model disappears. The current catalog is available at [openrouter.ai/models?max_price=0](https://openrouter.ai/models?max_price=0).
 
 ---
 
-## 🗺️ Roadmap
+## Security
+
+- All secrets are stored in `Backend/.env` and are never committed.
+- `.env.example` is committed as a template with placeholder values.
+- Firebase configuration files (`google-services.json`, `GoogleService-Info.plist`) are gitignored.
+- Role-based access control is enforced by Strapi policies (`isAdmin`, `isManager`, `isPlayer`, `isWorker`) on every protected route.
+- Stripe payment intents are created server-side, so the client never has access to the secret key.
+
+---
+
+## Roadmap
+
+**Completed**
 
 - [x] Strapi 5 backend with 18 domain APIs
 - [x] MySQL persistence
-- [x] Firebase Auth + Firestore chat + FCM notifications
-- [x] Role-based Flutter UI (Player / Manager / Worker / Admin)
+- [x] Firebase Auth, Firestore chat, and FCM notifications
+- [x] Role-based Flutter UI (Player, Manager, Worker, Admin)
 - [x] Stripe in-app payments
 - [x] Mapbox integration with flutter_map fallback
 - [x] Geolocation-based venue discovery
 - [x] AI assistant via OpenRouter
-- [ ] Backend deployment (Docker + VPS / cloud)
-- [ ] Play Store & App Store release
+
+**Planned**
+
+- [ ] Backend deployment (Docker, VPS or cloud)
+- [ ] Play Store and App Store release
 - [ ] Push notification scheduling for match reminders
 - [ ] Advanced analytics dashboard for managers
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
-> Coming soon — screenshots of the Player, Manager, Worker, and Admin
-> interfaces will be added here.
-
----
-
-## 🤝 Contributing
-
-This project was built as an end-of-studies project (PFE) at FST El Manar.
-Issues and suggestions are welcome.
+Screenshots of the Player, Manager, Worker, and Admin interfaces will be added here.
 
 ---
 
-## 👤 Author
+## Contributing
+
+This project was built as an end-of-studies project (PFE) at FST El Manar. Issues and suggestions are welcome.
+
+---
+
+## Author
 
 **Med Dhia Hasni**
-Computer Science Graduate — FST El Manar
-Full-Stack Developer · Flutter · Node.js · Strapi
+Computer Science Graduate, FST El Manar
+Full-Stack Developer (Flutter, Node.js, Strapi)
+
 [GitHub](https://github.com/MedDhiaHasni)
