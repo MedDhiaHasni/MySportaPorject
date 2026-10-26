@@ -25,7 +25,7 @@ Sporta is a full-stack mobile application for booking sports fields in real time
 - **Venue discovery:** browse sports fields near you on an interactive map.
 - **Real-time booking:** pick a time slot and reserve instantly.
 - **Matches:** create and join matches to find teammates or opponents.
-- **Tournaments:** browse, join, and follow tournament brackets.
+- **Tournaments:** browse, join, and follow tournament brackets ( coming soon ).
 - **Instant chat:** talk with teammates and venue workers in real time.
 - **In-app payments:** secure checkout powered by Stripe.
 - **Ratings and reviews:** rate venues and players after each game.
@@ -38,7 +38,7 @@ Sporta is a full-stack mobile application for booking sports fields in real time
 - **Worker management:** assign staff to venues.
 - **Day plans and week agendas:** organize time slots per court.
 - **Bookings and payments:** track reservations and payouts.
-- **Tournament organizer:** create and run tournaments.
+- **Tournament organizer:** create and run tournaments ( coming soon ).
 - **Announcements:** broadcast updates to players.
 
 ### Workers
