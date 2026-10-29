@@ -445,20 +445,12 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
         return ctx.badRequest(`Cannot reject a reservation with status "${existing.booking_status}"`);
       }
 
-      // Free the time slot
-      if (existing.time_slot?.id) {
-        await strapi.entityService.update('api::time-slot.time-slot', existing.time_slot.id, {
-          data: { isActive: true },
-        });
-      }
-
-      const entity = await strapi.service('api::reservation.reservation').update(id, {
-        data: {
+      const entity = await strapi
+        .service('api::reservation.reservation')
+        .releaseReservationSlot(id, {
           booking_status:   'rejected',
           rejection_reason: reason?.trim() || null,
-        },
-        populate: ['court', 'player', 'time_slot'],
-      });
+        });
 
       await updateFirestoreStatus(strapi, id, 'rejected');
       await sendBookingNotification(strapi, id, 'rejected', {
@@ -498,17 +490,9 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
         strapi.log.info(`[reservation] Refund for ${id} is pending`);
       }
 
-      // Free the time slot
-      if (existing.time_slot?.id) {
-        await strapi.entityService.update('api::time-slot.time-slot', existing.time_slot.id, {
-          data: { isActive: true },
-        });
-      }
-
-      const entity = await strapi.service('api::reservation.reservation').update(id, {
-        data: { booking_status: 'cancelled' },
-        populate: ['court', 'player', 'time_slot'],
-      });
+      const entity = await strapi
+        .service('api::reservation.reservation')
+        .releaseReservationSlot(id, { booking_status: 'cancelled' });
 
       await updateFirestoreStatus(strapi, id, 'cancelled');
       await sendBookingNotification(strapi, id, 'cancelled');

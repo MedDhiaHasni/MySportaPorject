@@ -61,6 +61,43 @@ module.exports = createCoreService('api::reservation.reservation', ({ strapi }) 
     });
   },
 
+  async releaseReservationSlot(reservationId, reservationData) {
+    return strapi.db.transaction(async ({ trx }) => {
+      const reservation = await strapi.entityService.findOne(
+        'api::reservation.reservation',
+        reservationId,
+        { populate: ['time_slot'] },
+      );
+      if (!reservation) {
+        const error = new Error('Reservation not found');
+        error.status = 404;
+        throw error;
+      }
+
+      const slotId = reservation.time_slot?.id;
+      if (slotId) {
+        await trx('time_slots').where({ id: slotId }).forUpdate().first();
+      }
+
+      const updated = await strapi.entityService.update(
+        'api::reservation.reservation',
+        reservationId,
+        {
+          data: { ...reservationData, time_slot: null },
+          populate: ['court', 'player', 'time_slot'],
+        },
+      );
+
+      if (slotId) {
+        await strapi.entityService.update('api::time-slot.time-slot', slotId, {
+          data: { isActive: true },
+        });
+      }
+
+      return updated;
+    });
+  },
+
   async update(id, params) {
     return strapi.entityService.update('api::reservation.reservation', id, params);
   },
