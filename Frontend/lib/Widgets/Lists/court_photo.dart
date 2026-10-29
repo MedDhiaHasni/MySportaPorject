@@ -4,8 +4,7 @@ import 'package:sporta/Models/app_enums.dart';
 import 'package:sporta/Models/app_models.dart';
 
 class CourtPhoto extends StatefulWidget {
-  final CourtModel
-  court; 
+  final CourtModel court;
   final double height;
   final BorderRadius? borderRadius;
   const CourtPhoto({
@@ -21,8 +20,7 @@ class CourtPhoto extends StatefulWidget {
 class _CourtPhotoState extends State<CourtPhoto> {
   @override
   Widget build(BuildContext context) {
-    final c = widget
-        .court; 
+    final c = widget.court;
     return ClipRRect(
       borderRadius: widget.borderRadius ?? BorderRadius.zero,
       child: SizedBox(
@@ -32,21 +30,10 @@ class _CourtPhotoState extends State<CourtPhoto> {
             ? Image.network(
                 c.imageUrl!,
                 fit: BoxFit.cover,
-                loadingBuilder:
-                    (
-                      _,
-                      child,
-                      prog,
-                    ) => 
-                    prog == null
-                    ? child
-                    : _placeholder(
-                        c,
-                      ), 
+                loadingBuilder: (_, child, prog) =>
+                    prog == null ? child : _placeholder(c),
               )
-            : _placeholder(
-                c,
-              ), 
+            : _placeholder(c),
       ),
     );
   }
@@ -56,11 +43,7 @@ class _CourtPhotoState extends State<CourtPhoto> {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          c.sport.icon,
-          color: c.color.withOpacity(0.35),
-          size: 36,
-        ),
+        Icon(c.sport.icon, color: c.color.withOpacity(0.35), size: 36),
         const SizedBox(height: 6),
         Text(
           'No photo',

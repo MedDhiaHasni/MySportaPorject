@@ -7,6 +7,7 @@ import 'package:sporta/Core/Constants/api_constants.dart';
 import 'package:sporta/Services/announcement_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DATA CLASSES
@@ -21,7 +22,7 @@ class LocalBooking {
   final String date;
   final String dateRaw;
   final String time;
-  final int    price;
+  final int price;
   final String status;
   final String reference;
   final String paymentMethod;
@@ -50,26 +51,32 @@ class BookingStore extends ChangeNotifier {
   BookingStore._();
   static final BookingStore instance = BookingStore._();
 
-  final List<LocalBooking>      _bookings      = [];
-  List<AnnouncementData>        _myAnnouncements = [];
-  String?                       _userToken;
-  AnnouncementService?          _annSvc;
-  bool                          _initialized   = false;
+  final List<LocalBooking> _bookings = [];
+  List<AnnouncementData> _myAnnouncements = [];
+  String? _userToken;
+  AnnouncementService? _annSvc;
+  bool _initialized = false;
 
-  List<LocalBooking>      get bookings         => List.unmodifiable(_bookings);
-  List<AnnouncementData>  get myAnnouncements  => List.unmodifiable(_myAnnouncements);
+  List<LocalBooking> get bookings => List.unmodifiable(_bookings);
+  List<AnnouncementData> get myAnnouncements =>
+      List.unmodifiable(_myAnnouncements);
 
   // ── Init ────────────────────────────────────────────────────────────────────
 
   Future<void> initialize(String token) async {
-    if (_initialized && _userToken == token) { await refresh(); return; }
-    _userToken    = token;
-    _annSvc       = AnnouncementService(token: token);
-    _initialized  = true;
+    if (_initialized && _userToken == token) {
+      await refresh();
+      return;
+    }
+    _userToken = token;
+    _annSvc = AnnouncementService(token: token);
+    _initialized = true;
     await _loadAll();
   }
 
-  Future<void> refresh() async { await _loadAll(); }
+  Future<void> refresh() async {
+    await _loadAll();
+  }
 
   Future<void> _loadAll() async {
     await Future.wait([_loadBookings(), _loadMyAnnouncements()]);
@@ -87,54 +94,84 @@ class BookingStore extends ChangeNotifier {
   Future<void> _loadBookings() async {
     if (_userToken == null) return;
     try {
-      final url = '${ApiConstants.reservations}'
+      final url =
+          '${ApiConstants.reservations}'
           '?populate[court][populate][court_img]=*'
           '&populate[court][populate][photos]=*'
           '&populate[court][populate][venue]=*'
           '&populate[time_slot]=*';
-      final res = await http.get(Uri.parse(url), headers: {
-        'Content-Type':  'application/json',
-        'Authorization': 'Bearer $_userToken',
-      });
+      final res = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_userToken',
+        },
+      );
       if (res.statusCode != 200) return;
 
-      final body       = json.decode(res.body) as Map<String, dynamic>;
-      final rawList    = body['data'] as List? ?? [];
+      final body = json.decode(res.body) as Map<String, dynamic>;
+      final rawList = body['data'] as List? ?? [];
       _bookings.clear();
 
       for (final item in rawList) {
         final attrs = (item['attributes'] ?? item) as Map<String, dynamic>;
 
         // ── Court ────────────────────────────────────────────────────────────
-        final courtRaw   = attrs['court'];
-        final courtData  = courtRaw is Map ? (courtRaw['data'] ?? courtRaw) as Map<String, dynamic> : null;
-        final courtAttrs = courtData != null ? (courtData['attributes'] ?? courtData) as Map<String, dynamic> : <String, dynamic>{};
+        final courtRaw = attrs['court'];
+        final courtData = courtRaw is Map
+            ? (courtRaw['data'] ?? courtRaw) as Map<String, dynamic>
+            : null;
+        final courtAttrs = courtData != null
+            ? (courtData['attributes'] ?? courtData) as Map<String, dynamic>
+            : <String, dynamic>{};
 
-        final venueRaw   = courtAttrs['venue'];
-        final venueData  = venueRaw is Map ? (venueRaw['data'] ?? venueRaw) as Map<String, dynamic> : null;
-        final venueAttrs = venueData != null ? (venueData['attributes'] ?? venueData) as Map<String, dynamic> : <String, dynamic>{};
+        final venueRaw = courtAttrs['venue'];
+        final venueData = venueRaw is Map
+            ? (venueRaw['data'] ?? venueRaw) as Map<String, dynamic>
+            : null;
+        final venueAttrs = venueData != null
+            ? (venueData['attributes'] ?? venueData) as Map<String, dynamic>
+            : <String, dynamic>{};
 
         // Court image — try all possible shapes
         String courtImgUrl = '';
         if (courtAttrs['court_img_url']?.toString().isNotEmpty == true) {
           courtImgUrl = _absUrl(courtAttrs['court_img_url'].toString());
         } else if (courtAttrs['court_img'] is Map) {
-          courtImgUrl = _absUrl((courtAttrs['court_img'] as Map)['url']?.toString());
-        } else if (courtAttrs['photos_urls'] is List && (courtAttrs['photos_urls'] as List).isNotEmpty) {
-          courtImgUrl = _absUrl((courtAttrs['photos_urls'] as List).first.toString());
-        } else if (courtAttrs['photos'] is List && (courtAttrs['photos'] as List).isNotEmpty) {
+          courtImgUrl = _absUrl(
+            (courtAttrs['court_img'] as Map)['url']?.toString(),
+          );
+        } else if (courtAttrs['photos_urls'] is List &&
+            (courtAttrs['photos_urls'] as List).isNotEmpty) {
+          courtImgUrl = _absUrl(
+            (courtAttrs['photos_urls'] as List).first.toString(),
+          );
+        } else if (courtAttrs['photos'] is List &&
+            (courtAttrs['photos'] as List).isNotEmpty) {
           final first = (courtAttrs['photos'] as List).first;
           if (first is Map) courtImgUrl = _absUrl(first['url']?.toString());
         }
 
         // ── Time ─────────────────────────────────────────────────────────────
-        final slotRaw   = attrs['time_slot'];
-        final slotData  = slotRaw is Map ? (slotRaw['data'] ?? slotRaw) as Map<String, dynamic> : null;
-        final slotAttrs = slotData != null ? (slotData['attributes'] ?? slotData) as Map<String, dynamic> : <String, dynamic>{};
+        final slotRaw = attrs['time_slot'];
+        final slotData = slotRaw is Map
+            ? (slotRaw['data'] ?? slotRaw) as Map<String, dynamic>
+            : null;
+        final slotAttrs = slotData != null
+            ? (slotData['attributes'] ?? slotData) as Map<String, dynamic>
+            : <String, dynamic>{};
 
-        final startTime = slotAttrs['startTime']?.toString() ?? attrs['start_time']?.toString() ?? '';
-        final endTime   = slotAttrs['endTime']?.toString()   ?? attrs['end_time']?.toString()   ?? '';
-        final timeStr   = (startTime.isNotEmpty && endTime.isNotEmpty) ? '$startTime – $endTime' : '';
+        final startTime =
+            slotAttrs['startTime']?.toString() ??
+            attrs['start_time']?.toString() ??
+            '';
+        final endTime =
+            slotAttrs['endTime']?.toString() ??
+            attrs['end_time']?.toString() ??
+            '';
+        final timeStr = (startTime.isNotEmpty && endTime.isNotEmpty)
+            ? '$startTime – $endTime'
+            : '';
 
         // ── Date ─────────────────────────────────────────────────────────────
         final rawDate = attrs['booking_date_play']?.toString() ?? '';
@@ -144,24 +181,28 @@ class BookingStore extends ChangeNotifier {
           formattedDate = _fmtDate(d);
         } catch (_) {}
 
-        _bookings.add(LocalBooking(
-          id:            item['id']?.toString() ?? '',
-          courtName:     courtAttrs['name']?.toString()        ?? '',
-          venueName:     venueAttrs['name']?.toString()        ?? '',
-          courtImageUrl: courtImgUrl,
-          sport:         (courtAttrs['sport'] ?? courtAttrs['sports'])?.toString() ?? '',
-          date:          formattedDate,
-          dateRaw:       rawDate,
-          time:          timeStr,
-          price:         (attrs['total_price'] as num?)?.toInt() ?? 0,
-          status:        attrs['booking_status']?.toString()  ?? 'pending',
-          reference:     attrs['booking_reference']?.toString() ?? '',
-          paymentMethod: attrs['payment_method']?.toString()  ?? 'pay_at_venue',
-        ));
+        _bookings.add(
+          LocalBooking(
+            id: item['id']?.toString() ?? '',
+            courtName: courtAttrs['name']?.toString() ?? '',
+            venueName: venueAttrs['name']?.toString() ?? '',
+            courtImageUrl: courtImgUrl,
+            sport:
+                (courtAttrs['sport'] ?? courtAttrs['sports'])?.toString() ?? '',
+            date: formattedDate,
+            dateRaw: rawDate,
+            time: timeStr,
+            price: (attrs['total_price'] as num?)?.toInt() ?? 0,
+            status: attrs['booking_status']?.toString() ?? 'pending',
+            reference: attrs['booking_reference']?.toString() ?? '',
+            paymentMethod:
+                attrs['payment_method']?.toString() ?? 'pay_at_venue',
+          ),
+        );
       }
       _bookings.sort((a, b) => b.dateRaw.compareTo(a.dateRaw));
     } catch (e) {
-      debugPrint('BookingStore._loadBookings: $e');
+      AppLogger.error('BookingStore._loadBookings: $e');
     }
   }
 
@@ -172,7 +213,7 @@ class BookingStore extends ChangeNotifier {
     try {
       _myAnnouncements = await _annSvc!.fetchMine();
     } catch (e) {
-      debugPrint('BookingStore._loadMyAnnouncements: $e');
+      AppLogger.error('BookingStore._loadMyAnnouncements: $e');
     }
   }
 
@@ -180,13 +221,13 @@ class BookingStore extends ChangeNotifier {
   Future<AnnouncementData> createAnnouncement({
     required String reservationId,
     required String description,
-    required int    playersNeeded,
+    required int playersNeeded,
   }) async {
     if (_annSvc == null) throw Exception('Not initialized');
     final ann = await _annSvc!.create(
-      reservationId:  reservationId,
-      description:    description,
-      playersNeeded:  playersNeeded,
+      reservationId: reservationId,
+      description: description,
+      playersNeeded: playersNeeded,
     );
     _myAnnouncements = [ann, ..._myAnnouncements];
     notifyListeners();
@@ -202,44 +243,43 @@ class BookingStore extends ChangeNotifier {
   }
 
   /// True if this reservation already has an active announcement
-  bool hasAnnouncementForReservation(String reservationId) =>
-      _myAnnouncements.any((a) => a.reservationId == reservationId && a.status != 'closed');
+  bool hasAnnouncementForReservation(String reservationId) => _myAnnouncements
+      .any((a) => a.reservationId == reservationId && a.status != 'closed');
 
   // ── Booking helpers ───────────────────────────────────────────────────────────
 
-  void addBooking(LocalBooking b) { _bookings.insert(0, b); notifyListeners(); }
+  void addBooking(LocalBooking b) {
+    _bookings.insert(0, b);
+    notifyListeners();
+  }
 
   List<LocalBooking> get upcomingBookings {
     final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     return _bookings.where((b) => b.dateRaw.compareTo(todayStr) >= 0).toList()
       ..sort((a, b) => a.dateRaw.compareTo(b.dateRaw));
   }
 
   String _fmtDate(DateTime d) {
-    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const w = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    return '${w[d.weekday-1]}, ${d.day} ${m[d.month-1]}';
+    const m = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const w = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return '${w[d.weekday - 1]}, ${d.day} ${m[d.month - 1]}';
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Services/booking_store.dart
 // Persistent singleton ChangeNotifier — syncs with backend.
@@ -364,7 +404,7 @@ class BookingStore extends ChangeNotifier {
       
       notifyListeners();
     } catch (e) {
-      print('Error loading from backend: $e');
+      AppLogger.error('Error loading from backend: $e');
     }
   }
   
@@ -388,7 +428,7 @@ class BookingStore extends ChangeNotifier {
       );
       
       if (response.statusCode != 200) {
-        print('Failed to load bookings: ${response.statusCode}');
+        AppLogger.error('Failed to load bookings: ${response.statusCode}');
         return;
       }
       
@@ -423,33 +463,27 @@ class BookingStore extends ChangeNotifier {
           // 1. court_img_url (transformed field)
           if (courtAttrs['court_img_url'] != null && courtAttrs['court_img_url'].toString().isNotEmpty) {
             courtImageUrl = _getFullImageUrl(courtAttrs['court_img_url'].toString());
-            print('Court image from court_img_url: $courtImageUrl');
           }
           // 2. court_img object
           else if (courtAttrs['court_img'] != null && courtAttrs['court_img']['url'] != null) {
             courtImageUrl = _getFullImageUrl(courtAttrs['court_img']['url'].toString());
-            print('Court image from court_img.url: $courtImageUrl');
           }
           // 3. photos_urls array
           else if (courtAttrs['photos_urls'] != null && courtAttrs['photos_urls'] is List && (courtAttrs['photos_urls'] as List).isNotEmpty) {
             courtImageUrl = _getFullImageUrl((courtAttrs['photos_urls'] as List).first.toString());
-            print('Court image from photos_urls: $courtImageUrl');
           }
           // 4. photos array
           else if (courtAttrs['photos'] != null && courtAttrs['photos'] is List && (courtAttrs['photos'] as List).isNotEmpty) {
             final firstPhoto = (courtAttrs['photos'] as List).first;
             if (firstPhoto is Map && firstPhoto['url'] != null) {
               courtImageUrl = _getFullImageUrl(firstPhoto['url'].toString());
-              print('Court image from photos: $courtImageUrl');
             }
           }
           // 5. photo object (legacy)
           else if (courtAttrs['photo'] != null && courtAttrs['photo']['url'] != null) {
             courtImageUrl = _getFullImageUrl(courtAttrs['photo']['url'].toString());
-            print('Court image from photo.url: $courtImageUrl');
           }
           
-          print('Final court image URL for $courtName: $courtImageUrl');
         }
         
         // Format date
@@ -506,12 +540,10 @@ class BookingStore extends ChangeNotifier {
       // Sort bookings by date (newest first)
       _bookings.sort((a, b) => b.dateRaw.compareTo(a.dateRaw));
       
-      print('✅ Loaded ${_bookings.length} bookings from backend');
       for (final b in _bookings) {
-        print('  Booking: ${b.courtName}, Image: ${b.courtImageUrl}');
       }
     } catch (e) {
-      print('❌ Error loading bookings: $e');
+      AppLogger.error('❌ Error loading bookings: $e');
     }
   }
   
@@ -539,9 +571,8 @@ class BookingStore extends ChangeNotifier {
         ));
       }
       
-      print('✅ Loaded ${_announcements.length} announcements from backend');
     } catch (e) {
-      print('❌ Error loading announcements: $e');
+      AppLogger.error('❌ Error loading announcements: $e');
     }
   }
 
@@ -570,7 +601,6 @@ class BookingStore extends ChangeNotifier {
     }
     
     try {
-      print('📢 Adding announcement to backend for booking: ${ann.bookingId}');
       await _reservationService!.addAnnouncementToReservation(
         reservationId: ann.bookingId,
         announcementText: ann.description,
@@ -580,9 +610,8 @@ class BookingStore extends ChangeNotifier {
       // Reload from backend to get fresh data
       await _loadAnnouncementsFromBackend();
       notifyListeners();
-      print('✅ Announcement added successfully');
     } catch (e) {
-      print('❌ Error adding announcement to backend: $e');
+      AppLogger.error('❌ Error adding announcement to backend: $e');
       // Still add locally even if backend fails
       _announcements.insert(0, ann);
       notifyListeners();
@@ -604,7 +633,7 @@ class BookingStore extends ChangeNotifier {
         await _loadAnnouncementsFromBackend();
         notifyListeners();
       } catch (e) {
-        print('Error removing announcement from backend: $e');
+        AppLogger.error('Error removing announcement from backend: $e');
         // Still remove locally even if backend fails
         _announcements.removeWhere((a) => a.id == id);
         notifyListeners();
@@ -620,7 +649,6 @@ class BookingStore extends ChangeNotifier {
   
   /// Refresh all data from backend
   Future<void> refresh() async {
-    print('🔄 Refreshing BookingStore...');
     await _loadFromBackend();
   }
   

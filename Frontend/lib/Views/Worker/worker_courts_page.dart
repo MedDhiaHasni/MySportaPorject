@@ -108,32 +108,32 @@ class _WorkerCourtsPageState extends State<WorkerCourtsPage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: kPrimary))
             : _error != null
-                ? _buildErrorWidget()
-                : _courts.isEmpty
-                    ? _buildEmptyWidget()
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _courts.length,
-                        itemBuilder: (context, index) {
-                          final court = _courts[index];
-                          return _CourtCard(
+            ? _buildErrorWidget()
+            : _courts.isEmpty
+            ? _buildEmptyWidget()
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _courts.length,
+                itemBuilder: (context, index) {
+                  final court = _courts[index];
+                  return _CourtCard(
+                    court: court,
+                    token: _token,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WorkerCourtDetailPage(
+                            workerToken: _token,
                             court: court,
-                            token: _token,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => WorkerCourtDetailPage(
-                                    workerToken: _token,
-                                    court: court,
-                                  ),
-                                ),
-                              );
-                            },
-                            getFullImageUrl: _getFullImageUrl,
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      );
+                    },
+                    getFullImageUrl: _getFullImageUrl,
+                  );
+                },
+              ),
       ),
     );
   }
@@ -174,11 +174,7 @@ class _WorkerCourtsPageState extends State<WorkerCourtsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.sports_tennis_rounded,
-            size: 80,
-            color: Colors.grey[300],
-          ),
+          Icon(Icons.sports_tennis_rounded, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'No Courts Assigned',
@@ -192,10 +188,7 @@ class _WorkerCourtsPageState extends State<WorkerCourtsPage> {
           Text(
             'You haven\'t been assigned to any courts yet.\nContact your manager.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -228,22 +221,28 @@ class _CourtCard extends StatelessWidget {
     final pricePerHour = court['pricePerHour'] ?? 0;
     final capacity = court['capacity'] ?? 0;
     final isActive = court['isActive'] ?? true;
-    
+
     // Get image URL with proper base URL
     String courtImgUrl = '';
-    if (court['court_img_url'] != null && court['court_img_url'].toString().isNotEmpty) {
+    if (court['court_img_url'] != null &&
+        court['court_img_url'].toString().isNotEmpty) {
       courtImgUrl = getFullImageUrl(court['court_img_url'].toString());
-    } else if (court['court_img'] != null && court['court_img']['url'] != null) {
+    } else if (court['court_img'] != null &&
+        court['court_img']['url'] != null) {
       courtImgUrl = getFullImageUrl(court['court_img']['url'].toString());
-    } else if (court['photos_urls'] != null && court['photos_urls'] is List && court['photos_urls'].isNotEmpty) {
+    } else if (court['photos_urls'] != null &&
+        court['photos_urls'] is List &&
+        court['photos_urls'].isNotEmpty) {
       courtImgUrl = getFullImageUrl(court['photos_urls'][0].toString());
-    } else if (court['photos'] != null && court['photos'] is List && court['photos'].isNotEmpty) {
+    } else if (court['photos'] != null &&
+        court['photos'] is List &&
+        court['photos'].isNotEmpty) {
       final firstPhoto = court['photos'][0];
       if (firstPhoto is Map && firstPhoto['url'] != null) {
         courtImgUrl = getFullImageUrl(firstPhoto['url'].toString());
       }
     }
-    
+
     final description = court['description'] ?? '';
 
     String sportIcon = '⚽';
@@ -271,7 +270,9 @@ class _CourtCard extends StatelessWidget {
           children: [
             // Court Image
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
               child: courtImgUrl.isNotEmpty
                   ? Stack(
                       children: [
@@ -280,7 +281,8 @@ class _CourtCard extends StatelessWidget {
                           height: 160,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildImagePlaceholder(sportIcon),
+                          errorBuilder: (_, _, _) =>
+                              _buildImagePlaceholder(sportIcon),
                           loadingBuilder: (context, child, loadingProgress) {
                             if (loadingProgress == null) return child;
                             return Container(
@@ -293,8 +295,13 @@ class _CourtCard extends StatelessWidget {
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: kPrimary,
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
                                         : null,
                                   ),
                                 ),
@@ -307,13 +314,18 @@ class _CourtCard extends StatelessWidget {
                           top: 12,
                           right: 12,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: isActive ? kGreen : kRed,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: (isActive ? kGreen : kRed).withOpacity(0.4),
+                                  color: (isActive ? kGreen : kRed).withOpacity(
+                                    0.4,
+                                  ),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -347,7 +359,10 @@ class _CourtCard extends StatelessWidget {
                           bottom: 12,
                           left: 12,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black.withOpacity(0.7),
                               borderRadius: BorderRadius.circular(20),
@@ -394,11 +409,15 @@ class _CourtCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  
+
                   // Venue Name with icon
                   Row(
                     children: [
-                      Icon(Icons.location_on_rounded, size: 12, color: Colors.grey[400]),
+                      Icon(
+                        Icons.location_on_rounded,
+                        size: 12,
+                        color: Colors.grey[400],
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -413,7 +432,7 @@ class _CourtCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  
+
                   // Description (if exists)
                   if (description.isNotEmpty) ...[
                     const SizedBox(height: 8),
@@ -428,9 +447,9 @@ class _CourtCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  
+
                   const SizedBox(height: 10),
-                  
+
                   // Price and Capacity Row
                   Row(
                     children: [
@@ -443,7 +462,11 @@ class _CourtCard extends StatelessWidget {
                           ),
                           child: Column(
                             children: [
-                              const Icon(Icons.attach_money_rounded, size: 14, color: kPrimary),
+                              const Icon(
+                                Icons.attach_money_rounded,
+                                size: 14,
+                                color: kPrimary,
+                              ),
                               const SizedBox(height: 2),
                               Text(
                                 '$pricePerHour DT',
@@ -455,10 +478,7 @@ class _CourtCard extends StatelessWidget {
                               ),
                               const Text(
                                 'per hour',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: kTextMid,
-                                ),
+                                style: TextStyle(fontSize: 9, color: kTextMid),
                               ),
                             ],
                           ),
@@ -474,7 +494,11 @@ class _CourtCard extends StatelessWidget {
                           ),
                           child: Column(
                             children: [
-                              const Icon(Icons.people_rounded, size: 14, color: Colors.blue),
+                              const Icon(
+                                Icons.people_rounded,
+                                size: 14,
+                                color: Colors.blue,
+                              ),
                               const SizedBox(height: 2),
                               Text(
                                 '$capacity',
@@ -486,10 +510,7 @@ class _CourtCard extends StatelessWidget {
                               ),
                               const Text(
                                 'max players',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: kTextMid,
-                                ),
+                                style: TextStyle(fontSize: 9, color: kTextMid),
                               ),
                             ],
                           ),
@@ -497,9 +518,9 @@ class _CourtCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Action Button
                   Container(
                     width: double.infinity,
@@ -519,7 +540,11 @@ class _CourtCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.visibility_rounded, size: 16, color: Colors.white),
+                          Icon(
+                            Icons.visibility_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'View Details',
@@ -551,17 +576,11 @@ class _CourtCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              sportIcon,
-              style: const TextStyle(fontSize: 48),
-            ),
+            Text(sportIcon, style: const TextStyle(fontSize: 48)),
             const SizedBox(height: 8),
             Text(
               'No image available',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
           ],
         ),

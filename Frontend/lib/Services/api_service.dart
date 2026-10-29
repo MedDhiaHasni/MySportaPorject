@@ -6,7 +6,8 @@
 class ApiService {
   ApiService._();
 
-  static const String baseUrl = 'https://api.sporta.tn/v1'; // TODO: update with real URL
+  static const String baseUrl =
+      'https://api.sporta.tn/v1'; // TODO: update with real URL
 
   // ── Auth ──────────────────────────────────────────────────────────────
   // static Future<UserModel> login(String email, String password) async {}

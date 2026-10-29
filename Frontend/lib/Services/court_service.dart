@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:sporta/Core/Constants/api_constants.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class CourtService {
   // ─────────────────────────────────────────────────────────────────────────
@@ -18,9 +19,6 @@ class CourtService {
         },
       );
 
-      print('Get courts response status: ${response.statusCode}');
-      print('Get courts response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data is List) {
@@ -32,10 +30,14 @@ class CourtService {
         }
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get courts');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get courts',
+        );
       }
     } catch (e) {
-      print('Error in getCourts: $e');
+      AppLogger.error('Error in getCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -56,17 +58,18 @@ class CourtService {
         },
       );
 
-      print('Get court response status: ${response.statusCode}');
-      print('Get court response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get court');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get court',
+        );
       }
     } catch (e) {
-      print('Error in getCourt: $e');
+      AppLogger.error('Error in getCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -92,9 +95,9 @@ class CourtService {
         'POST',
         Uri.parse(ApiConstants.managerCourts),
       );
-      
+
       request.headers['Authorization'] = 'Bearer $token';
-      
+
       // Add text fields
       request.fields['name'] = name;
       request.fields['sport'] = sport;
@@ -102,15 +105,15 @@ class CourtService {
       request.fields['capacity'] = capacity.toString();
       request.fields['isActive'] = isActive.toString();
       request.fields['venue'] = venueId.toString();
-      
+
       if (description != null && description.isNotEmpty) {
         request.fields['description'] = description;
       }
-      
+
       if (amenities != null && amenities.isNotEmpty) {
         request.fields['amenities'] = json.encode(amenities);
       }
-      
+
       // Add main court image
       if (courtImg != null) {
         final stream = http.ByteStream(courtImg.openRead());
@@ -124,7 +127,7 @@ class CourtService {
         );
         request.files.add(multipartFile);
       }
-      
+
       // Add gallery images
       if (photos != null && photos.isNotEmpty) {
         for (int i = 0; i < photos.length; i++) {
@@ -141,22 +144,23 @@ class CourtService {
           request.files.add(multipartFile);
         }
       }
-      
+
       final response = await request.send();
       final responseBody = await http.Response.fromStream(response);
-      
-      print('Create court response status: ${response.statusCode}');
-      print('Create court response body: ${responseBody.body}');
-      
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(responseBody.body);
         return data['court'] ?? data;
       } else {
         final error = json.decode(responseBody.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to create court');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to create court',
+        );
       }
     } catch (e) {
-      print('Error in createCourt: $e');
+      AppLogger.error('Error in createCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -175,28 +179,31 @@ class CourtService {
     File? courtImg,
     List<File>? photos,
     List<String>? amenities,
-    bool? isActive, int? courtImgId, required List<int> photosIds,
+    bool? isActive,
+    int? courtImgId,
+    required List<int> photosIds,
   }) async {
     try {
       final request = http.MultipartRequest(
         'PUT',
         Uri.parse(ApiConstants.managerCourt(courtId)),
       );
-      
+
       request.headers['Authorization'] = 'Bearer $token';
-      
+
       // Add text fields
       if (name != null) request.fields['name'] = name;
       if (description != null) request.fields['description'] = description;
       if (sport != null) request.fields['sport'] = sport;
-      if (pricePerHour != null) request.fields['pricePerHour'] = pricePerHour.toString();
+      if (pricePerHour != null)
+        request.fields['pricePerHour'] = pricePerHour.toString();
       if (capacity != null) request.fields['capacity'] = capacity.toString();
       if (isActive != null) request.fields['isActive'] = isActive.toString();
-      
+
       if (amenities != null && amenities.isNotEmpty) {
         request.fields['amenities'] = json.encode(amenities);
       }
-      
+
       // Add main court image
       if (courtImg != null) {
         final stream = http.ByteStream(courtImg.openRead());
@@ -210,7 +217,7 @@ class CourtService {
         );
         request.files.add(multipartFile);
       }
-      
+
       // Add gallery images
       if (photos != null && photos.isNotEmpty) {
         for (int i = 0; i < photos.length; i++) {
@@ -227,22 +234,23 @@ class CourtService {
           request.files.add(multipartFile);
         }
       }
-      
+
       final response = await request.send();
       final responseBody = await http.Response.fromStream(response);
-      
-      print('Update court response status: ${response.statusCode}');
-      print('Update court response body: ${responseBody.body}');
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(responseBody.body);
         return data['court'] ?? data;
       } else {
         final error = json.decode(responseBody.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update court');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to update court',
+        );
       }
     } catch (e) {
-      print('Error in updateCourt: $e');
+      AppLogger.error('Error in updateCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -263,17 +271,18 @@ class CourtService {
         },
       );
 
-      print('Delete court response status: ${response.statusCode}');
-      print('Delete court response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to delete court');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to delete court',
+        );
       }
     } catch (e) {
-      print('Error in deleteCourt: $e');
+      AppLogger.error('Error in deleteCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -299,16 +308,6 @@ class CourtService {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
 /*port 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sporta/Core/Constants/api_constants.dart';
@@ -327,8 +326,6 @@ class CourtService {
         },
       );
 
-      print('Get courts response status: ${response.statusCode}');
-      print('Get courts response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -344,7 +341,7 @@ class CourtService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get courts');
       }
     } catch (e) {
-      print('Error in getCourts: $e');
+      AppLogger.error('Error in getCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -365,8 +362,6 @@ class CourtService {
         },
       );
 
-      print('Get court response status: ${response.statusCode}');
-      print('Get court response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -375,7 +370,7 @@ class CourtService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get court');
       }
     } catch (e) {
-      print('Error in getCourt: $e');
+      AppLogger.error('Error in getCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -424,8 +419,6 @@ class CourtService {
         body: json.encode(body),
       );
 
-      print('Create court response status: ${response.statusCode}');
-      print('Create court response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -435,7 +428,7 @@ class CourtService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to create court');
       }
     } catch (e) {
-      print('Error in createCourt: $e');
+      AppLogger.error('Error in createCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -476,8 +469,6 @@ class CourtService {
         body: json.encode(body),
       );
 
-      print('Update court response status: ${response.statusCode}');
-      print('Update court response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -487,7 +478,7 @@ class CourtService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update court');
       }
     } catch (e) {
-      print('Error in updateCourt: $e');
+      AppLogger.error('Error in updateCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -508,8 +499,6 @@ class CourtService {
         },
       );
 
-      print('Delete court response status: ${response.statusCode}');
-      print('Delete court response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -518,7 +507,7 @@ class CourtService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to delete court');
       }
     } catch (e) {
-      print('Error in deleteCourt: $e');
+      AppLogger.error('Error in deleteCourt: $e');
       throw Exception(e.toString());
     }
   }

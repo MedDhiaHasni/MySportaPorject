@@ -16,6 +16,7 @@ import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:sporta/Services/notification_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 final workerNavigationKey = GlobalKey<_WorkerNavigationState>();
 
@@ -46,7 +47,13 @@ class _WorkerNavigationState extends State<WorkerNavigation>
     Icons.chat_bubble_outline_rounded,
   ];
 
-  final _labels = const ['Dashboard', 'Courts', 'Reservations', 'Upcoming', 'Messages'];
+  final _labels = const [
+    'Dashboard',
+    'Courts',
+    'Reservations',
+    'Upcoming',
+    'Messages',
+  ];
 
   late final List<Widget> _screens;
 
@@ -62,9 +69,18 @@ class _WorkerNavigationState extends State<WorkerNavigation>
       WorkerChatPage(workerToken: widget.workerToken),
     ];
 
-    _pageController = AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
-    _fadeAnim = CurvedAnimation(parent: _pageController!, curve: Curves.easeOut).drive(Tween(begin: 0.0, end: 1.0));
-    _slideAnim = CurvedAnimation(parent: _pageController!, curve: Curves.easeOut).drive(Tween<Offset>(begin: const Offset(0.06, 0), end: Offset.zero));
+    _pageController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _fadeAnim = CurvedAnimation(
+      parent: _pageController!,
+      curve: Curves.easeOut,
+    ).drive(Tween(begin: 0.0, end: 1.0));
+    _slideAnim = CurvedAnimation(
+      parent: _pageController!,
+      curve: Curves.easeOut,
+    ).drive(Tween<Offset>(begin: const Offset(0.06, 0), end: Offset.zero));
     _pageController!.value = 1.0;
 
     _initFirebaseForUser();
@@ -77,14 +93,12 @@ class _WorkerNavigationState extends State<WorkerNavigation>
       NotificationService().onNotificationTap = (data) {
         _handleNotificationTap(data);
       };
-      debugPrint('[WorkerNavigation] Notifications initialized');
     } catch (e) {
-      debugPrint('[WorkerNavigation] Notification init error: $e');
+      AppLogger.error('[WorkerNavigation] Notification init error: $e');
     }
   }
 
   void _handleNotificationTap(Map<String, dynamic> data) {
-    debugPrint('[WorkerNavigation] Notification tapped: $data');
     final screen = data['screen'];
     if (screen == 'chat') {
       _onTap(4); // Messages tab
@@ -102,10 +116,9 @@ class _WorkerNavigationState extends State<WorkerNavigation>
           firebaseUid: 'sporta_worker_$userId',
           fcmToken: fcmToken,
         );
-        debugPrint('[WorkerNavigation] FCM token synced for worker $userId');
       }
     } catch (e) {
-      debugPrint('[WorkerNavigation] FCM token sync error: $e');
+      AppLogger.error('[WorkerNavigation] FCM token sync error: $e');
     }
   }
 
@@ -120,7 +133,9 @@ class _WorkerNavigationState extends State<WorkerNavigation>
 
       // Get Strapi user ID to build deterministic uid
       final profile = await PlayerManagerAuthService.getMe(token);
-      final user = profile.containsKey('user') ? profile['user'] as Map<String, dynamic> : profile;
+      final user = profile.containsKey('user')
+          ? profile['user'] as Map<String, dynamic>
+          : profile;
       final userId = user['id']?.toString() ?? '';
       if (userId.isEmpty) return;
 
@@ -133,10 +148,8 @@ class _WorkerNavigationState extends State<WorkerNavigation>
 
       // ✅ Sync FCM token to backend
       await _syncFcmToken(token, userId);
-
-      debugPrint('[WorkerNavigation] Firebase identity ready for worker $userId');
     } catch (e) {
-      debugPrint('[WorkerNavigation] Firebase init failed: $e');
+      AppLogger.error('[WorkerNavigation] Firebase init failed: $e');
     }
   }
 
@@ -149,8 +162,13 @@ class _WorkerNavigationState extends State<WorkerNavigation>
   void _onTap(int index) {
     if (index == _selectedIndex) return;
     final goingRight = index > _selectedIndex;
-    _slideAnim = CurvedAnimation(parent: _pageController!, curve: Curves.easeOut)
-        .drive(Tween<Offset>(begin: Offset(goingRight ? 0.06 : -0.06, 0), end: Offset.zero));
+    _slideAnim =
+        CurvedAnimation(parent: _pageController!, curve: Curves.easeOut).drive(
+          Tween<Offset>(
+            begin: Offset(goingRight ? 0.06 : -0.06, 0),
+            end: Offset.zero,
+          ),
+        );
     setState(() => _selectedIndex = index);
     _pageController!.forward(from: 0.0);
   }
@@ -179,7 +197,14 @@ class _WorkerNavigationState extends State<WorkerNavigation>
               Icon(_icons[i], size: 24, color: sel ? kPrimary : Colors.white),
               if (!sel) ...[
                 const SizedBox(height: 2),
-                Text(_labels[i], style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white70)),
+                Text(
+                  _labels[i],
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
+                ),
               ],
             ],
           ),
@@ -194,7 +219,7 @@ class _WorkerNavigationState extends State<WorkerNavigation>
     }
     return AnimatedBuilder(
       animation: _pageController!,
-      builder: (_, __) => FadeTransition(
+      builder: (_, _) => FadeTransition(
         opacity: _fadeAnim!,
         child: SlideTransition(
           position: _slideAnim!,
@@ -204,24 +229,6 @@ class _WorkerNavigationState extends State<WorkerNavigation>
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Views/Worker/worker_navigation.dart
 // After the worker token is available, syncs the Firebase UID to Strapi.
@@ -315,9 +322,8 @@ class _WorkerNavigationState extends State<WorkerNavigation>
         role: 'worker',
       );
 
-      debugPrint('[WorkerNavigation] Firebase identity ready for worker $userId');
     } catch (e) {
-      debugPrint('[WorkerNavigation] Firebase init failed: $e');
+      AppLogger.error('[WorkerNavigation] Firebase init failed: $e');
     }
   }
 
@@ -386,23 +392,7 @@ class _WorkerNavigationState extends State<WorkerNavigation>
   }
 }*/
 
-
-
-
-
-
-//******************************************** 
-
-
-
-
-
-
-
-
-
-
-
+//********************************************
 
 /*// lib/Views/Worker/worker_navigation.dart
 // After the worker token is available, syncs the Firebase UID to Strapi.
@@ -493,9 +483,8 @@ class _WorkerNavigationState extends State<WorkerNavigation>
         role: 'worker',
       );
 
-      debugPrint('[WorkerNavigation] Firebase identity ready for worker $userId');
     } catch (e) {
-      debugPrint('[WorkerNavigation] Firebase init failed: $e');
+      AppLogger.error('[WorkerNavigation] Firebase init failed: $e');
     }
   }
 

@@ -12,6 +12,7 @@ import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:sporta/Services/notification_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class ManagerNavigation extends StatefulWidget {
   final String? managerToken;
@@ -31,8 +32,13 @@ class _ManagerNavigationState extends State<ManagerNavigation>
 
   final GlobalKey<CurvedNavigationBarState> _navKey = GlobalKey();
 
-  final List<IconData> _icons  = [Icons.dashboard_rounded, Icons.stadium_rounded, Icons.calendar_month_rounded, Icons.chat_bubble_rounded];
-  final List<String>   _labels = ['Dashboard', 'Venue', 'Bookings', 'Messages'];
+  final List<IconData> _icons = [
+    Icons.dashboard_rounded,
+    Icons.stadium_rounded,
+    Icons.calendar_month_rounded,
+    Icons.chat_bubble_rounded,
+  ];
+  final List<String> _labels = ['Dashboard', 'Venue', 'Bookings', 'Messages'];
 
   late final List<Widget> _screens;
 
@@ -47,9 +53,18 @@ class _ManagerNavigationState extends State<ManagerNavigation>
       Messages(managerToken: widget.managerToken, managerName: 'Manager'),
     ];
 
-    _pageController = AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
-    _fadeAnim  = CurvedAnimation(parent: _pageController!, curve: Curves.easeOut).drive(Tween(begin: 0.0, end: 1.0));
-    _slideAnim = CurvedAnimation(parent: _pageController!, curve: Curves.easeOut).drive(Tween<Offset>(begin: const Offset(0.06, 0), end: Offset.zero));
+    _pageController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _fadeAnim = CurvedAnimation(
+      parent: _pageController!,
+      curve: Curves.easeOut,
+    ).drive(Tween(begin: 0.0, end: 1.0));
+    _slideAnim = CurvedAnimation(
+      parent: _pageController!,
+      curve: Curves.easeOut,
+    ).drive(Tween<Offset>(begin: const Offset(0.06, 0), end: Offset.zero));
     _pageController!.value = 1.0;
 
     _initFirebaseForUser();
@@ -62,14 +77,12 @@ class _ManagerNavigationState extends State<ManagerNavigation>
       NotificationService().onNotificationTap = (data) {
         _handleNotificationTap(data);
       };
-      debugPrint('[ManagerNavigation] Notifications initialized');
     } catch (e) {
-      debugPrint('[ManagerNavigation] Notification init error: $e');
+      AppLogger.error('[ManagerNavigation] Notification init error: $e');
     }
   }
 
   void _handleNotificationTap(Map<String, dynamic> data) {
-    debugPrint('[ManagerNavigation] Notification tapped: $data');
     final screen = data['screen'];
     if (screen == 'chat') {
       _onTap(3); // Messages tab
@@ -87,10 +100,9 @@ class _ManagerNavigationState extends State<ManagerNavigation>
           firebaseUid: 'sporta_manager_$userId',
           fcmToken: fcmToken,
         );
-        debugPrint('[ManagerNavigation] FCM token synced for manager $userId');
       }
     } catch (e) {
-      debugPrint('[ManagerNavigation] FCM token sync error: $e');
+      AppLogger.error('[ManagerNavigation] FCM token sync error: $e');
     }
   }
 
@@ -104,34 +116,42 @@ class _ManagerNavigationState extends State<ManagerNavigation>
       if (token == null || token.isEmpty) return;
 
       final profile = await PlayerManagerAuthService.getMe(token);
-      final user    = profile.containsKey('user') ? profile['user'] as Map<String, dynamic> : profile;
-      final userId  = user['id']?.toString() ?? '';
+      final user = profile.containsKey('user')
+          ? profile['user'] as Map<String, dynamic>
+          : profile;
+      final userId = user['id']?.toString() ?? '';
       if (userId.isEmpty) return;
 
       // uid will be "sporta_manager_{userId}" — unique per manager account
       await FirebaseIdentityService.instance.initForUser(
-        strapiToken:   token,
-        strapiUserId:  userId,
-        role:          'manager',
+        strapiToken: token,
+        strapiUserId: userId,
+        role: 'manager',
       );
 
       // ✅ Sync FCM token to backend
       await _syncFcmToken(token, userId);
-
-      debugPrint('[ManagerNavigation] Firebase identity ready for manager $userId');
     } catch (e) {
-      debugPrint('[ManagerNavigation] Firebase init failed: $e');
+      AppLogger.error('[ManagerNavigation] Firebase init failed: $e');
     }
   }
 
   @override
-  void dispose() { _pageController?.dispose(); super.dispose(); }
+  void dispose() {
+    _pageController?.dispose();
+    super.dispose();
+  }
 
   void _onTap(int index) {
     if (index == _selectedIndex) return;
     final goingRight = index > _selectedIndex;
-    _slideAnim = CurvedAnimation(parent: _pageController!, curve: Curves.easeOut)
-        .drive(Tween<Offset>(begin: Offset(goingRight ? 0.06 : -0.06, 0), end: Offset.zero));
+    _slideAnim =
+        CurvedAnimation(parent: _pageController!, curve: Curves.easeOut).drive(
+          Tween<Offset>(
+            begin: Offset(goingRight ? 0.06 : -0.06, 0),
+            end: Offset.zero,
+          ),
+        );
     setState(() => _selectedIndex = index);
     _pageController!.forward(from: 0.0);
   }
@@ -153,39 +173,44 @@ class _ManagerNavigationState extends State<ManagerNavigation>
       onTap: _onTap,
       items: List.generate(_icons.length, (i) {
         final sel = _selectedIndex == i;
-        return IgnorePointer(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(_icons[i], size: 24, color: sel ? kPrimary : Colors.white),
-          if (!sel) ...[const SizedBox(height: 2),
-            Text(_labels[i], style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white70))],
-        ]));
+        return IgnorePointer(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(_icons[i], size: 24, color: sel ? kPrimary : Colors.white),
+              if (!sel) ...[
+                const SizedBox(height: 2),
+                Text(
+                  _labels[i],
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
       }),
     ),
   );
 
   Widget _body() {
-    if (_pageController == null || _fadeAnim == null || _slideAnim == null) return _screens[_selectedIndex];
+    if (_pageController == null || _fadeAnim == null || _slideAnim == null)
+      return _screens[_selectedIndex];
     return AnimatedBuilder(
       animation: _pageController!,
-      builder: (_, __) => FadeTransition(opacity: _fadeAnim!,
-          child: SlideTransition(position: _slideAnim!, child: _screens[_selectedIndex])),
+      builder: (_, _) => FadeTransition(
+        opacity: _fadeAnim!,
+        child: SlideTransition(
+          position: _slideAnim!,
+          child: _screens[_selectedIndex],
+        ),
+      ),
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// Views/Manager/manager_navigation.dart
 
@@ -263,9 +288,8 @@ class _ManagerNavigationState extends State<ManagerNavigation>
         role:          'manager',
       );
 
-      debugPrint('[ManagerNavigation] Firebase identity ready for manager $userId');
     } catch (e) {
-      debugPrint('[ManagerNavigation] Firebase init failed: $e');
+      AppLogger.error('[ManagerNavigation] Firebase init failed: $e');
     }
   }
 
@@ -317,13 +341,7 @@ class _ManagerNavigationState extends State<ManagerNavigation>
   }
 }*/
 
-
-
-
-//********************************** 
-
-
-
+//**********************************
 
 /*// Views/Manager/manager_navigation.dart
 
@@ -401,9 +419,8 @@ class _ManagerNavigationState extends State<ManagerNavigation>
         role:          'manager',
       );
 
-      debugPrint('[ManagerNavigation] Firebase identity ready for manager $userId');
     } catch (e) {
-      debugPrint('[ManagerNavigation] Firebase init failed: $e');
+      AppLogger.error('[ManagerNavigation] Firebase init failed: $e');
     }
   }
 
@@ -581,7 +598,7 @@ class _ManagerNavigationState extends State<ManagerNavigation>
         });
       }
     } catch (e) {
-      debugPrint('[ManagerNavigation] Could not fetch manager uid: $e');
+      AppLogger.error('[ManagerNavigation] Could not fetch manager uid: $e');
     }
   }
 

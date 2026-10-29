@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sporta/Core/Constants/api_constants.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class VenueService {
   // ─────────────────────────────────────────────────────────────────────────
@@ -16,9 +17,6 @@ class VenueService {
         },
       );
 
-      print('Get venues response status: ${response.statusCode}');
-      print('Get venues response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data is List) {
@@ -30,10 +28,14 @@ class VenueService {
         }
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get venues');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get venues',
+        );
       }
     } catch (e) {
-      print('Error in getVenues: $e');
+      AppLogger.error('Error in getVenues: $e');
       throw Exception(e.toString());
     }
   }
@@ -54,17 +56,18 @@ class VenueService {
         },
       );
 
-      print('Get venue response status: ${response.statusCode}');
-      print('Get venue response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get venue');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get venue',
+        );
       }
     } catch (e) {
-      print('Error in getVenue: $e');
+      AppLogger.error('Error in getVenue: $e');
       throw Exception(e.toString());
     }
   }
@@ -85,7 +88,7 @@ class VenueService {
     bool isActive = true,
     double? lat,
     double? lng,
-    int? photoId,  // Changed: pass photo ID instead of URL
+    int? photoId, // Changed: pass photo ID instead of URL
   }) async {
     try {
       final body = {
@@ -96,7 +99,7 @@ class VenueService {
         'sports': sports,
         'isActive': isActive,
       };
-      
+
       if (description != null && description.isNotEmpty) {
         body['description'] = description;
       }
@@ -123,18 +126,19 @@ class VenueService {
         body: json.encode(body),
       );
 
-      print('Create venue response status: ${response.statusCode}');
-      print('Create venue response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['venue'] ?? data;
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to create venue');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to create venue',
+        );
       }
     } catch (e) {
-      print('Error in createVenue: $e');
+      AppLogger.error('Error in createVenue: $e');
       throw Exception(e.toString());
     }
   }
@@ -156,11 +160,11 @@ class VenueService {
     bool? isActive,
     double? lat,
     double? lng,
-    int? photoId,  // Changed: pass photo ID instead of URL
+    int? photoId, // Changed: pass photo ID instead of URL
   }) async {
     try {
       final body = <String, dynamic>{};
-      
+
       if (name != null) body['name'] = name;
       if (location != null) body['location'] = location;
       if (description != null) body['description'] = description;
@@ -183,18 +187,19 @@ class VenueService {
         body: json.encode(body),
       );
 
-      print('Update venue response status: ${response.statusCode}');
-      print('Update venue response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['venue'] ?? data;
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update venue');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to update venue',
+        );
       }
     } catch (e) {
-      print('Error in updateVenue: $e');
+      AppLogger.error('Error in updateVenue: $e');
       throw Exception(e.toString());
     }
   }
@@ -215,17 +220,18 @@ class VenueService {
         },
       );
 
-      print('Delete venue response status: ${response.statusCode}');
-      print('Delete venue response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to delete venue');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to delete venue',
+        );
       }
     } catch (e) {
-      print('Error in deleteVenue: $e');
+      AppLogger.error('Error in deleteVenue: $e');
       throw Exception(e.toString());
     }
   }
@@ -246,9 +252,6 @@ class VenueService {
         },
       );
 
-      print('Get venue courts response status: ${response.statusCode}');
-      print('Get venue courts response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data is List) {
@@ -260,10 +263,14 @@ class VenueService {
         }
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get venue courts');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get venue courts',
+        );
       }
     } catch (e) {
-      print('Error in getVenueCourts: $e');
+      AppLogger.error('Error in getVenueCourts: $e');
       throw Exception(e.toString());
     }
   }

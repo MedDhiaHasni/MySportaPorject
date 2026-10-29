@@ -37,10 +37,10 @@ class DayPlanSummary {
   factory DayPlanSummary.fromJson(Map<String, dynamic> json) {
     final attrs = (json['attributes'] ?? json) as Map<String, dynamic>;
     return DayPlanSummary(
-      id:         (json['id'] ?? attrs['id'])?.toString() ?? '',
-      date:       attrs['date']?.toString(),
-      dayOfWeek:  attrs['dayOfWeek']?.toString() ?? '',
-      dayType:    attrs['dayType']?.toString()   ?? 'normal',
+      id: (json['id'] ?? attrs['id'])?.toString() ?? '',
+      date: attrs['date']?.toString(),
+      dayOfWeek: attrs['dayOfWeek']?.toString() ?? '',
+      dayType: attrs['dayType']?.toString() ?? 'normal',
     );
   }
 }
@@ -49,8 +49,8 @@ class SlotAvailability {
   final String id;
   final String startTime;
   final String endTime;
-  final bool   isActive;
-  final bool   isBooked;
+  final bool isActive;
+  final bool isBooked;
 
   const SlotAvailability({
     required this.id,
@@ -62,29 +62,33 @@ class SlotAvailability {
 
   factory SlotAvailability.fromJson(Map<String, dynamic> json) {
     return SlotAvailability(
-      id:        json['id']?.toString()          ?? '',
-      startTime: json['startTime']?.toString()   ?? '',
-      endTime:   json['endTime']?.toString()     ?? '',
-      isActive:  json['isActive']  as bool?      ?? true,
-      isBooked:  json['isBooked']  as bool?      ?? false,
+      id: json['id']?.toString() ?? '',
+      startTime: json['startTime']?.toString() ?? '',
+      endTime: json['endTime']?.toString() ?? '',
+      isActive: json['isActive'] as bool? ?? true,
+      isBooked: json['isBooked'] as bool? ?? false,
     );
   }
 }
 
 class DayPlanAvailability {
   final String? date;
-  final String  dayType;
+  final String dayType;
   final List<SlotAvailability> slots;
 
-  const DayPlanAvailability({this.date, required this.dayType, required this.slots});
+  const DayPlanAvailability({
+    this.date,
+    required this.dayType,
+    required this.slots,
+  });
 
   factory DayPlanAvailability.fromJson(Map<String, dynamic> json) {
     return DayPlanAvailability(
-      date:    json['date']?.toString(),
+      date: json['date']?.toString(),
       dayType: json['dayType']?.toString() ?? 'normal',
-      slots:   (json['slots'] as List? ?? [])
-                   .map((s) => SlotAvailability.fromJson(s as Map<String, dynamic>))
-                   .toList(),
+      slots: (json['slots'] as List? ?? [])
+          .map((s) => SlotAvailability.fromJson(s as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -92,7 +96,7 @@ class DayPlanAvailability {
 class WeekAgendaSummary {
   final String id;
   final String? weekStartDate;
-  final String  statu; // Published | Draft
+  final String statu; // Published | Draft
   final List<DayPlanSummary> dayPlans;
 
   const WeekAgendaSummary({
@@ -104,18 +108,22 @@ class WeekAgendaSummary {
 
   factory WeekAgendaSummary.fromJson(Map<String, dynamic> json) {
     final attrs = (json['attributes'] ?? json) as Map<String, dynamic>;
-    final rawDp  = attrs['day_plans'];
+    final rawDp = attrs['day_plans'];
     List<DayPlanSummary> plans = [];
     if (rawDp is List) {
-      plans = rawDp.map((d) => DayPlanSummary.fromJson(d as Map<String, dynamic>)).toList();
+      plans = rawDp
+          .map((d) => DayPlanSummary.fromJson(d as Map<String, dynamic>))
+          .toList();
     } else if (rawDp is Map && rawDp['data'] is List) {
-      plans = (rawDp['data'] as List).map((d) => DayPlanSummary.fromJson(d as Map<String, dynamic>)).toList();
+      plans = (rawDp['data'] as List)
+          .map((d) => DayPlanSummary.fromJson(d as Map<String, dynamic>))
+          .toList();
     }
     return WeekAgendaSummary(
-      id:            (json['id'] ?? attrs['id'])?.toString()         ?? '',
+      id: (json['id'] ?? attrs['id'])?.toString() ?? '',
       weekStartDate: attrs['weekStartDate']?.toString(),
-      statu:         attrs['statu']?.toString()                      ?? 'Draft',
-      dayPlans:      plans,
+      statu: attrs['statu']?.toString() ?? 'Draft',
+      dayPlans: plans,
     );
   }
 }
@@ -125,47 +133,65 @@ class WeekAgendaSummary {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ScheduleService {
-
   // ── Week agendas ────────────────────────────────────────────────────────────
 
   /// GET /week-agendas/court/:courtId
   /// Player-accessible. Returns flat list of day plan summaries.
-  static Future<List<DayPlanSummary>> fetchDayPlansByCourt(String token, String courtId) async {
+  static Future<List<DayPlanSummary>> fetchDayPlansByCourt(
+    String token,
+    String courtId,
+  ) async {
     final res = await http.get(
       Uri.parse(ApiConstants.courtDayPlans(courtId)),
       headers: _headers(token),
     );
     _check(res, 'fetchDayPlansByCourt');
     final body = json.decode(res.body);
-    final raw  = body['dayPlans'] as List? ?? [];
-    return raw.map((d) => DayPlanSummary.fromJson(d as Map<String, dynamic>)).toList();
+    final raw = body['dayPlans'] as List? ?? [];
+    return raw
+        .map((d) => DayPlanSummary.fromJson(d as Map<String, dynamic>))
+        .toList();
   }
 
   /// GET /week-agendas?courtId=X  (manager)
-  static Future<List<WeekAgendaSummary>> fetchWeekAgendasByCourt(String token, String courtId) async {
+  static Future<List<WeekAgendaSummary>> fetchWeekAgendasByCourt(
+    String token,
+    String courtId,
+  ) async {
     final res = await http.get(
       Uri.parse(ApiConstants.weekAgendasByCourt(courtId)),
       headers: _headers(token),
     );
     _check(res, 'fetchWeekAgendasByCourt');
     final body = json.decode(res.body);
-    final raw  = _extractList(body);
-    return raw.map((d) => WeekAgendaSummary.fromJson(d as Map<String, dynamic>)).toList();
+    final raw = _extractList(body);
+    return raw
+        .map((d) => WeekAgendaSummary.fromJson(d as Map<String, dynamic>))
+        .toList();
   }
 
   /// POST /week-agendas
-  static Future<WeekAgendaSummary> createWeekAgenda(String token, {
+  static Future<WeekAgendaSummary> createWeekAgenda(
+    String token, {
     required String courtId,
     required String weekStartDate,
   }) async {
     final res = await http.post(
       Uri.parse(ApiConstants.weekAgendas),
       headers: _jsonHeaders(token),
-      body: json.encode({'data': {'court': courtId, 'weekStartDate': weekStartDate, 'statu': 'Draft'}}),
+      body: json.encode({
+        'data': {
+          'court': courtId,
+          'weekStartDate': weekStartDate,
+          'statu': 'Draft',
+        },
+      }),
     );
     _check(res, 'createWeekAgenda');
     final body = json.decode(res.body);
-    return WeekAgendaSummary.fromJson((body['data'] ?? body) as Map<String, dynamic>);
+    return WeekAgendaSummary.fromJson(
+      (body['data'] ?? body) as Map<String, dynamic>,
+    );
   }
 
   /// POST /week-agendas/:id/publish
@@ -180,7 +206,10 @@ class ScheduleService {
   // ── Day plans ───────────────────────────────────────────────────────────────
 
   /// GET /day-plans/:id/availability
-  static Future<DayPlanAvailability> fetchAvailability(String token, String dayPlanId) async {
+  static Future<DayPlanAvailability> fetchAvailability(
+    String token,
+    String dayPlanId,
+  ) async {
     final res = await http.get(
       Uri.parse(ApiConstants.dayPlanAvailability(dayPlanId)),
       headers: _headers(token),
@@ -191,7 +220,8 @@ class ScheduleService {
   }
 
   /// POST /day-plans
-  static Future<DayPlanSummary> createDayPlan(String token, {
+  static Future<DayPlanSummary> createDayPlan(
+    String token, {
     required String weekAgendaId,
     required String dayOfWeek,
     required String dayType,
@@ -201,24 +231,28 @@ class ScheduleService {
   }) async {
     final payload = <String, dynamic>{
       'week_agend': weekAgendaId,
-      'dayOfWeek':  dayOfWeek,
-      'dayType':    dayType,
-      if (date      != null) 'date':      date,
-      if (openTime  != null) 'openTime':  openTime,
-      if (closeTime != null) 'closeTime': closeTime,
+      'dayOfWeek': dayOfWeek,
+      'dayType': dayType,
+      'date': ?date,
+      'openTime': ?openTime,
+      'closeTime': ?closeTime,
     };
     final res = await http.post(
       Uri.parse(ApiConstants.dayPlans),
       headers: _jsonHeaders(token),
-      body:    json.encode({'data': payload}),
+      body: json.encode({'data': payload}),
     );
     _check(res, 'createDayPlan');
     final body = json.decode(res.body);
-    return DayPlanSummary.fromJson((body['data'] ?? body) as Map<String, dynamic>);
+    return DayPlanSummary.fromJson(
+      (body['data'] ?? body) as Map<String, dynamic>,
+    );
   }
 
   /// PUT /day-plans/:id
-  static Future<DayPlanSummary> updateDayPlan(String token, String id, {
+  static Future<DayPlanSummary> updateDayPlan(
+    String token,
+    String id, {
     String? dayOfWeek,
     String? dayType,
     String? date,
@@ -226,20 +260,22 @@ class ScheduleService {
     String? closeTime,
   }) async {
     final payload = <String, dynamic>{
-      if (dayOfWeek  != null) 'dayOfWeek':  dayOfWeek,
-      if (dayType    != null) 'dayType':    dayType,
-      if (date       != null) 'date':       date,
-      if (openTime   != null) 'openTime':   openTime,
-      if (closeTime  != null) 'closeTime':  closeTime,
+      'dayOfWeek': ?dayOfWeek,
+      'dayType': ?dayType,
+      'date': ?date,
+      'openTime': ?openTime,
+      'closeTime': ?closeTime,
     };
     final res = await http.put(
       Uri.parse(ApiConstants.dayPlan(id)),
       headers: _jsonHeaders(token),
-      body:    json.encode({'data': payload}),
+      body: json.encode({'data': payload}),
     );
     _check(res, 'updateDayPlan');
     final body = json.decode(res.body);
-    return DayPlanSummary.fromJson((body['data'] ?? body) as Map<String, dynamic>);
+    return DayPlanSummary.fromJson(
+      (body['data'] ?? body) as Map<String, dynamic>,
+    );
   }
 
   /// DELETE /day-plans/:id
@@ -254,7 +290,8 @@ class ScheduleService {
   // ── Time slots ──────────────────────────────────────────────────────────────
 
   /// POST /time-slots
-  static Future<SlotAvailability> createTimeSlot(String token, {
+  static Future<SlotAvailability> createTimeSlot(
+    String token, {
     required String dayPlanId,
     required String startTime,
     required String endTime,
@@ -263,28 +300,31 @@ class ScheduleService {
     final res = await http.post(
       Uri.parse(ApiConstants.timeSlots),
       headers: _jsonHeaders(token),
-      body: json.encode({'data': {
-        'day_plan':  dayPlanId,
-        'startTime': startTime,
-        'endTime':   endTime,
-        'isActive':  isActive,
-      }}),
+      body: json.encode({
+        'data': {
+          'day_plan': dayPlanId,
+          'startTime': startTime,
+          'endTime': endTime,
+          'isActive': isActive,
+        },
+      }),
     );
     _check(res, 'createTimeSlot');
     final body = json.decode(res.body);
     final data = (body['data'] ?? body) as Map<String, dynamic>;
     final attrs = data['attributes'] ?? data;
     return SlotAvailability(
-      id:        data['id']?.toString()        ?? '',
-      startTime: (attrs['startTime'] ?? '')    .toString(),
-      endTime:   (attrs['endTime']   ?? '')    .toString(),
-      isActive:  attrs['isActive']  as bool?   ?? true,
-      isBooked:  false,
+      id: data['id']?.toString() ?? '',
+      startTime: (attrs['startTime'] ?? '').toString(),
+      endTime: (attrs['endTime'] ?? '').toString(),
+      isActive: attrs['isActive'] as bool? ?? true,
+      isBooked: false,
     );
   }
 
   /// POST /time-slots/bulk
-  static Future<List<SlotAvailability>> bulkCreateTimeSlots(String token, {
+  static Future<List<SlotAvailability>> bulkCreateTimeSlots(
+    String token, {
     required String dayPlanId,
     required List<Map<String, String>> slots, // [{startTime, endTime}]
   }) async {
@@ -294,33 +334,37 @@ class ScheduleService {
       body: json.encode({'day_plan': dayPlanId, 'slots': slots}),
     );
     _check(res, 'bulkCreateTimeSlots');
-    final body  = json.decode(res.body);
-    final raw   = body['data'] as List? ?? [];
+    final body = json.decode(res.body);
+    final raw = body['data'] as List? ?? [];
     return raw.map((s) {
       final attrs = (s as Map<String, dynamic>)['attributes'] ?? s;
       return SlotAvailability(
-        id:        s['id']?.toString()         ?? '',
-        startTime: (attrs['startTime'] ?? '')  .toString(),
-        endTime:   (attrs['endTime']   ?? '')  .toString(),
-        isActive:  attrs['isActive']   as bool? ?? true,
-        isBooked:  false,
+        id: s['id']?.toString() ?? '',
+        startTime: (attrs['startTime'] ?? '').toString(),
+        endTime: (attrs['endTime'] ?? '').toString(),
+        isActive: attrs['isActive'] as bool? ?? true,
+        isBooked: false,
       );
     }).toList();
   }
 
   /// PUT /time-slots/:id
-  static Future<void> updateTimeSlot(String token, String id, {
-    bool? isActive, String? startTime, String? endTime,
+  static Future<void> updateTimeSlot(
+    String token,
+    String id, {
+    bool? isActive,
+    String? startTime,
+    String? endTime,
   }) async {
     final payload = <String, dynamic>{
-      if (isActive  != null) 'isActive':  isActive,
-      if (startTime != null) 'startTime': startTime,
-      if (endTime   != null) 'endTime':   endTime,
+      'isActive': ?isActive,
+      'startTime': ?startTime,
+      'endTime': ?endTime,
     };
     final res = await http.put(
       Uri.parse(ApiConstants.timeSlot(id)),
       headers: _jsonHeaders(token),
-      body:    json.encode({'data': payload}),
+      body: json.encode({'data': payload}),
     );
     _check(res, 'updateTimeSlot');
   }
@@ -341,7 +385,7 @@ class ScheduleService {
   };
 
   static Map<String, String> _jsonHeaders(String token) => {
-    'Content-Type':  'application/json',
+    'Content-Type': 'application/json',
     'Authorization': 'Bearer $token',
   };
 
@@ -349,7 +393,7 @@ class ScheduleService {
     if (body is List) return body;
     if (body is Map) {
       if (body['data'] is List) return body['data'] as List;
-      if (body['data'] is Map)  return [body['data']];
+      if (body['data'] is Map) return [body['data']];
     }
     return [];
   }

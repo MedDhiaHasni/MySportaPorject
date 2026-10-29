@@ -10,6 +10,7 @@ import 'package:sporta/Widgets/Inputs/app_input_field.dart';
 import 'package:sporta/Widgets/Shared/auth_header.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -39,31 +40,26 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = true);
 
       try {
-        print('=== LOGIN ATTEMPT ===');
-        print('Email: ${_email.text.trim()}');
-        print('Password: ${_password.text.trim()}');
-
         final response = await PlayerManagerAuthService.login(
           email: _email.text.trim(),
           password: _password.text.trim(),
         );
 
-        print('Response received: $response');
-
         if (response['token'] != null) {
-          print('Token received: ${response['token']}');
           final userRole = response['user']['user_role'];
-          print('User role: $userRole');
-          
+
           final userId = response['user']['id'].toString();
           final token = response['token'];
 
           await _storage.write(key: 'jwt_token', value: token);
           await _storage.write(key: 'user_role', value: userRole);
           await _storage.write(key: 'user_id', value: userId);
-          
+
           if (_remember) {
-            await _storage.write(key: 'remember_email', value: _email.text.trim());
+            await _storage.write(
+              key: 'remember_email',
+              value: _email.text.trim(),
+            );
           } else {
             await _storage.delete(key: 'remember_email');
           }
@@ -79,9 +75,7 @@ class _LoginPageState extends State<LoginPage> {
           } else if (userRole == 'player') {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (_) => Navigation(playerToken: token),
-              ),
+              MaterialPageRoute(builder: (_) => Navigation(playerToken: token)),
             );
           } else if (userRole == 'worker') {
             Navigator.pushReplacement(
@@ -95,12 +89,11 @@ class _LoginPageState extends State<LoginPage> {
             _showErrorDialog('Invalid user role');
           }
         } else {
-          print('No token in response');
           setState(() => _isLoading = false);
           _showErrorDialog('No token received');
         }
       } catch (error) {
-        print('ERROR: $error');
+        AppLogger.error('ERROR: $error');
         setState(() => _isLoading = false);
         _showErrorDialog(error.toString());
       }
@@ -378,30 +371,6 @@ const _label = TextStyle(
   color: kTextDark,
 );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Utils/validators.dart';
@@ -442,21 +411,15 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = true);
 
       try {
-        print('=== LOGIN ATTEMPT ===');
-        print('Email: ${_email.text.trim()}');
-        print('Password: ${_password.text.trim()}');
 
         final response = await PlayerManagerAuthService.login(
           email: _email.text.trim(),
           password: _password.text.trim(),
         );
 
-        print('Response received: $response');
 
         if (response['token'] != null) {
-          print('Token received: ${response['token']}');
           final userRole = response['user']['user_role'];
-          print('User role: $userRole');
           
           final userId = response['user']['id'].toString();
           final token = response['token'];
@@ -490,12 +453,11 @@ class _LoginPageState extends State<LoginPage> {
             _showErrorDialog('Invalid user role');
           }
         } else {
-          print('No token in response');
           setState(() => _isLoading = false);
           _showErrorDialog('No token received');
         }
       } catch (error) {
-        print('ERROR: $error');
+        AppLogger.error('ERROR: $error');
         setState(() => _isLoading = false);
         _showErrorDialog(error.toString());
       }

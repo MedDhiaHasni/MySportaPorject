@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sporta/Core/Constants/api_constants.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class WorkerChatService {
   // ─────────────────────────────────────────────────────────────────────────
@@ -18,8 +19,6 @@ class WorkerChatService {
         },
       );
 
-      print('Get conversations response status: ${response.statusCode}');
-      print('Get conversations response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -29,7 +28,7 @@ class WorkerChatService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get conversations');
       }
     } catch (e) {
-      print('Error in getConversations: $e');
+      AppLogger.error('Error in getConversations: $e');
       throw Exception(e.toString());
     }
   }
@@ -47,8 +46,6 @@ class WorkerChatService {
         },
       );
 
-      print('Get manager conversation response status: ${response.statusCode}');
-      print('Get manager conversation response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -58,7 +55,7 @@ class WorkerChatService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get manager conversation');
       }
     } catch (e) {
-      print('Error in getManagerConversation: $e');
+      AppLogger.error('Error in getManagerConversation: $e');
       throw Exception(e.toString());
     }
   }
@@ -79,8 +76,6 @@ class WorkerChatService {
         },
       );
 
-      print('Get messages response status: ${response.statusCode}');
-      print('Get messages response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -93,7 +88,7 @@ class WorkerChatService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get messages');
       }
     } catch (e) {
-      print('Error in getMessages: $e');
+      AppLogger.error('Error in getMessages: $e');
       throw Exception(e.toString());
     }
   }
@@ -118,8 +113,6 @@ class WorkerChatService {
         }),
       );
 
-      print('Send message response status: ${response.statusCode}');
-      print('Send message response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -129,28 +122,11 @@ class WorkerChatService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to send message');
       }
     } catch (e) {
-      print('Error in sendMessage: $e');
+      AppLogger.error('Error in sendMessage: $e');
       throw Exception(e.toString());
     }
   }
 }*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Core/Services/worker_chat_service.dart
 
@@ -172,8 +148,6 @@ class WorkerChatService {
         },
       );
 
-      print('Get conversations response status: ${response.statusCode}');
-      print('Get conversations response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -183,7 +157,7 @@ class WorkerChatService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get conversations');
       }
     } catch (e) {
-      print('Error in getConversations: $e');
+      AppLogger.error('Error in getConversations: $e');
       throw Exception(e.toString());
     }
   }
@@ -204,8 +178,6 @@ class WorkerChatService {
         },
       );
 
-      print('Get messages response status: ${response.statusCode}');
-      print('Get messages response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -218,7 +190,7 @@ class WorkerChatService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get messages');
       }
     } catch (e) {
-      print('Error in getMessages: $e');
+      AppLogger.error('Error in getMessages: $e');
       throw Exception(e.toString());
     }
   }
@@ -243,8 +215,6 @@ class WorkerChatService {
         }),
       );
 
-      print('Send message response status: ${response.statusCode}');
-      print('Send message response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -254,7 +224,7 @@ class WorkerChatService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to send message');
       }
     } catch (e) {
-      print('Error in sendMessage: $e');
+      AppLogger.error('Error in sendMessage: $e');
       throw Exception(e.toString());
     }
   }

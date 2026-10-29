@@ -15,7 +15,7 @@ class AppTheme {
     colorScheme: const ColorScheme.light(
       primary: kPrimary,
       secondary: kGreen,
-      background: kBg,
+      surface: kBg,
       error: kRed,
     ),
     appBarTheme: const AppBarTheme(

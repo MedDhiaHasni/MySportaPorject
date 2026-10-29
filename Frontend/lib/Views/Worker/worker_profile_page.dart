@@ -8,6 +8,7 @@ import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Constants/api_constants.dart';
 import 'package:sporta/Services/worker_service.dart';
 import 'package:sporta/Views/Auth/login_page.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class WorkerProfilePage extends StatefulWidget {
   final String? workerToken;
@@ -110,7 +111,7 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
             : null;
       });
     } catch (e) {
-      debugPrint('Error loading worker data: $e');
+      AppLogger.error('Error loading worker data: $e');
     }
   }
 
@@ -124,10 +125,14 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Logout',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-        content: const Text('Are you sure you want to logout?',
-            style: TextStyle(fontSize: 14)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+        content: const Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(fontSize: 14),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -139,7 +144,8 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
               backgroundColor: kRed,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Logout'),
           ),
@@ -302,8 +308,7 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.photo_library_rounded, color: kPrimary),
+              leading: const Icon(Icons.photo_library_rounded, color: kPrimary),
               title: const Text('Choose from gallery'),
               onTap: () async {
                 Navigator.pop(context);
@@ -393,23 +398,28 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Change Password',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text(
+          'Change Password',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _dialogField(
-                controller: _oldPasswordController,
-                label: 'Current Password'),
+              controller: _oldPasswordController,
+              label: 'Current Password',
+            ),
             const SizedBox(height: 12),
             _dialogField(
-                controller: _newPasswordController, label: 'New Password'),
+              controller: _newPasswordController,
+              label: 'New Password',
+            ),
             const SizedBox(height: 12),
             _dialogField(
-                controller: _confirmPasswordController,
-                label: 'Confirm New Password'),
+              controller: _confirmPasswordController,
+              label: 'Confirm New Password',
+            ),
           ],
         ),
         actions: [
@@ -427,16 +437,22 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimary,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: _isChangingPassword
                 ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
-                : const Text('Update Password',
-                    style: TextStyle(color: Colors.white)),
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Update Password',
+                    style: TextStyle(color: Colors.white),
+                  ),
           ),
         ],
       ),
@@ -471,14 +487,17 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
   @override
   Widget build(BuildContext context) {
     final initials = _getInitials();
-    final displayPhotoUrl =
-        (_photoUrl != null && _photoUrl!.isNotEmpty) ? _photoUrl : null;
+    final displayPhotoUrl = (_photoUrl != null && _photoUrl!.isNotEmpty)
+        ? _photoUrl
+        : null;
 
     return Scaffold(
       backgroundColor: kBg,
       appBar: AppBar(
-        title: const Text('Profile Settings',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'Profile Settings',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: kTextDark,
@@ -531,8 +550,7 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
-                              border:
-                                  Border.all(color: Colors.white, width: 3),
+                              border: Border.all(color: Colors.white, width: 3),
                               boxShadow: [
                                 BoxShadow(
                                   color: kPrimary.withOpacity(0.3),
@@ -548,56 +566,70 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
                                         width: 30,
                                         height: 30,
                                         child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white),
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     )
                                   : (_selectedImage != null
-                                      ? Image.file(_selectedImage!,
-                                          fit: BoxFit.cover,
-                                          width: 100,
-                                          height: 100)
-                                      : (displayPhotoUrl != null
-                                          ? Image.network(
-                                              displayPhotoUrl,
-                                              fit: BoxFit.cover,
-                                              width: 100,
-                                              height: 100,
-                                              errorBuilder: (_, __, ___) =>
-                                                  Center(
-                                                    child: Text(initials,
-                                                        style: const TextStyle(
-                                                            fontSize: 36,
-                                                            fontWeight:
-                                                                FontWeight.w800,
-                                                            color:
-                                                                Colors.white)),
-                                                  ),
-                                              loadingBuilder:
-                                                  (_, child, progress) {
-                                                if (progress == null)
-                                                  return child;
-                                                return const Center(
-                                                  child: SizedBox(
-                                                    width: 30,
-                                                    height: 30,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                            color:
-                                                                Colors.white),
-                                                  ),
-                                                );
-                                              },
-                                            )
-                                          : Center(
-                                              child: Text(initials,
-                                                  style: const TextStyle(
+                                        ? Image.file(
+                                            _selectedImage!,
+                                            fit: BoxFit.cover,
+                                            width: 100,
+                                            height: 100,
+                                          )
+                                        : (displayPhotoUrl != null
+                                              ? Image.network(
+                                                  displayPhotoUrl,
+                                                  fit: BoxFit.cover,
+                                                  width: 100,
+                                                  height: 100,
+                                                  errorBuilder: (_, _, _) =>
+                                                      Center(
+                                                        child: Text(
+                                                          initials,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 36,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w800,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                  loadingBuilder:
+                                                      (_, child, progress) {
+                                                        if (progress == null) {
+                                                          return child;
+                                                        }
+                                                        return const Center(
+                                                          child: SizedBox(
+                                                            width: 30,
+                                                            height: 30,
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                                  strokeWidth:
+                                                                      2,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                          ),
+                                                        );
+                                                      },
+                                                )
+                                              : Center(
+                                                  child: Text(
+                                                    initials,
+                                                    style: const TextStyle(
                                                       fontSize: 36,
                                                       fontWeight:
                                                           FontWeight.w800,
-                                                      color: Colors.white)),
-                                            ))),
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ))),
                             ),
                           ),
                           Positioned(
@@ -609,10 +641,15 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
                                 color: kPrimary,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                    color: Colors.white, width: 2),
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
                               ),
-                              child: const Icon(Icons.camera_alt_rounded,
-                                  size: 16, color: Colors.white),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],
@@ -623,7 +660,9 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
                       onTap: _updatePhoto,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: kPrimary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -631,14 +670,20 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.camera_alt_rounded,
-                                size: 16, color: kPrimary),
+                            Icon(
+                              Icons.camera_alt_rounded,
+                              size: 16,
+                              color: kPrimary,
+                            ),
                             SizedBox(width: 6),
-                            Text('Change Photo',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: kPrimary)),
+                            Text(
+                              'Change Photo',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: kPrimary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -657,11 +702,14 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Personal Information',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: kTextDark)),
+                    const Text(
+                      'Personal Information',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: kTextDark,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _nomController,
@@ -701,11 +749,14 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Security',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: kTextDark)),
+                    const Text(
+                      'Security',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: kTextDark,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     ListTile(
                       onTap: _showPasswordDialog,
@@ -716,16 +767,27 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
                           color: kPrimary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.lock_outline,
-                            color: kPrimary, size: 22),
+                        child: const Icon(
+                          Icons.lock_outline,
+                          color: kPrimary,
+                          size: 22,
+                        ),
                       ),
-                      title: const Text('Change Password',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, color: kTextDark)),
-                      subtitle: const Text('Update your account password',
-                          style: TextStyle(fontSize: 12, color: kTextMid)),
-                      trailing:
-                          const Icon(Icons.chevron_right_rounded, color: kTextLight),
+                      title: const Text(
+                        'Change Password',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: kTextDark,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Update your account password',
+                        style: TextStyle(fontSize: 12, color: kTextMid),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: kTextLight,
+                      ),
                     ),
                   ],
                 ),
@@ -749,24 +811,25 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: kTextMid)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: kTextMid,
+          ),
+        ),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           enabled: enabled,
           keyboardType: keyboardType,
-          style:
-              const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: kPrimary, size: 20),
             filled: true,
-            fillColor:
-                enabled ? kBg : const Color(0xFFF5F5F5),
+            fillColor: enabled ? kBg : const Color(0xFFF5F5F5),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
@@ -784,25 +847,15 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
       ],
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Views/Worker/worker_profile_page.dart
 
@@ -891,7 +944,7 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
         _photoUrl = rawPhotoUrl != null && rawPhotoUrl.isNotEmpty ? _getFullImageUrl(rawPhotoUrl) : null;
       });
     } catch (e) {
-      print('Error loading worker data: $e');
+      AppLogger.error('Error loading worker data: $e');
     }
   }
 

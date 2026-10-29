@@ -2,13 +2,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sporta/Core/Constants/api_constants.dart';
-import 'package:flutter/foundation.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class AIChatService {
   final String? authToken;
-  
+
   AIChatService({this.authToken});
-  
+
   Map<String, String> get _headers {
     final headers = {'Content-Type': 'application/json'};
     if (authToken != null && authToken!.isNotEmpty) {
@@ -26,21 +26,15 @@ class AIChatService {
     try {
       final body = {
         'question': message,
-        if (sessionId != null) 'sessionId': sessionId,
-        if (conversationHistory != null) 'conversationHistory': conversationHistory,
+        'sessionId': ?sessionId,
+        'conversationHistory': ?conversationHistory,
       };
-
-      debugPrint('[AIChat] Sending message: $message');
-      debugPrint('[AIChat] Session ID: $sessionId');
 
       final response = await http.post(
         Uri.parse(ApiConstants.aiChat),
         headers: _headers,
         body: json.encode(body),
       );
-
-      debugPrint('[AIChat] Response status: ${response.statusCode}');
-      debugPrint('[AIChat] Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -49,10 +43,12 @@ class AIChatService {
         throw Exception('AI service is busy. Please try again in a moment.');
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? 'Failed to get AI response');
+        throw Exception(
+          error['error']?['message'] ?? 'Failed to get AI response',
+        );
       }
     } catch (e) {
-      debugPrint('[AIChat] Error: $e');
+      AppLogger.error('[AIChat] Error: $e');
       throw Exception('Failed to communicate with AI assistant: $e');
     }
   }
@@ -72,7 +68,7 @@ class AIChatService {
       }
       return [];
     } catch (e) {
-      debugPrint('[AIChat] Get history error: $e');
+      AppLogger.error('[AIChat] Get history error: $e');
       return [];
     }
   }
@@ -85,7 +81,7 @@ class AIChatService {
         headers: _headers,
       );
     } catch (e) {
-      debugPrint('[AIChat] Clear history error: $e');
+      AppLogger.error('[AIChat] Clear history error: $e');
     }
   }
 }
@@ -144,8 +140,8 @@ class AIConversationEntry {
       question: json['question'] ?? '',
       answer: json['answer'] ?? '',
       contextType: json['contextType'],
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt']) 
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
     );
   }

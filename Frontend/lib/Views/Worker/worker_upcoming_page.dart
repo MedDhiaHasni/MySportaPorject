@@ -7,6 +7,7 @@ import 'package:sporta/Core/Constants/api_constants.dart';
 import 'package:sporta/Services/worker_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class WorkerUpcomingPage extends StatefulWidget {
   final String? workerToken;
@@ -22,11 +23,11 @@ class _WorkerUpcomingPageState extends State<WorkerUpcomingPage> {
   String? _error;
   List<dynamic> _reservations = [];
   List<dynamic> _filteredReservations = [];
-  
+
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  
+
   late Map<DateTime, List<dynamic>> _reservationsByDay;
 
   String _getFullImageUrl(String? url) {
@@ -69,43 +70,44 @@ class _WorkerUpcomingPageState extends State<WorkerUpcomingPage> {
     }
   }
 
- Future<void> _loadReservations() async {
-  setState(() => _isLoading = true);
+  Future<void> _loadReservations() async {
+    setState(() => _isLoading = true);
 
-  try {
-    final reservations =
-        await WorkerService.getUpcomingReservations(_token);
+    try {
+      final reservations = await WorkerService.getUpcomingReservations(_token);
 
-    setState(() {
-      _reservations = reservations;
-      _filterReservationsByDay();
-      _filterReservationsBySelectedDay();
-      _isLoading = false;
-    });
-  } catch (e) {
-    setState(() {
-      _error = e.toString();
-      _isLoading = false;
-    });
+      setState(() {
+        _reservations = reservations;
+        _filterReservationsByDay();
+        _filterReservationsBySelectedDay();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
-}
 
   void _filterReservationsByDay() {
     _reservationsByDay = {};
-    
+
     for (final reservation in _reservations) {
-      final dateStr = reservation['booking_date_play']?.toString().split(' ')[0];
+      final dateStr = reservation['booking_date_play']?.toString().split(
+        ' ',
+      )[0];
       if (dateStr != null) {
         try {
           final date = DateTime.parse(dateStr);
           final normalizedDate = DateTime(date.year, date.month, date.day);
-          
+
           if (!_reservationsByDay.containsKey(normalizedDate)) {
             _reservationsByDay[normalizedDate] = [];
           }
           _reservationsByDay[normalizedDate]!.add(reservation);
         } catch (e) {
-          print('Error parsing date: $dateStr');
+          AppLogger.error('Error parsing date: $dateStr');
         }
       }
     }
@@ -113,7 +115,11 @@ class _WorkerUpcomingPageState extends State<WorkerUpcomingPage> {
 
   void _filterReservationsBySelectedDay() {
     if (_selectedDay == null) return;
-    final normalizedDate = DateTime(_selectedDay!.year, _selectedDay!.month, _selectedDay!.day);
+    final normalizedDate = DateTime(
+      _selectedDay!.year,
+      _selectedDay!.month,
+      _selectedDay!.day,
+    );
     setState(() {
       _filteredReservations = _reservationsByDay[normalizedDate] ?? [];
     });
@@ -129,18 +135,23 @@ class _WorkerUpcomingPageState extends State<WorkerUpcomingPage> {
 
   String _getCourtImageUrl(Map<String, dynamic> reservation) {
     final court = reservation['court'] ?? {};
-    
+
     // Priority order for image URL
-    if (court['court_img_url'] != null && court['court_img_url'].toString().isNotEmpty) {
+    if (court['court_img_url'] != null &&
+        court['court_img_url'].toString().isNotEmpty) {
       return _getFullImageUrl(court['court_img_url'].toString());
     }
     if (court['court_img'] != null && court['court_img']['url'] != null) {
       return _getFullImageUrl(court['court_img']['url'].toString());
     }
-    if (court['photos_urls'] != null && court['photos_urls'] is List && court['photos_urls'].isNotEmpty) {
+    if (court['photos_urls'] != null &&
+        court['photos_urls'] is List &&
+        court['photos_urls'].isNotEmpty) {
       return _getFullImageUrl(court['photos_urls'][0].toString());
     }
-    if (court['photos'] != null && court['photos'] is List && court['photos'].isNotEmpty) {
+    if (court['photos'] != null &&
+        court['photos'] is List &&
+        court['photos'].isNotEmpty) {
       final firstPhoto = court['photos'][0];
       if (firstPhoto is Map && firstPhoto['url'] != null) {
         return _getFullImageUrl(firstPhoto['url'].toString());
@@ -154,7 +165,7 @@ class _WorkerUpcomingPageState extends State<WorkerUpcomingPage> {
     final timeSlot = reservation['time_slot'] ?? {};
     final startTime = timeSlot['startTime']?.toString() ?? '--:--';
     final endTime = timeSlot['endTime']?.toString() ?? '--:--';
-    
+
     if (startTime != '--:--' && endTime != '--:--') {
       // Format time to remove seconds if present
       String formattedStart = startTime;
@@ -200,119 +211,129 @@ class _WorkerUpcomingPageState extends State<WorkerUpcomingPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: kPrimary))
           : _error != null
-              ? _buildErrorWidget()
-              : Column(
-                  children: [
-                    // Calendar
-                    Container(
-                      color: Colors.white,
-                      child: TableCalendar(
-                        firstDay: DateTime.now(),
-                        lastDay: DateTime.now().add(const Duration(days: 30)),
-                        focusedDay: _focusedDay,
-                        calendarFormat: _calendarFormat,
-                        onFormatChanged: (format) {
-                          setState(() => _calendarFormat = format);
-                        },
-                        onDaySelected: _onDaySelected,
-                        selectedDayPredicate: (day) {
-                          return _selectedDay != null &&
-                              day.year == _selectedDay!.year &&
-                              day.month == _selectedDay!.month &&
-                              day.day == _selectedDay!.day;
-                        },
-                        eventLoader: (day) {
-                          final normalizedDay = DateTime(day.year, day.month, day.day);
-                          return _reservationsByDay[normalizedDay] ?? [];
-                        },
-                        calendarStyle: const CalendarStyle(
-                          selectedDecoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                          todayDecoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                          markerDecoration: BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        headerStyle: const HeaderStyle(
-                          formatButtonVisible: true,
-                          titleCentered: true,
-                          formatButtonDecoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                          formatButtonTextStyle: TextStyle(color: Colors.white),
-                        ),
+          ? _buildErrorWidget()
+          : Column(
+              children: [
+                // Calendar
+                Container(
+                  color: Colors.white,
+                  child: TableCalendar(
+                    firstDay: DateTime.now(),
+                    lastDay: DateTime.now().add(const Duration(days: 30)),
+                    focusedDay: _focusedDay,
+                    calendarFormat: _calendarFormat,
+                    onFormatChanged: (format) {
+                      setState(() => _calendarFormat = format);
+                    },
+                    onDaySelected: _onDaySelected,
+                    selectedDayPredicate: (day) {
+                      return _selectedDay != null &&
+                          day.year == _selectedDay!.year &&
+                          day.month == _selectedDay!.month &&
+                          day.day == _selectedDay!.day;
+                    },
+                    eventLoader: (day) {
+                      final normalizedDay = DateTime(
+                        day.year,
+                        day.month,
+                        day.day,
+                      );
+                      return _reservationsByDay[normalizedDay] ?? [];
+                    },
+                    calendarStyle: const CalendarStyle(
+                      selectedDecoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                      todayDecoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                      markerDecoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
                       ),
                     ),
-                    
-                    // Selected Day Header
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _selectedDay != null
-                                ? DateFormat('EEEE, MMM d', 'en_US').format(_selectedDay!)
-                                : 'Select a day',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: kTextDark,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: kPrimary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '${_filteredReservations.length} bookings',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: kPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: true,
+                      titleCentered: true,
+                      formatButtonDecoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
                       ),
+                      formatButtonTextStyle: TextStyle(color: Colors.white),
                     ),
-                    
-                    // Reservations List
-                    Expanded(
-                      child: _filteredReservations.isEmpty
-                          ? _buildEmptyDayWidget()
-                          : RefreshIndicator(
-                              onRefresh: _loadReservations,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: _filteredReservations.length,
-                                itemBuilder: (context, index) {
-                                  final reservation = _filteredReservations[index];
-                                  return _UpcomingReservationCard(
-                                    reservation: reservation,
-                                    token: _token,
-                                    getCourtImageUrl: _getCourtImageUrl,
-                                    getFullImageUrl: _getFullImageUrl,
-                                    getTimeString: _getTimeString,
-                                    onStatusChanged: () {
-                                      _loadReservations();
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                    ),
-                  ],
+                  ),
                 ),
+
+                // Selected Day Header
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _selectedDay != null
+                            ? DateFormat(
+                                'EEEE, MMM d',
+                                'en_US',
+                              ).format(_selectedDay!)
+                            : 'Select a day',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: kTextDark,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: kPrimary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${_filteredReservations.length} bookings',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: kPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Reservations List
+                Expanded(
+                  child: _filteredReservations.isEmpty
+                      ? _buildEmptyDayWidget()
+                      : RefreshIndicator(
+                          onRefresh: _loadReservations,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredReservations.length,
+                            itemBuilder: (context, index) {
+                              final reservation = _filteredReservations[index];
+                              return _UpcomingReservationCard(
+                                reservation: reservation,
+                                token: _token,
+                                getCourtImageUrl: _getCourtImageUrl,
+                                getFullImageUrl: _getFullImageUrl,
+                                getTimeString: _getTimeString,
+                                onStatusChanged: () {
+                                  _loadReservations();
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -352,11 +373,7 @@ class _WorkerUpcomingPageState extends State<WorkerUpcomingPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.event_busy_rounded,
-            size: 64,
-            color: Colors.grey[300],
-          ),
+          Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'No reservations on this day',
@@ -369,10 +386,7 @@ class _WorkerUpcomingPageState extends State<WorkerUpcomingPage> {
           const SizedBox(height: 8),
           Text(
             'Select another day to view reservations',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -401,7 +415,8 @@ class _UpcomingReservationCard extends StatefulWidget {
   });
 
   @override
-  State<_UpcomingReservationCard> createState() => _UpcomingReservationCardState();
+  State<_UpcomingReservationCard> createState() =>
+      _UpcomingReservationCardState();
 }
 
 class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
@@ -409,15 +424,15 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
 
   Future<void> _confirmReservation() async {
     setState(() => _isProcessing = true);
-    
+
     try {
       await WorkerService.confirmReservation(
         token: widget.token,
         reservationId: widget.reservation['id'].toString(),
       );
-      
+
       widget.onStatusChanged();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -451,7 +466,9 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Cancel Reservation'),
-        content: const Text('Are you sure you want to cancel this reservation?'),
+        content: const Text(
+          'Are you sure you want to cancel this reservation?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -465,19 +482,19 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
         ],
       ),
     );
-    
+
     if (confirm != true) return;
-    
+
     setState(() => _isProcessing = true);
-    
+
     try {
       await WorkerService.cancelReservation(
         token: widget.token,
         reservationId: widget.reservation['id'].toString(),
       );
-      
+
       widget.onStatusChanged();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -521,7 +538,7 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
 
     Color statusColor;
     String statusText;
-    
+
     switch (status) {
       case 'pending':
         statusColor = Colors.orange;
@@ -545,7 +562,9 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
     }
 
     // Determine if it's today
-    final bookingDate = reservation['booking_date_play']?.toString().split(' ')[0];
+    final bookingDate = reservation['booking_date_play']?.toString().split(
+      ' ',
+    )[0];
     final isToday = bookingDate == DateTime.now().toString().split(' ')[0];
     final primaryColor = const Color(0xFF005D5E);
 
@@ -569,14 +588,16 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
           Stack(
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
                 child: courtImageUrl.isNotEmpty
                     ? Image.network(
                         courtImageUrl,
                         height: 130,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                        errorBuilder: (_, _, _) => _buildImagePlaceholder(),
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return Container(
@@ -601,7 +622,10 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                 top: 12,
                 left: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(20),
@@ -609,7 +633,11 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.schedule_rounded, size: 12, color: Colors.white),
+                      const Icon(
+                        Icons.schedule_rounded,
+                        size: 12,
+                        color: Colors.white,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         timeString,
@@ -628,7 +656,10 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                 top: 12,
                 right: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor,
                     borderRadius: BorderRadius.circular(20),
@@ -654,7 +685,10 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                   bottom: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: primaryColor,
                       borderRadius: BorderRadius.circular(20),
@@ -671,7 +705,7 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                 ),
             ],
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -689,7 +723,7 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                
+
                 // Player Info
                 Row(
                   children: [
@@ -700,7 +734,11 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                         color: primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.person_outline, size: 16, color: Color(0xFF005D5E)),
+                      child: const Icon(
+                        Icons.person_outline,
+                        size: 16,
+                        color: Color(0xFF005D5E),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -728,14 +766,17 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 10),
-                
+
                 // Price and Payment
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: primaryColor.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(8),
@@ -751,13 +792,18 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        paymentMethod == 'pay_now' ? 'Paid Online' : 'Pay at Venue',
+                        paymentMethod == 'pay_now'
+                            ? 'Paid Online'
+                            : 'Pay at Venue',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -767,12 +813,12 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
                     ),
                   ],
                 ),
-                
+
                 if (paymentMethod == 'pay_at_venue' && status == 'pending') ...[
                   const SizedBox(height: 12),
                   const Divider(height: 1),
                   const SizedBox(height: 12),
-                  
+
                   // Action Buttons for Pending Reservations
                   Row(
                     children: [
@@ -832,11 +878,7 @@ class _UpcomingReservationCardState extends State<_UpcomingReservationCard> {
       width: double.infinity,
       color: primaryColor.withOpacity(0.08),
       child: const Center(
-        child: Icon(
-          Icons.stadium_rounded,
-          size: 40,
-          color: Color(0xFF005D5E),
-        ),
+        child: Icon(Icons.stadium_rounded, size: 40, color: Color(0xFF005D5E)),
       ),
     );
   }

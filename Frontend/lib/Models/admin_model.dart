@@ -56,10 +56,10 @@ class AdminModel {
 
   // Check if user is admin
   bool get isAdmin => userRole == 'admin';
-  
+
   // Check if user is manager
   bool get isManager => userRole == 'manager';
-  
+
   // Check if user is player
   bool get isPlayer => userRole == 'player';
 }

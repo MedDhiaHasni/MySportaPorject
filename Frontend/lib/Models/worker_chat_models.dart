@@ -39,7 +39,7 @@ class ChatConversation {
     return ChatConversation(
       id: json['id']?.toString() ?? '',
       reservationId: json['reservationId']?.toString() ?? '',
-      participants: json['participants'] is List 
+      participants: json['participants'] is List
           ? (json['participants'] as List).map((e) => e.toString()).toList()
           : [],
       participantIds: json['participantIds'] is Map
@@ -52,10 +52,10 @@ class ChatConversation {
       managerName: json['managerName']?.toString(),
       workerName: json['workerName']?.toString(),
       lastMessage: json['lastMessage']?.toString(),
-      lastMessageAt: json['lastMessageAt'] != null 
+      lastMessageAt: json['lastMessageAt'] != null
           ? DateTime.tryParse(json['lastMessageAt'].toString())
           : null,
-      createdAt: json['createdAt'] != null 
+      createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
       type: json['type']?.toString() ?? 'player_manager',
@@ -123,7 +123,7 @@ class ChatMessage {
       senderId: json['senderId']?.toString() ?? '',
       senderName: json['senderName']?.toString() ?? '',
       senderRole: json['senderRole']?.toString() ?? '',
-      createdAt: json['createdAt'] != null 
+      createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       read: json['read'] ?? false,

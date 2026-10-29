@@ -135,42 +135,43 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: kPrimary))
             : _error != null
-                ? _buildErrorWidget()
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header with tappable avatar
-                        _buildHeader(),
-                        const SizedBox(height: 24),
+            ? _buildErrorWidget()
+            : SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header with tappable avatar
+                    _buildHeader(),
+                    const SizedBox(height: 24),
 
-                        // Stats Cards Row
-                        _buildStatsRow(),
-                        const SizedBox(height: 24),
+                    // Stats Cards Row
+                    _buildStatsRow(),
+                    const SizedBox(height: 24),
 
-                        // Quick Actions
-                        _buildQuickActions(),
-                        const SizedBox(height: 24),
+                    // Quick Actions
+                    _buildQuickActions(),
+                    const SizedBox(height: 24),
 
-                        // Today's Schedule
-                        _buildTodaySchedule(),
-                        const SizedBox(height: 24),
+                    // Today's Schedule
+                    _buildTodaySchedule(),
+                    const SizedBox(height: 24),
 
-                        // Pending Reservations
-                        _buildPendingReservations(),
-                      ],
-                    ),
-                  ),
+                    // Pending Reservations
+                    _buildPendingReservations(),
+                  ],
+                ),
+              ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    final workerName = _workerProfile?['nom'] ?? 
-                       _workerProfile?['worker']?['username'] ?? 
-                       'Worker';
-    
+    final workerName =
+        _workerProfile?['nom'] ??
+        _workerProfile?['worker']?['username'] ??
+        'Worker';
+
     // Get photo URL - check multiple possible locations
     String? photoUrl = _workerProfile?['photo_url'];
     if (photoUrl == null || photoUrl.isEmpty) {
@@ -179,7 +180,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
     if (photoUrl != null && photoUrl.isNotEmpty) {
       photoUrl = _getFullImageUrl(photoUrl);
     }
-    
+
     return Row(
       children: [
         GestureDetector(
@@ -211,10 +212,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-              border: Border.all(
-                color: Colors.white,
-                width: 2,
-              ),
+              border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
                   color: kPrimary.withOpacity(0.3),
@@ -230,9 +228,11 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
                       fit: BoxFit.cover,
                       width: 50,
                       height: 50,
-                      errorBuilder: (_, __, ___) => Center(
+                      errorBuilder: (_, _, _) => Center(
                         child: Text(
-                          workerName.isNotEmpty ? workerName[0].toUpperCase() : 'W',
+                          workerName.isNotEmpty
+                              ? workerName[0].toUpperCase()
+                              : 'W',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
@@ -256,7 +256,9 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
                     )
                   : Center(
                       child: Text(
-                        workerName.isNotEmpty ? workerName[0].toUpperCase() : 'W',
+                        workerName.isNotEmpty
+                            ? workerName[0].toUpperCase()
+                            : 'W',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -274,10 +276,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
             children: [
               Text(
                 _getGreeting(),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
               const SizedBox(height: 2),
               Text(
@@ -306,11 +305,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.work_outline,
-            color: kPrimary,
-            size: 22,
-          ),
+          child: const Icon(Icons.work_outline, color: kPrimary, size: 22),
         ),
       ],
     );
@@ -426,7 +421,8 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => WorkerReservationsPage(workerToken: _token),
+                        builder: (_) =>
+                            WorkerReservationsPage(workerToken: _token),
                       ),
                     );
                   },
@@ -512,7 +508,11 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.event_busy_rounded, size: 48, color: Colors.grey),
+                    Icon(
+                      Icons.event_busy_rounded,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
                     SizedBox(height: 8),
                     Text(
                       'No reservations today',
@@ -527,7 +527,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: todayReservations.take(3).length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (_, i) {
                 final res = todayReservations[i];
                 return _ReservationTile(
@@ -574,7 +574,10 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -595,7 +598,7 @@ class _WorkerHomePageState extends State<WorkerHomePage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _pendingReservations.take(3).length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
               final res = _pendingReservations[i];
               return _PendingReservationTile(
@@ -785,10 +788,7 @@ class _ReservationTile extends StatelessWidget {
   final Map<String, dynamic> reservation;
   final VoidCallback onTap;
 
-  const _ReservationTile({
-    required this.reservation,
-    required this.onTap,
-  });
+  const _ReservationTile({required this.reservation, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -796,17 +796,17 @@ class _ReservationTile extends StatelessWidget {
     final player = reservation['player'] ?? {};
     final playerUser = player['player'] ?? {};
     final playerName = playerUser['username'] ?? player['nom'] ?? 'Player';
-    
+
     // Get time from time_slot relation
     final timeSlot = reservation['time_slot'] ?? {};
     final startTime = timeSlot['startTime']?.toString() ?? '--:--';
     final endTime = timeSlot['endTime']?.toString() ?? '--:--';
-    
+
     final status = reservation['booking_status'];
 
     Color statusColor = Colors.orange;
     String statusText = 'Pending';
-    
+
     if (status == 'confirmed') {
       statusColor = kGreen;
       statusText = 'Confirmed';
@@ -853,10 +853,7 @@ class _ReservationTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$playerName • $startTime - $endTime',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: kTextMid,
-                    ),
+                    style: const TextStyle(fontSize: 11, color: kTextMid),
                   ),
                 ],
               ),
@@ -901,7 +898,7 @@ class _PendingReservationTile extends StatelessWidget {
     final player = reservation['player'] ?? {};
     final playerUser = player['player'] ?? {};
     final playerName = playerUser['username'] ?? player['nom'] ?? 'Player';
-    
+
     // Get time from time_slot relation
     final timeSlot = reservation['time_slot'] ?? {};
     final startTime = timeSlot['startTime']?.toString() ?? '--:--';
@@ -941,10 +938,7 @@ class _PendingReservationTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '$playerName • $startTime - $endTime',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: kTextMid,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: kTextMid),
                 ),
               ],
             ),

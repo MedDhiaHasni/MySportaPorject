@@ -96,7 +96,7 @@ class Tournaments extends StatefulWidget {
 
 class _TournamentsState extends State<Tournaments> {
   // Sample tournament data - using same style as dashboard
-  List<Tournament> _tournaments = [
+  final List<Tournament> _tournaments = [
     Tournament(
       id: 't1',
       name: 'Summer Padel Cup',
@@ -432,7 +432,7 @@ class _TournamentPosterCard extends StatelessWidget {
               child: Image.network(
                 t.posterUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Color.lerp(sc, Colors.black, 0.5)!, sc],
@@ -884,7 +884,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                               child: Image.network(
                                 url,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorBuilder: (_, _, _) => Container(
                                   color: kPrimary.withOpacity(0.1),
                                   child: const Icon(
                                     Icons.broken_image,
@@ -1538,7 +1538,7 @@ class _ManageTournamentPageState extends State<ManageTournamentPage>
     return Scaffold(
       backgroundColor: kBg,
       body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
+        headerSliverBuilder: (_, _) => [
           SliverToBoxAdapter(child: _buildHero()),
         ],
         body: Column(
@@ -1634,7 +1634,7 @@ class _ManageTournamentPageState extends State<ManageTournamentPage>
           child: Image.network(
             t.posterUrl,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            errorBuilder: (_, _, _) => Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color.lerp(sc, Colors.black, 0.5)!, sc],
@@ -2500,7 +2500,7 @@ class _TeamsTab extends StatelessWidget {
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(16, 16, 16, navH + 16),
       itemCount: teams.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (_, i) {
         final team = teams[i];
         return Container(

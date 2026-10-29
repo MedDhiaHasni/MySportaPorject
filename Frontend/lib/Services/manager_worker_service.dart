@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sporta/Core/Constants/api_constants.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class ManagerWorkerService {
   // ─────────────────────────────────────────────────────────────────────────
@@ -20,18 +21,19 @@ class ManagerWorkerService {
         },
       );
 
-      print('Get my workers response status: ${response.statusCode}');
-      print('Get my workers response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['workers'] ?? [];
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get workers');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get workers',
+        );
       }
     } catch (e) {
-      print('Error in getMyWorkers: $e');
+      AppLogger.error('Error in getMyWorkers: $e');
       throw Exception(e.toString());
     }
   }
@@ -50,18 +52,19 @@ class ManagerWorkerService {
         },
       );
 
-      print('Get worker by id response status: ${response.statusCode}');
-      print('Get worker by id response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['worker'] ?? data;
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get worker details');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get worker details',
+        );
       }
     } catch (e) {
-      print('Error in getWorkerById: $e');
+      AppLogger.error('Error in getWorkerById: $e');
       throw Exception(e.toString());
     }
   }
@@ -83,22 +86,21 @@ class ManagerWorkerService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'workerId': workerId,
-        }),
+        body: json.encode({'workerId': workerId}),
       );
-
-      print('Assign worker to single court response status: ${response.statusCode}');
-      print('Assign worker to single court response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to assign worker to court');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to assign worker to court',
+        );
       }
     } catch (e) {
-      print('Error in assignWorkerToSingleCourt: $e');
+      AppLogger.error('Error in assignWorkerToSingleCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -117,17 +119,18 @@ class ManagerWorkerService {
         },
       );
 
-      print('Remove worker from single court response status: ${response.statusCode}');
-      print('Remove worker from single court response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to remove worker from court');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to remove worker from court',
+        );
       }
     } catch (e) {
-      print('Error in removeWorkerFromSingleCourt: $e');
+      AppLogger.error('Error in removeWorkerFromSingleCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -141,7 +144,7 @@ class ManagerWorkerService {
     try {
       final results = <String, dynamic>{};
       bool allSuccess = true;
-      
+
       for (final courtId in courtIds) {
         try {
           final result = await assignWorkerToSingleCourt(
@@ -155,13 +158,10 @@ class ManagerWorkerService {
           results[courtId] = {'error': e.toString()};
         }
       }
-      
-      return {
-        'success': allSuccess,
-        'results': results,
-      };
+
+      return {'success': allSuccess, 'results': results};
     } catch (e) {
-      print('Error in assignWorkerToCourts: $e');
+      AppLogger.error('Error in assignWorkerToCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -174,7 +174,7 @@ class ManagerWorkerService {
     try {
       final results = <String, dynamic>{};
       bool allSuccess = true;
-      
+
       for (final courtId in courtIds) {
         try {
           final result = await removeWorkerFromSingleCourt(
@@ -187,13 +187,10 @@ class ManagerWorkerService {
           results[courtId] = {'error': e.toString()};
         }
       }
-      
-      return {
-        'success': allSuccess,
-        'results': results,
-      };
+
+      return {'success': allSuccess, 'results': results};
     } catch (e) {
-      print('Error in removeWorkerFromCourts: $e');
+      AppLogger.error('Error in removeWorkerFromCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -215,22 +212,21 @@ class ManagerWorkerService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'courtIds': courtIds,
-        }),
+        body: json.encode({'courtIds': courtIds}),
       );
-
-      print('Assign worker to courts legacy response status: ${response.statusCode}');
-      print('Assign worker to courts legacy response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to assign worker to courts');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to assign worker to courts',
+        );
       }
     } catch (e) {
-      print('Error in assignWorkerToCourtsLegacy: $e');
+      AppLogger.error('Error in assignWorkerToCourtsLegacy: $e');
       throw Exception(e.toString());
     }
   }
@@ -250,17 +246,18 @@ class ManagerWorkerService {
         },
       );
 
-      print('Remove worker from court legacy response status: ${response.statusCode}');
-      print('Remove worker from court legacy response body: ${response.body}');
-
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to remove worker from court');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to remove worker from court',
+        );
       }
     } catch (e) {
-      print('Error in removeWorkerFromCourtLegacy: $e');
+      AppLogger.error('Error in removeWorkerFromCourtLegacy: $e');
       throw Exception(e.toString());
     }
   }
@@ -274,7 +271,7 @@ class ManagerWorkerService {
       final worker = await getWorkerById(token: token, workerId: workerId);
       return worker['courts'] ?? [];
     } catch (e) {
-      print('Error in getWorkerCourts: $e');
+      AppLogger.error('Error in getWorkerCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -290,24 +287,28 @@ class ManagerWorkerService {
         },
       );
 
-      print('Get unassigned courts response status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final List<dynamic> allCourts = data is List ? data : (data['data'] ?? []);
-        
+        final List<dynamic> allCourts = data is List
+            ? data
+            : (data['data'] ?? []);
+
         // Filter courts with no worker assigned
         final unassignedCourts = allCourts.where((court) {
           return court['worker'] == null;
         }).toList();
-        
+
         return unassignedCourts;
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get courts');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get courts',
+        );
       }
     } catch (e) {
-      print('Error in getUnassignedCourts: $e');
+      AppLogger.error('Error in getUnassignedCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -326,24 +327,29 @@ class ManagerWorkerService {
         },
       );
 
-      print('Get assigned courts for worker response status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final List<dynamic> allCourts = data is List ? data : (data['data'] ?? []);
-        
+        final List<dynamic> allCourts = data is List
+            ? data
+            : (data['data'] ?? []);
+
         // Filter courts assigned to this worker
         final assignedCourts = allCourts.where((court) {
-          return court['worker'] != null && court['worker']['id'].toString() == workerId;
+          return court['worker'] != null &&
+              court['worker']['id'].toString() == workerId;
         }).toList();
-        
+
         return assignedCourts;
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get assigned courts');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get assigned courts',
+        );
       }
     } catch (e) {
-      print('Error in getAssignedCourtsForWorker: $e');
+      AppLogger.error('Error in getAssignedCourtsForWorker: $e');
       throw Exception(e.toString());
     }
   }
@@ -355,26 +361,23 @@ class ManagerWorkerService {
   }) async {
     try {
       final results = <String, dynamic>{};
-      
+
       for (final entry in assignments.entries) {
         final workerId = entry.key;
         final courtIds = entry.value;
-        
+
         final result = await assignWorkerToCourts(
           token: token,
           workerId: workerId,
           courtIds: courtIds,
         );
-        
+
         results[workerId] = result;
       }
-      
-      return {
-        'success': true,
-        'results': results,
-      };
+
+      return {'success': true, 'results': results};
     } catch (e) {
-      print('Error in bulkAssignWorkers: $e');
+      AppLogger.error('Error in bulkAssignWorkers: $e');
       throw Exception(e.toString());
     }
   }
@@ -387,7 +390,7 @@ class ManagerWorkerService {
     try {
       final worker = await getWorkerById(token: token, workerId: workerId);
       final courts = worker['courts'] ?? [];
-      
+
       // Get all reservations for worker's courts
       final response = await http.get(
         Uri.parse(ApiConstants.reservations),
@@ -396,32 +399,38 @@ class ManagerWorkerService {
           'Authorization': 'Bearer $token',
         },
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List<dynamic> allReservations = data['data'] ?? [];
-        
+
         final courtIds = courts.map<int>((c) => c['id'] as int).toList();
-        
+
         // Count reservations for worker's courts
         final pendingReservations = allReservations.where((r) {
-          return courtIds.contains(r['court']?['id']) && r['booking_status'] == 'pending';
+          return courtIds.contains(r['court']?['id']) &&
+              r['booking_status'] == 'pending';
         }).length;
-        
+
         final confirmedReservations = allReservations.where((r) {
-          return courtIds.contains(r['court']?['id']) && r['booking_status'] == 'confirmed';
+          return courtIds.contains(r['court']?['id']) &&
+              r['booking_status'] == 'confirmed';
         }).length;
-        
+
         final completedReservations = allReservations.where((r) {
-          return courtIds.contains(r['court']?['id']) && r['booking_status'] == 'completed';
+          return courtIds.contains(r['court']?['id']) &&
+              r['booking_status'] == 'completed';
         }).length;
-        
+
         return {
           'totalCourts': courts.length,
           'pendingReservations': pendingReservations,
           'confirmedReservations': confirmedReservations,
           'completedReservations': completedReservations,
-          'totalReservations': pendingReservations + confirmedReservations + completedReservations,
+          'totalReservations':
+              pendingReservations +
+              confirmedReservations +
+              completedReservations,
         };
       } else {
         return {
@@ -433,23 +442,11 @@ class ManagerWorkerService {
         };
       }
     } catch (e) {
-      print('Error in getWorkerStatistics: $e');
+      AppLogger.error('Error in getWorkerStatistics: $e');
       throw Exception(e.toString());
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Core/Services/manager_worker_service.dart
 
@@ -473,8 +470,6 @@ class ManagerWorkerService {
         },
       );
 
-      print('Get my workers response status: ${response.statusCode}');
-      print('Get my workers response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -484,7 +479,7 @@ class ManagerWorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get workers');
       }
     } catch (e) {
-      print('Error in getMyWorkers: $e');
+      AppLogger.error('Error in getMyWorkers: $e');
       throw Exception(e.toString());
     }
   }
@@ -503,8 +498,6 @@ class ManagerWorkerService {
         },
       );
 
-      print('Get worker by id response status: ${response.statusCode}');
-      print('Get worker by id response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -514,7 +507,7 @@ class ManagerWorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get worker details');
       }
     } catch (e) {
-      print('Error in getWorkerById: $e');
+      AppLogger.error('Error in getWorkerById: $e');
       throw Exception(e.toString());
     }
   }
@@ -537,8 +530,6 @@ class ManagerWorkerService {
         }),
       );
 
-      print('Assign worker to courts response status: ${response.statusCode}');
-      print('Assign worker to courts response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -547,7 +538,7 @@ class ManagerWorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to assign worker to courts');
       }
     } catch (e) {
-      print('Error in assignWorkerToCourts: $e');
+      AppLogger.error('Error in assignWorkerToCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -567,8 +558,6 @@ class ManagerWorkerService {
         },
       );
 
-      print('Remove worker from court response status: ${response.statusCode}');
-      print('Remove worker from court response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -577,7 +566,7 @@ class ManagerWorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to remove worker from court');
       }
     } catch (e) {
-      print('Error in removeWorkerFromCourt: $e');
+      AppLogger.error('Error in removeWorkerFromCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -591,7 +580,7 @@ class ManagerWorkerService {
       final worker = await getWorkerById(token: token, workerId: workerId);
       return worker['courts'] ?? [];
     } catch (e) {
-      print('Error in getWorkerCourts: $e');
+      AppLogger.error('Error in getWorkerCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -607,7 +596,6 @@ class ManagerWorkerService {
         },
       );
 
-      print('Get unassigned courts response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -624,7 +612,7 @@ class ManagerWorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get courts');
       }
     } catch (e) {
-      print('Error in getUnassignedCourts: $e');
+      AppLogger.error('Error in getUnassignedCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -643,7 +631,6 @@ class ManagerWorkerService {
         },
       );
 
-      print('Get assigned courts for worker response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -660,7 +647,7 @@ class ManagerWorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get assigned courts');
       }
     } catch (e) {
-      print('Error in getAssignedCourtsForWorker: $e');
+      AppLogger.error('Error in getAssignedCourtsForWorker: $e');
       throw Exception(e.toString());
     }
   }
@@ -691,7 +678,7 @@ class ManagerWorkerService {
         'results': results,
       };
     } catch (e) {
-      print('Error in bulkAssignWorkers: $e');
+      AppLogger.error('Error in bulkAssignWorkers: $e');
       throw Exception(e.toString());
     }
   }
@@ -750,7 +737,7 @@ class ManagerWorkerService {
         };
       }
     } catch (e) {
-      print('Error in getWorkerStatistics: $e');
+      AppLogger.error('Error in getWorkerStatistics: $e');
       throw Exception(e.toString());
     }
   }

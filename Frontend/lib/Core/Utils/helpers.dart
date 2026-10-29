@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 
-class AppHelpers { 
+class AppHelpers {
   AppHelpers._();
 
   /// Shows a floating snack bar
-  static void showSnack(BuildContext context, String message, {bool error = false}) { // MATHALAN SUCCES MESSAG WALA ERROR MESSAGE  
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: error ? const Color(0xFFDC2626) : const Color(0xFF005D5E),
-    ));
+  static void showSnack(
+    BuildContext context,
+    String message, {
+    bool error = false,
+  }) {
+    // MATHALAN SUCCES MESSAG WALA ERROR MESSAGE
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: error
+            ? const Color(0xFFDC2626)
+            : const Color(0xFF005D5E),
+      ),
+    );
   }
 
   /// Pushes a page with a standard material route
@@ -33,5 +42,6 @@ class AppHelpers {
   }
 
   /// Formats price with DT suffix
-  static String price(double amount) => '${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 1)} DT';
+  static String price(double amount) =>
+      '${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 1)} DT';
 }

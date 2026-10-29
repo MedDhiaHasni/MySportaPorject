@@ -6,17 +6,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Services/admin_auth_service.dart';
 import 'package:sporta/Views/Admin/admindashboard.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-// Design Tokens 
-const _t900  = Color(0xFF001A1B);
-const _t700  = Color(0xFF002B2C);
-const _t500  = Color(0xFF006B6C);
-const _t400  = Color(0xFF009999);
-const _t200  = Color(0xFF4DD9D9);
+// Design Tokens
+const _t900 = Color(0xFF001A1B);
+const _t700 = Color(0xFF002B2C);
+const _t500 = Color(0xFF006B6C);
+const _t400 = Color(0xFF009999);
+const _t200 = Color(0xFF4DD9D9);
 const _tGlow = Color(0xFF00F0F0);
 
 class AdminLoginPage extends StatefulWidget {
@@ -27,26 +26,35 @@ class AdminLoginPage extends StatefulWidget {
 
 class _AdminLoginPageState extends State<AdminLoginPage>
     with SingleTickerProviderStateMixin {
-  final _formKey      = GlobalKey<FormState>();
-  final _emailCtrl    = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  final _storage      = const FlutterSecureStorage();
+  final _storage = const FlutterSecureStorage();
 
-  bool _obscure   = true;
-  bool _remember  = false;
+  bool _obscure = true;
+  bool _remember = false;
   bool _isLoading = false;
   String? _errorMsg;
 
   late AnimationController _anim;
-  late Animation<double>   _fade;
-  late Animation<Offset>   _slide;
+  late Animation<double> _fade;
+  late Animation<Offset> _slide;
 
   @override
   void initState() {
     super.initState();
-    _anim  = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
-    _fade  = CurvedAnimation(parent: _anim, curve: Curves.easeOut).drive(Tween(begin: 0.0, end: 1.0));
-    _slide = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic).drive(Tween(begin: const Offset(0, 0.06), end: Offset.zero));
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _fade = CurvedAnimation(
+      parent: _anim,
+      curve: Curves.easeOut,
+    ).drive(Tween(begin: 0.0, end: 1.0));
+    _slide = CurvedAnimation(
+      parent: _anim,
+      curve: Curves.easeOutCubic,
+    ).drive(Tween(begin: const Offset(0, 0.06), end: Offset.zero));
     _anim.forward();
   }
 
@@ -67,40 +75,58 @@ class _AdminLoginPageState extends State<AdminLoginPage>
 
     try {
       final response = await AdminAuthService.login(
-        email:    _emailCtrl.text.trim(),
+        email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text.trim(),
       );
 
       if (response['token'] == null) {
-        setState(() { _isLoading = false; _errorMsg = 'No token received'; });
+        setState(() {
+          _isLoading = false;
+          _errorMsg = 'No token received';
+        });
         return;
       }
 
       if (response['user']['user_role'] != 'admin') {
-        setState(() { _isLoading = false; _errorMsg = 'Access denied. Admin privileges required.'; });
+        setState(() {
+          _isLoading = false;
+          _errorMsg = 'Access denied. Admin privileges required.';
+        });
         return;
       }
 
       final token = response['token'] as String;
-      await _storage.write(key: 'jwt_token',  value: token);
-      await _storage.write(key: 'user_role',  value: response['user']['user_role']);
-      await _storage.write(key: 'user_id',    value: response['user']['id'].toString());
+      await _storage.write(key: 'jwt_token', value: token);
+      await _storage.write(
+        key: 'user_role',
+        value: response['user']['user_role'],
+      );
+      await _storage.write(
+        key: 'user_id',
+        value: response['user']['id'].toString(),
+      );
 
       if (_remember) {
-        await _storage.write(key: 'remember_email', value: _emailCtrl.text.trim());
+        await _storage.write(
+          key: 'remember_email',
+          value: _emailCtrl.text.trim(),
+        );
       } else {
         await _storage.delete(key: 'remember_email');
       }
 
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(
-          builder: (_) => AdminDashboard(adminToken: token, onLogout: () {}),
-        ));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AdminDashboard(adminToken: token, onLogout: () {}),
+          ),
+        );
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMsg  = e.toString().replaceAll('Exception:', '').trim();
+        _errorMsg = e.toString().replaceAll('Exception:', '').trim();
       });
     }
   }
@@ -113,7 +139,9 @@ class _AdminLoginPageState extends State<AdminLoginPage>
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: _ForgotPasswordSheet(
           ctrl: ctrl,
           onSend: () async {
@@ -133,19 +161,21 @@ class _AdminLoginPageState extends State<AdminLoginPage>
   }
 
   void _showSnack(String msg, {required bool isError}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-      backgroundColor: isError ? Colors.red.shade700 : _t400,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      duration: const Duration(seconds: 3),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
+        backgroundColor: isError ? Colors.red.shade700 : _t400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final size   = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
     final isWide = size.width > 720;
 
     return Scaffold(
@@ -155,32 +185,47 @@ class _AdminLoginPageState extends State<AdminLoginPage>
   }
 
   // ── WIDE: side-by-side ────────────────────────────────────────────────────
-  Widget _buildWideLayout() => Row(children: [
-    Expanded(flex: 5, child: _buildBrandPanel()),
-    Expanded(flex: 4, child: _buildFormPanel()),
-  ]);
+  Widget _buildWideLayout() => Row(
+    children: [
+      Expanded(flex: 5, child: _buildBrandPanel()),
+      Expanded(flex: 4, child: _buildFormPanel()),
+    ],
+  );
 
   // ── NARROW: full-screen card ──────────────────────────────────────────────
-  Widget _buildNarrowLayout() => Stack(children: [
-    Positioned.fill(child: _buildBrandBackground()),
-    SafeArea(child: Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
-        child: FadeTransition(opacity: _fade, child: SlideTransition(
-          position: _slide,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 48, offset: const Offset(0, 16))],
+  Widget _buildNarrowLayout() => Stack(
+    children: [
+      Positioned.fill(child: _buildBrandBackground()),
+      SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+            child: FadeTransition(
+              opacity: _fade,
+              child: SlideTransition(
+                position: _slide,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 48,
+                        offset: const Offset(0, 16),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(30),
+                  child: _buildFormContent(),
+                ),
+              ),
             ),
-            padding: const EdgeInsets.all(30),
-            child: _buildFormContent(),
           ),
-        )),
+        ),
       ),
-    )),
-  ]);
+    ],
+  );
 
   // ── Brand Panel (left) ────────────────────────────────────────────────────
   Widget _buildBrandPanel() => Container(
@@ -191,93 +236,115 @@ class _AdminLoginPageState extends State<AdminLoginPage>
         end: Alignment.bottomRight,
       ),
     ),
-    child: Stack(children: [
-      Positioned.fill(child: CustomPaint(painter: _GridPainter())),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 52, vertical: 48),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Logo image
-            Image.asset(
-              'sportalogowhite.png',
-              width: 70,
-              height: 70,
-              errorBuilder: (context, error, stackTrace) => Container(
+    child: Stack(
+      children: [
+        Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 52, vertical: 48),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Logo image
+              Image.asset(
+                'sportalogowhite.png',
                 width: 70,
                 height: 70,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
-                ),
-                child: Center(
-                  child: Text(
-                    'LOGO',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.45),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'LOGO',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.45),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white.withOpacity(0.15)),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white.withOpacity(0.15)),
+                ),
+                child: const Text(
+                  'Admin Dashboard',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                  ),
+                ),
               ),
-              child: const Text(
-                'Admin Dashboard',
-                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.2),
+              const SizedBox(height: 52),
+              // Main tagline — centered, large
+              const Text(
+                'Run your\nsports platform.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 52,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  height: 1.05,
+                  letterSpacing: -2.0,
+                ),
               ),
-            ),
-            const SizedBox(height: 52),
-            // Main tagline — centered, large
-            const Text(
-              'Run your\nsports platform.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 52,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                height: 1.05,
-                letterSpacing: -2.0, 
+              const SizedBox(height: 20),
+              Text(
+                'Manage courts, bookings, players,\nand workers — all from one place.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(0.55),
+                  height: 1.7,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Manage courts, bookings, players,\nand workers — all from one place.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white.withOpacity(0.55),
-                height: 1.7,
+              const SizedBox(height: 52),
+              // Feature list - centered
+              Center(
+                child: Column(
+                  children: [
+                    _FeatureRow(
+                      icon: Icons.speed_rounded,
+                      text: 'Real-time booking analytics',
+                    ),
+                    const SizedBox(height: 14),
+                    _FeatureRow(
+                      icon: Icons.people_outline_rounded,
+                      text: 'Full user & role management',
+                    ),
+                    const SizedBox(height: 14),
+                    _FeatureRow(
+                      icon: Icons.security_rounded,
+                      text: 'Enterprise-grade security',
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 52),
-            // Feature list - centered
-            Center(
-              child: Column(
-                children: [
-                  _FeatureRow(icon: Icons.speed_rounded, text: 'Real-time booking analytics'),
-                  const SizedBox(height: 14),
-                  _FeatureRow(icon: Icons.people_outline_rounded, text: 'Full user & role management'),
-                  const SizedBox(height: 14),
-                  _FeatureRow(icon: Icons.security_rounded, text: 'Enterprise-grade security'),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ]),
+      ],
+    ),
   );
 
   // ── Brand background for narrow ──────────────────────────────────────────
@@ -289,9 +356,9 @@ class _AdminLoginPageState extends State<AdminLoginPage>
         end: Alignment.bottomRight,
       ),
     ),
-    child: Stack(children: [
-      Positioned.fill(child: CustomPaint(painter: _GridPainter())),
-    ]),
+    child: Stack(
+      children: [Positioned.fill(child: CustomPaint(painter: _GridPainter()))],
+    ),
   );
 
   // ── Form Panel (right / card) ─────────────────────────────────────────────
@@ -321,21 +388,48 @@ class _AdminLoginPageState extends State<AdminLoginPage>
     children: [
       // Header
       Container(
-        width: 48, height: 48,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [_t700, _t400], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          gradient: const LinearGradient(
+            colors: [_t700, _t400],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: _t400.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: _t400.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 22),
+        child: const Icon(
+          Icons.admin_panel_settings_rounded,
+          color: Colors.white,
+          size: 22,
+        ),
       ),
       const SizedBox(height: 20),
       const Text(
         'Welcome back',
-        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF0D1117), letterSpacing: -1.0),
+        style: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w900,
+          color: Color(0xFF0D1117),
+          letterSpacing: -1.0,
+        ),
       ),
       const SizedBox(height: 6),
-      Text('Sign in to your admin account', style: TextStyle(fontSize: 14, color: Colors.grey.shade500, height: 1.5)),
+      Text(
+        'Sign in to your admin account',
+        style: TextStyle(
+          fontSize: 14,
+          color: Colors.grey.shade500,
+          height: 1.5,
+        ),
+      ),
       const SizedBox(height: 32),
 
       // Error banner
@@ -347,69 +441,102 @@ class _AdminLoginPageState extends State<AdminLoginPage>
       // Form
       Form(
         key: _formKey,
-        child: Column(children: [
-          _FormField(
-            controller: _emailCtrl,
-            label: 'Email address',
-            hint: 'admin@sporta.tn',
-            icon: Icons.alternate_email_rounded,
-            type: TextInputType.emailAddress,
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Email is required';
-              if (!v.contains('@')) return 'Enter a valid email address';
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          _FormField(
-            controller: _passwordCtrl,
-            label: 'Password',
-            hint: 'Enter your password',
-            icon: Icons.lock_outline_rounded,
-            obscure: _obscure,
-            suffix: GestureDetector(
-              onTap: () => setState(() => _obscure = !_obscure),
-              child: Icon(
-                _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                size: 18,
-                color: Colors.grey.shade400,
-              ),
+        child: Column(
+          children: [
+            _FormField(
+              controller: _emailCtrl,
+              label: 'Email address',
+              hint: 'admin@sporta.tn',
+              icon: Icons.alternate_email_rounded,
+              type: TextInputType.emailAddress,
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Email is required';
+                if (!v.contains('@')) return 'Enter a valid email address';
+                return null;
+              },
             ),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Password is required';
-              if (v.length < 6) return 'Must be at least 6 characters';
-              return null;
-            },
-          ),
-        ]),
+            const SizedBox(height: 16),
+            _FormField(
+              controller: _passwordCtrl,
+              label: 'Password',
+              hint: 'Enter your password',
+              icon: Icons.lock_outline_rounded,
+              obscure: _obscure,
+              suffix: GestureDetector(
+                onTap: () => setState(() => _obscure = !_obscure),
+                child: Icon(
+                  _obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  size: 18,
+                  color: Colors.grey.shade400,
+                ),
+              ),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Password is required';
+                if (v.length < 6) return 'Must be at least 6 characters';
+                return null;
+              },
+            ),
+          ],
+        ),
       ),
       const SizedBox(height: 16),
 
       // Remember + Forgot row
-      Row(children: [
-        GestureDetector(
-          onTap: () => setState(() => _remember = !_remember),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 20, height: 20,
-              decoration: BoxDecoration(
-                color: _remember ? _t400 : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: _remember ? _t400 : Colors.grey.shade300, width: 1.5),
-              ),
-              child: _remember ? const Icon(Icons.check_rounded, size: 13, color: Colors.white) : null,
+      Row(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _remember = !_remember),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: _remember ? _t400 : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _remember ? _t400 : Colors.grey.shade300,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: _remember
+                      ? const Icon(
+                          Icons.check_rounded,
+                          size: 13,
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Remember me',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text('Remember me', style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
-          ]),
-        ),
-        const Spacer(),
-        GestureDetector(
-          onTap: _showForgotPassword,
-          child: Text('Forgot password?', style: TextStyle(fontSize: 13, color: _t400, fontWeight: FontWeight.w700)),
-        ),
-      ]),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: _showForgotPassword,
+            child: Text(
+              'Forgot password?',
+              style: TextStyle(
+                fontSize: 13,
+                color: _t400,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
       const SizedBox(height: 28),
 
       // Login button
@@ -421,33 +548,83 @@ class _AdminLoginPageState extends State<AdminLoginPage>
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: _isLoading
-                ? LinearGradient(colors: [_t400.withOpacity(0.4), _t400.withOpacity(0.4)])
-                : const LinearGradient(colors: [_t700, _t400], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                ? LinearGradient(
+                    colors: [_t400.withOpacity(0.4), _t400.withOpacity(0.4)],
+                  )
+                : const LinearGradient(
+                    colors: [_t700, _t400],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: _isLoading ? [] : [
-              BoxShadow(color: _t400.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 6)),
-              BoxShadow(color: _t400.withOpacity(0.15), blurRadius: 40, offset: const Offset(0, 12)),
-            ],
+            boxShadow: _isLoading
+                ? []
+                : [
+                    BoxShadow(
+                      color: _t400.withOpacity(0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                    BoxShadow(
+                      color: _t400.withOpacity(0.15),
+                      blurRadius: 40,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
           ),
           child: Center(
             child: _isLoading
-                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                : const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text('Sign in', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.2)),
-                    SizedBox(width: 10),
-                    Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
-                  ]),
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Sign in',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),
       const SizedBox(height: 24),
 
       // Secure note
-      Center(child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.lock_outline_rounded, size: 13, color: Colors.grey.shade400),
-        const SizedBox(width: 6),
-        Text('Secure · Encrypted · Admin only', style: TextStyle(fontSize: 11.5, color: Colors.grey.shade400)),
-      ])),
+      Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.lock_outline_rounded,
+              size: 13,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Secure · Encrypted · Admin only',
+              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade400),
+            ),
+          ],
+        ),
+      ),
     ],
   );
 }
@@ -466,7 +643,8 @@ class _FeatureRow extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       Container(
-        width: 40, height: 40,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           color: _t400.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
@@ -474,11 +652,17 @@ class _FeatureRow extends StatelessWidget {
         child: Icon(icon, color: _t200, size: 18),
       ),
       const SizedBox(width: 14),
-      Text(text, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14.5, fontWeight: FontWeight.w600)),
+      Text(
+        text,
+        style: TextStyle(
+          color: Colors.white.withOpacity(0.8),
+          fontSize: 14.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     ],
   );
 }
-
 
 class _ErrorBanner extends StatelessWidget {
   final String message;
@@ -497,7 +681,17 @@ class _ErrorBanner extends StatelessWidget {
       children: [
         Icon(Icons.error_outline_rounded, size: 16, color: Colors.red.shade600),
         const SizedBox(width: 10),
-        Expanded(child: Text(message, style: TextStyle(fontSize: 13, color: Colors.red.shade700, fontWeight: FontWeight.w600, height: 1.4))),
+        Expanded(
+          child: Text(
+            message,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.red.shade700,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
+          ),
+        ),
       ],
     ),
   );
@@ -527,37 +721,80 @@ class _FormField extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(label, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF374151), letterSpacing: 0.2)),
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF374151),
+          letterSpacing: 0.2,
+        ),
+      ),
       const SizedBox(height: 7),
       TextFormField(
         controller: controller,
         keyboardType: type,
         obscureText: obscure,
-        style: const TextStyle(fontSize: 15, color: Color(0xFF0D1117), fontWeight: FontWeight.w500),
+        style: const TextStyle(
+          fontSize: 15,
+          color: Color(0xFF0D1117),
+          fontWeight: FontWeight.w500,
+        ),
         validator: validator,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14.5),
           prefixIcon: Container(
             margin: const EdgeInsets.all(11),
-            width: 30, height: 30,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
               color: _t400.withOpacity(0.08),
               borderRadius: BorderRadius.circular(9),
             ),
             child: Icon(icon, size: 16, color: _t400),
           ),
-          prefixIconConstraints: const BoxConstraints(minWidth: 50, minHeight: 50),
-          suffixIcon: suffix != null ? Padding(padding: const EdgeInsets.only(right: 14), child: suffix) : null,
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 50,
+            minHeight: 50,
+          ),
+          suffixIcon: suffix != null
+              ? Padding(
+                  padding: const EdgeInsets.only(right: 14),
+                  child: suffix,
+                )
+              : null,
           filled: true,
           fillColor: const Color(0xFFF8FAFB),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200, width: 1.2)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _t400, width: 2.0)),
-          errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.red.shade400, width: 1.4)),
-          focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.red.shade500, width: 2.0)),
-          errorStyle: TextStyle(fontSize: 11.5, color: Colors.red.shade600, fontWeight: FontWeight.w600),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1.2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: _t400, width: 2.0),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.red.shade400, width: 1.4),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.red.shade500, width: 2.0),
+          ),
+          errorStyle: TextStyle(
+            fontSize: 11.5,
+            color: Colors.red.shade600,
+            fontWeight: FontWeight.w600,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 16,
+          ),
         ),
       ),
     ],
@@ -570,7 +807,11 @@ class _FormField extends StatelessWidget {
 class _ForgotPasswordSheet extends StatelessWidget {
   final TextEditingController ctrl;
   final VoidCallback onSend, onCancel;
-  const _ForgotPasswordSheet({required this.ctrl, required this.onSend, required this.onCancel});
+  const _ForgotPasswordSheet({
+    required this.ctrl,
+    required this.onSend,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) => Container(
@@ -579,55 +820,133 @@ class _ForgotPasswordSheet extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(28),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.14), blurRadius: 32, offset: const Offset(0, -4))],
-    ),
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10))),
-      Container(
-        width: 56, height: 56,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [_t700, _t400], begin: Alignment.topLeft, end: Alignment.bottomRight),
-          borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.14),
+          blurRadius: 32,
+          offset: const Offset(0, -4),
         ),
-        child: const Icon(Icons.lock_reset_rounded, color: Colors.white, size: 26),
-      ),
-      const SizedBox(height: 16),
-      const Text('Reset your password', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF0D1117), letterSpacing: -0.5)),
-      const SizedBox(height: 8),
-      Text("Enter your email and we'll send you a reset link.", style: TextStyle(fontSize: 13.5, color: Colors.grey.shade500, height: 1.5), textAlign: TextAlign.center),
-      const SizedBox(height: 24),
-      _FormField(
-        controller: ctrl,
-        label: 'Email address',
-        hint: 'admin@sporta.tn',
-        icon: Icons.alternate_email_rounded,
-        type: TextInputType.emailAddress,
-      ),
-      const SizedBox(height: 24),
-      Row(children: [
-        Expanded(child: GestureDetector(
-          onTap: onCancel,
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(14)),
-            child: Center(child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade600))),
+      ],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 40,
+          height: 4,
+          margin: const EdgeInsets.only(bottom: 24),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(10),
           ),
-        )),
-        const SizedBox(width: 12),
-        Expanded(child: GestureDetector(
-          onTap: onSend,
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_t700, _t400], begin: Alignment.topLeft, end: Alignment.bottomRight),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: _t400.withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_t700, _t400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: const Center(child: Text('Send link', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white, fontSize: 14))),
+            borderRadius: BorderRadius.circular(16),
           ),
-        )),
-      ]),
-    ]),
+          child: const Icon(
+            Icons.lock_reset_rounded,
+            color: Colors.white,
+            size: 26,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Reset your password',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0D1117),
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Enter your email and we'll send you a reset link.",
+          style: TextStyle(
+            fontSize: 13.5,
+            color: Colors.grey.shade500,
+            height: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        _FormField(
+          controller: ctrl,
+          label: 'Email address',
+          hint: 'admin@sporta.tn',
+          icon: Icons.alternate_email_rounded,
+          type: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: onCancel,
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: onSend,
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_t700, _t400],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _t400.withOpacity(0.35),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Send link',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
   );
 }
 
@@ -652,24 +971,6 @@ class _GridPainter extends CustomPainter {
   @override
   bool shouldRepaint(_GridPainter old) => false;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// Views/Admin/admin_login_page.dart
 // Design: split-screen layout — left side background illustration,

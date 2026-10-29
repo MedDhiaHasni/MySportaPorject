@@ -58,7 +58,9 @@ class _RatingDialogState extends State<RatingDialog> {
 
             // Title
             Text(
-              widget.existingRating != null ? 'Update Your Rating' : 'Rate Your Experience',
+              widget.existingRating != null
+                  ? 'Update Your Rating'
+                  : 'Rate Your Experience',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -69,10 +71,7 @@ class _RatingDialogState extends State<RatingDialog> {
 
             Text(
               widget.venueName,
-              style: const TextStyle(
-                fontSize: 14,
-                color: kTextMid,
-              ),
+              style: const TextStyle(fontSize: 14, color: kTextMid),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -96,7 +95,9 @@ class _RatingDialogState extends State<RatingDialog> {
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: widget.isLoading ? null : () => Navigator.pop(context),
+                    onPressed: widget.isLoading
+                        ? null
+                        : () => Navigator.pop(context),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -112,9 +113,7 @@ class _RatingDialogState extends State<RatingDialog> {
                     onPressed: widget.isLoading || _rating == 0
                         ? null
                         : () {
-                            Navigator.pop(context, {
-                              'rating': _rating,
-                            });
+                            Navigator.pop(context, {'rating': _rating});
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kPrimary,
@@ -133,7 +132,9 @@ class _RatingDialogState extends State<RatingDialog> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(widget.existingRating != null ? 'Update' : 'Submit'),
+                        : Text(
+                            widget.existingRating != null ? 'Update' : 'Submit',
+                          ),
                   ),
                 ),
               ],

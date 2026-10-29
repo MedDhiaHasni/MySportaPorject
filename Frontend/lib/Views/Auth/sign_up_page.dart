@@ -6,6 +6,7 @@ import 'package:sporta/Widgets/Inputs/app_input_field.dart';
 import 'package:sporta/Widgets/Shared/auth_header.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -30,13 +31,17 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   void dispose() {
-    for (final c in [_name, _email, _phone, _password, _confirm]) c.dispose();
+    for (final c in [_name, _email, _phone, _password, _confirm]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _register() async {
     if (!_agreed) {
-      _showErrorDialog('Please agree to the Terms of Service and Privacy Policy');
+      _showErrorDialog(
+        'Please agree to the Terms of Service and Privacy Policy',
+      );
       return;
     }
 
@@ -44,11 +49,6 @@ class _SignUpPageState extends State<SignUpPage> {
       setState(() => _isLoading = true);
 
       try {
-        print('=== REGISTRATION ATTEMPT ===');
-        print('Username: ${_name.text.trim()}');
-        print('Email: ${_email.text.trim()}');
-        print('Phone: ${_phone.text.trim()}');
-
         final response = await PlayerManagerAuthService.register(
           username: _name.text.trim(),
           email: _email.text.trim(),
@@ -56,13 +56,13 @@ class _SignUpPageState extends State<SignUpPage> {
           phone: _phone.text.trim(),
         );
 
-        print('Response: $response');
-
         if (response['id'] != null) {
           // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Account created successfully! Please login.'),
+              content: const Text(
+                'Account created successfully! Please login.',
+              ),
               backgroundColor: kGreen,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
@@ -71,7 +71,7 @@ class _SignUpPageState extends State<SignUpPage> {
               margin: const EdgeInsets.all(16),
             ),
           );
-          
+
           // Navigate back to login page
           Navigator.pushReplacement(
             context,
@@ -82,7 +82,7 @@ class _SignUpPageState extends State<SignUpPage> {
           _showErrorDialog('Registration failed. Please try again.');
         }
       } catch (error) {
-        print('Registration error: $error');
+        AppLogger.error('Registration error: $error');
         setState(() => _isLoading = false);
         _showErrorDialog(error.toString());
       }
@@ -258,7 +258,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : (_agreed ? _register : null),
+                      onPressed: _isLoading
+                          ? null
+                          : (_agreed ? _register : null),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimary,
                         disabledBackgroundColor: Colors.grey[300],
@@ -286,7 +288,9 @@ class _SignUpPageState extends State<SignUpPage> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
-                                    color: _agreed ? Colors.white : Colors.grey[500],
+                                    color: _agreed
+                                        ? Colors.white
+                                        : Colors.grey[500],
                                   ),
                                 ),
                                 if (_agreed) ...[

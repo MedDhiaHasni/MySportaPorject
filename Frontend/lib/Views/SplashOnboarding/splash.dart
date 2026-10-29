@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Views/SplashOnboarding/onboarding.dart';
 
 import 'dart:async';

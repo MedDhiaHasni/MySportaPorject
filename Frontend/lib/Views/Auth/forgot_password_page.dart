@@ -3,6 +3,7 @@ import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Utils/validators.dart';
 import 'package:sporta/Widgets/Inputs/app_input_field.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -27,12 +28,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       setState(() => _isLoading = true);
 
       try {
-        print('=== SENDING RESET LINK ===');
-        print('Email: ${_email.text.trim()}');
-
         await PlayerManagerAuthService.forgotPassword(_email.text.trim());
-
-        print('Reset link sent successfully');
 
         setState(() {
           _isLoading = false;
@@ -59,9 +55,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           }
         });
       } catch (error) {
-        print('Error sending reset link: $error');
+        AppLogger.error('Error sending reset link: $error');
         setState(() => _isLoading = false);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.toString()),
@@ -84,7 +80,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       backgroundColor: kBg,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kTextDark, size: 20),
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: kTextDark,
+          size: 20,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
     ),
@@ -142,14 +142,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Email Address',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kTextDark),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: kTextDark,
+                ),
               ),
             ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
-              decoration: appInputDecoration('your@email.com', Icons.email_outlined),
+              decoration: appInputDecoration(
+                'your@email.com',
+                Icons.email_outlined,
+              ),
               validator: Validators.email,
             ),
             const SizedBox(height: 28),
@@ -173,7 +180,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         height: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Row(

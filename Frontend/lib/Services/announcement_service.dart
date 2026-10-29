@@ -12,8 +12,8 @@ import 'package:sporta/Core/Constants/api_constants.dart';
 class AnnouncementData {
   final String id;
   final String description;
-  final int    playersNeeded;
-  final String status;        // open | full | closed
+  final int playersNeeded;
+  final String status; // open | full | closed
   final String courtName;
   final String venueName;
   final String sport;
@@ -25,9 +25,9 @@ class AnnouncementData {
   final String hostName;
   final String hostInitials;
   final String hostPlayerId;
-  final String hostPhone;     // NEW — host's phone number
+  final String hostPhone; // NEW — host's phone number
   final List<JoinRequestData> joinRequests;
-  final int    acceptedCount;
+  final int acceptedCount;
 
   const AnnouncementData({
     required this.id,
@@ -50,9 +50,9 @@ class AnnouncementData {
     required this.acceptedCount,
   });
 
-  int  get spotsLeft  => playersNeeded - acceptedCount;
-  bool get isFull     => spotsLeft <= 0 || status == 'full';
-  bool get isOpen     => status == 'open' && !isFull;
+  int get spotsLeft => playersNeeded - acceptedCount;
+  bool get isFull => spotsLeft <= 0 || status == 'full';
+  bool get isOpen => status == 'open' && !isFull;
 
   // Accepted requesters (visible to host)
   List<JoinRequestData> get acceptedPlayers =>
@@ -64,44 +64,56 @@ class AnnouncementData {
 
   factory AnnouncementData.fromJson(Map<String, dynamic> json) {
     final attrs = (json['attributes'] ?? json) as Map<String, dynamic>;
-    final id    = (json['id'] ?? '').toString();
+    final id = (json['id'] ?? '').toString();
 
     // ── Reservation / court / venue / time_slot ──────────────────────────
-    Map<String, dynamic> courtAttrs    = {};
-    Map<String, dynamic> venueAttrs    = {};
-    Map<String, dynamic> resAttrs      = {};
+    Map<String, dynamic> courtAttrs = {};
+    Map<String, dynamic> venueAttrs = {};
+    Map<String, dynamic> resAttrs = {};
     Map<String, dynamic> timeSlotAttrs = {};
     String reservationId = '';
-    String startTime     = '';
-    String endTime       = '';
+    String startTime = '';
+    String endTime = '';
 
     final resRaw = attrs['reservation'];
     if (resRaw != null) {
-      final resData = resRaw is Map ? (resRaw['data'] ?? resRaw) as Map<String, dynamic>? : null;
+      final resData = resRaw is Map
+          ? (resRaw['data'] ?? resRaw) as Map<String, dynamic>?
+          : null;
       if (resData != null) {
         reservationId = (resData['id'] ?? '').toString();
-        resAttrs      = (resData['attributes'] ?? resData) as Map<String, dynamic>;
+        resAttrs = (resData['attributes'] ?? resData) as Map<String, dynamic>;
 
-        final tsRaw  = resAttrs['time_slot'];
+        final tsRaw = resAttrs['time_slot'];
         if (tsRaw != null) {
-          final tsData = tsRaw is Map ? (tsRaw['data'] ?? tsRaw) as Map<String, dynamic>? : null;
+          final tsData = tsRaw is Map
+              ? (tsRaw['data'] ?? tsRaw) as Map<String, dynamic>?
+              : null;
           if (tsData != null) {
-            timeSlotAttrs = (tsData['attributes'] ?? tsData) as Map<String, dynamic>;
-            startTime     = timeSlotAttrs['startTime']?.toString() ?? '';
-            endTime       = timeSlotAttrs['endTime']?.toString() ?? '';
+            timeSlotAttrs =
+                (tsData['attributes'] ?? tsData) as Map<String, dynamic>;
+            startTime = timeSlotAttrs['startTime']?.toString() ?? '';
+            endTime = timeSlotAttrs['endTime']?.toString() ?? '';
           }
         }
 
         final courtRaw = resAttrs['court'];
         if (courtRaw != null) {
-          final courtData = courtRaw is Map ? (courtRaw['data'] ?? courtRaw) as Map<String, dynamic>? : null;
+          final courtData = courtRaw is Map
+              ? (courtRaw['data'] ?? courtRaw) as Map<String, dynamic>?
+              : null;
           if (courtData != null) {
-            courtAttrs    = (courtData['attributes'] ?? courtData) as Map<String, dynamic>;
+            courtAttrs =
+                (courtData['attributes'] ?? courtData) as Map<String, dynamic>;
             final venueRaw = courtAttrs['venue'];
             if (venueRaw != null) {
-              final venueData = venueRaw is Map ? (venueRaw['data'] ?? venueRaw) as Map<String, dynamic>? : null;
+              final venueData = venueRaw is Map
+                  ? (venueRaw['data'] ?? venueRaw) as Map<String, dynamic>?
+                  : null;
               if (venueData != null) {
-                venueAttrs = (venueData['attributes'] ?? venueData) as Map<String, dynamic>;
+                venueAttrs =
+                    (venueData['attributes'] ?? venueData)
+                        as Map<String, dynamic>;
               }
             }
           }
@@ -118,34 +130,55 @@ class AnnouncementData {
       final img = courtAttrs['court_img'] as Map;
       final imgData = img['data'] ?? img;
       final u = imgData['url']?.toString() ?? '';
-      if (u.isNotEmpty) courtImgUrl = u.startsWith('http') ? u : '${ApiConstants.mediaBaseUrl}$u';
-    } else if (courtAttrs['photos_urls'] is List && (courtAttrs['photos_urls'] as List).isNotEmpty) {
+      if (u.isNotEmpty)
+        courtImgUrl = u.startsWith('http')
+            ? u
+            : '${ApiConstants.mediaBaseUrl}$u';
+    } else if (courtAttrs['photos_urls'] is List &&
+        (courtAttrs['photos_urls'] as List).isNotEmpty) {
       final u = (courtAttrs['photos_urls'] as List).first.toString();
       courtImgUrl = u.startsWith('http') ? u : '${ApiConstants.mediaBaseUrl}$u';
-    } else if (courtAttrs['photos'] is List && (courtAttrs['photos'] as List).isNotEmpty) {
+    } else if (courtAttrs['photos'] is List &&
+        (courtAttrs['photos'] as List).isNotEmpty) {
       final f = (courtAttrs['photos'] as List).first;
       if (f is Map && f['url'] != null) {
         final u = f['url'].toString();
-        courtImgUrl = u.startsWith('http') ? u : '${ApiConstants.mediaBaseUrl}$u';
+        courtImgUrl = u.startsWith('http')
+            ? u
+            : '${ApiConstants.mediaBaseUrl}$u';
       }
     }
 
     // ── Host (player who created the announcement) ───────────────────────
-    final playerRaw   = attrs['player'];
-    final playerData  = playerRaw is Map ? (playerRaw['data'] ?? playerRaw) as Map<String, dynamic>? : null;
-    final playerAttrs = playerData != null ? (playerData['attributes'] ?? playerData) as Map<String, dynamic> : <String, dynamic>{};
-    final authRaw     = playerAttrs['player'];
-    final authData    = authRaw is Map ? (authRaw['data'] ?? authRaw) as Map<String, dynamic>? : null;
-    final authAttrs   = authData != null ? (authData['attributes'] ?? authData) as Map<String, dynamic> : <String, dynamic>{};
+    final playerRaw = attrs['player'];
+    final playerData = playerRaw is Map
+        ? (playerRaw['data'] ?? playerRaw) as Map<String, dynamic>?
+        : null;
+    final playerAttrs = playerData != null
+        ? (playerData['attributes'] ?? playerData) as Map<String, dynamic>
+        : <String, dynamic>{};
+    final authRaw = playerAttrs['player'];
+    final authData = authRaw is Map
+        ? (authRaw['data'] ?? authRaw) as Map<String, dynamic>?
+        : null;
+    final authAttrs = authData != null
+        ? (authData['attributes'] ?? authData) as Map<String, dynamic>
+        : <String, dynamic>{};
 
-    final hostName     = authAttrs['username']?.toString() ?? playerAttrs['nom']?.toString() ?? 'Player';
+    final hostName =
+        authAttrs['username']?.toString() ??
+        playerAttrs['nom']?.toString() ??
+        'Player';
     final hostInitials = hostName.isNotEmpty ? hostName[0].toUpperCase() : 'P';
     final hostPlayerId = (playerData?['id'] ?? '').toString();
     // Phone: check auth user first, then player profile
-    final hostPhone    = authAttrs['phone']?.toString() ?? playerAttrs['phone']?.toString() ?? '';
+    final hostPhone =
+        authAttrs['phone']?.toString() ??
+        playerAttrs['phone']?.toString() ??
+        '';
 
     // ── Join requests ────────────────────────────────────────────────────
-    final jrRaw  = attrs['join_requests'];
+    final jrRaw = attrs['join_requests'];
     final jrList = jrRaw is Map
         ? (jrRaw['data'] as List? ?? [])
         : (jrRaw is List ? jrRaw : <dynamic>[]);
@@ -155,26 +188,30 @@ class AnnouncementData {
         .map(JoinRequestData.fromJson)
         .toList();
 
-    final acceptedCount = joinRequests.where((j) => j.status == 'accepted').length;
+    final acceptedCount = joinRequests
+        .where((j) => j.status == 'accepted')
+        .length;
 
     return AnnouncementData(
-      id:            id,
-      description:   attrs['description']?.toString() ?? '',
+      id: id,
+      description: attrs['description']?.toString() ?? '',
       playersNeeded: (attrs['players_needed'] as num?)?.toInt() ?? 1,
-      status:        attrs['status']?.toString() ?? 'open',
-      courtName:     courtAttrs['name']?.toString() ?? 'Court',
-      venueName:     venueAttrs['name']?.toString() ?? 'Venue',
-      sport:         (courtAttrs['sport'] ?? courtAttrs['sports'])?.toString() ?? 'football',
-      date:          resAttrs['booking_date_play']?.toString().split('T')[0] ?? '',
-      startTime:     startTime,
-      endTime:       endTime,
+      status: attrs['status']?.toString() ?? 'open',
+      courtName: courtAttrs['name']?.toString() ?? 'Court',
+      venueName: venueAttrs['name']?.toString() ?? 'Venue',
+      sport:
+          (courtAttrs['sport'] ?? courtAttrs['sports'])?.toString() ??
+          'football',
+      date: resAttrs['booking_date_play']?.toString().split('T')[0] ?? '',
+      startTime: startTime,
+      endTime: endTime,
       courtImageUrl: courtImgUrl,
       reservationId: reservationId,
-      hostName:      hostName,
-      hostInitials:  hostInitials,
-      hostPlayerId:  hostPlayerId,
-      hostPhone:     hostPhone,
-      joinRequests:  joinRequests,
+      hostName: hostName,
+      hostInitials: hostInitials,
+      hostPlayerId: hostPlayerId,
+      hostPhone: hostPhone,
+      joinRequests: joinRequests,
       acceptedCount: acceptedCount,
     );
   }
@@ -183,13 +220,13 @@ class AnnouncementData {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class JoinRequestData {
-  final String  id;
-  final String  message;
-  final String  status;        // pending | accepted | declined
-  final String  playerName;
-  final String  playerInitials;
-  final String  playerId;
-  final String  playerPhone;   // NEW — requester's phone number
+  final String id;
+  final String message;
+  final String status; // pending | accepted | declined
+  final String playerName;
+  final String playerInitials;
+  final String playerId;
+  final String playerPhone; // NEW — requester's phone number
   final String? announcementId;
   final String? courtName;
 
@@ -206,48 +243,71 @@ class JoinRequestData {
   });
 
   factory JoinRequestData.fromJson(Map<String, dynamic> json) {
-    final attrs      = (json['attributes'] ?? json) as Map<String, dynamic>;
-    final playerRaw  = attrs['player'];
-    final playerData = playerRaw is Map ? (playerRaw['data'] ?? playerRaw) as Map<String, dynamic>? : null;
-    final playerAttrs = playerData != null ? (playerData['attributes'] ?? playerData) as Map<String, dynamic> : <String, dynamic>{};
-    final authRaw    = playerAttrs['player'];
-    final authData   = authRaw is Map ? (authRaw['data'] ?? authRaw) as Map<String, dynamic>? : null;
-    final authAttrs  = authData != null ? (authData['attributes'] ?? authData) as Map<String, dynamic> : <String, dynamic>{};
+    final attrs = (json['attributes'] ?? json) as Map<String, dynamic>;
+    final playerRaw = attrs['player'];
+    final playerData = playerRaw is Map
+        ? (playerRaw['data'] ?? playerRaw) as Map<String, dynamic>?
+        : null;
+    final playerAttrs = playerData != null
+        ? (playerData['attributes'] ?? playerData) as Map<String, dynamic>
+        : <String, dynamic>{};
+    final authRaw = playerAttrs['player'];
+    final authData = authRaw is Map
+        ? (authRaw['data'] ?? authRaw) as Map<String, dynamic>?
+        : null;
+    final authAttrs = authData != null
+        ? (authData['attributes'] ?? authData) as Map<String, dynamic>
+        : <String, dynamic>{};
 
-    final name      = authAttrs['username']?.toString() ?? playerAttrs['nom']?.toString() ?? 'Player';
-    final initials  = name.isNotEmpty ? name[0].toUpperCase() : 'P';
+    final name =
+        authAttrs['username']?.toString() ??
+        playerAttrs['nom']?.toString() ??
+        'Player';
+    final initials = name.isNotEmpty ? name[0].toUpperCase() : 'P';
     // Phone: check auth user, then player profile
-    final phone     = authAttrs['phone']?.toString() ?? playerAttrs['phone']?.toString() ?? '';
+    final phone =
+        authAttrs['phone']?.toString() ??
+        playerAttrs['phone']?.toString() ??
+        '';
 
     // Court name via announcement → reservation → court
     String courtName = '';
-    final annRaw  = attrs['announcement'];
-    final annData = annRaw is Map ? (annRaw['data'] ?? annRaw) as Map<String, dynamic>? : null;
+    final annRaw = attrs['announcement'];
+    final annData = annRaw is Map
+        ? (annRaw['data'] ?? annRaw) as Map<String, dynamic>?
+        : null;
     if (annData != null) {
-      final annAttrs  = (annData['attributes'] ?? annData) as Map<String, dynamic>;
-      final resRaw    = annAttrs['reservation'];
-      final resData   = resRaw is Map ? (resRaw['data'] ?? resRaw) as Map<String, dynamic>? : null;
+      final annAttrs =
+          (annData['attributes'] ?? annData) as Map<String, dynamic>;
+      final resRaw = annAttrs['reservation'];
+      final resData = resRaw is Map
+          ? (resRaw['data'] ?? resRaw) as Map<String, dynamic>?
+          : null;
       if (resData != null) {
-        final resAttrs  = (resData['attributes'] ?? resData) as Map<String, dynamic>;
-        final courtRaw  = resAttrs['court'];
-        final courtData = courtRaw is Map ? (courtRaw['data'] ?? courtRaw) as Map<String, dynamic>? : null;
+        final resAttrs =
+            (resData['attributes'] ?? resData) as Map<String, dynamic>;
+        final courtRaw = resAttrs['court'];
+        final courtData = courtRaw is Map
+            ? (courtRaw['data'] ?? courtRaw) as Map<String, dynamic>?
+            : null;
         if (courtData != null) {
-          final ca = (courtData['attributes'] ?? courtData) as Map<String, dynamic>;
+          final ca =
+              (courtData['attributes'] ?? courtData) as Map<String, dynamic>;
           courtName = ca['name']?.toString() ?? '';
         }
       }
     }
 
     return JoinRequestData(
-      id:             (json['id'] ?? '').toString(),
-      message:        attrs['message']?.toString() ?? '',
-      status:         attrs['status']?.toString() ?? 'pending',
-      playerName:     name,
+      id: (json['id'] ?? '').toString(),
+      message: attrs['message']?.toString() ?? '',
+      status: attrs['status']?.toString() ?? 'pending',
+      playerName: name,
       playerInitials: initials,
-      playerId:       (playerData?['id'] ?? '').toString(),
-      playerPhone:    phone,
+      playerId: (playerData?['id'] ?? '').toString(),
+      playerPhone: phone,
       announcementId: annData?['id']?.toString(),
-      courtName:      courtName,
+      courtName: courtName,
     );
   }
 }
@@ -268,16 +328,27 @@ class AnnouncementService {
   void _check(http.Response r, String method) {
     if (r.statusCode < 200 || r.statusCode >= 300) {
       final body = _tryDecode(r.body);
-      throw Exception(body?['error']?['message'] ?? body?['message'] ?? 'Error ${r.statusCode}');
+      throw Exception(
+        body?['error']?['message'] ??
+            body?['message'] ??
+            'Error ${r.statusCode}',
+      );
     }
   }
 
   static Map<String, dynamic>? _tryDecode(String s) {
-    try { return json.decode(s) as Map<String, dynamic>?; } catch (_) { return null; }
+    try {
+      return json.decode(s) as Map<String, dynamic>?;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<List<AnnouncementData>> fetchFeed() async {
-    final r = await http.get(Uri.parse(ApiConstants.announcements), headers: _headers);
+    final r = await http.get(
+      Uri.parse(ApiConstants.announcements),
+      headers: _headers,
+    );
     _check(r, 'fetchFeed');
     final body = json.decode(r.body) as Map<String, dynamic>;
     return (body['data'] as List? ?? [])
@@ -287,7 +358,10 @@ class AnnouncementService {
   }
 
   Future<List<AnnouncementData>> fetchMine() async {
-    final r = await http.get(Uri.parse(ApiConstants.myAnnouncements), headers: _headers);
+    final r = await http.get(
+      Uri.parse(ApiConstants.myAnnouncements),
+      headers: _headers,
+    );
     _check(r, 'fetchMine');
     final body = json.decode(r.body) as Map<String, dynamic>;
     return (body['data'] as List? ?? [])
@@ -297,7 +371,10 @@ class AnnouncementService {
   }
 
   Future<List<JoinRequestData>> fetchMyRequests() async {
-    final r = await http.get(Uri.parse(ApiConstants.myRequests), headers: _headers);
+    final r = await http.get(
+      Uri.parse(ApiConstants.myRequests),
+      headers: _headers,
+    );
     _check(r, 'fetchMyRequests');
     final body = json.decode(r.body) as Map<String, dynamic>;
     return (body['data'] as List? ?? [])
@@ -309,14 +386,14 @@ class AnnouncementService {
   Future<AnnouncementData> create({
     required String reservationId,
     required String description,
-    required int    playersNeeded,
+    required int playersNeeded,
   }) async {
     final r = await http.post(
       Uri.parse(ApiConstants.announcements),
       headers: _headers,
       body: json.encode({
         'reservation_id': reservationId,
-        'description':    description,
+        'description': description,
         'players_needed': playersNeeded,
       }),
     );
@@ -326,7 +403,10 @@ class AnnouncementService {
   }
 
   Future<void> delete(String id) async {
-    final r = await http.delete(Uri.parse(ApiConstants.announcement(id)), headers: _headers);
+    final r = await http.delete(
+      Uri.parse(ApiConstants.announcement(id)),
+      headers: _headers,
+    );
     _check(r, 'delete');
   }
 
@@ -341,7 +421,10 @@ class AnnouncementService {
     return AnnouncementData.fromJson(body['data'] ?? body);
   }
 
-  Future<JoinRequestData> requestJoin(String announcementId, {String message = ''}) async {
+  Future<JoinRequestData> requestJoin(
+    String announcementId, {
+    String message = '',
+  }) async {
     final r = await http.post(
       Uri.parse(ApiConstants.announcementRequests(announcementId)),
       headers: _headers,
@@ -367,26 +450,6 @@ class AnnouncementService {
     return JoinRequestData.fromJson(body['data'] ?? body);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Services/announcement_service.dart
 import 'dart:convert';

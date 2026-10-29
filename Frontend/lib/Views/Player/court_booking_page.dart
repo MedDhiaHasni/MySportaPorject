@@ -1,7 +1,5 @@
 // Views/Player/court_booking_page.dart
 
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
@@ -14,18 +12,19 @@ import 'package:sporta/Views/Player/court_detail.dart';
 import 'package:sporta/Services/rating_service.dart';
 import 'package:sporta/Widgets/rating_dialog.dart';
 import 'package:sporta/Widgets/star_rating.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PALETTE
 // ─────────────────────────────────────────────────────────────────────────────
-const _bg        = Color(0xFFF2F4F7);
-const _white     = Colors.white;
-const _ink       = Color(0xFF0A0E1A);
-const _textMid   = Color(0xFF64748B);
+const _bg = Color(0xFFF2F4F7);
+const _white = Colors.white;
+const _ink = Color(0xFF0A0E1A);
+const _textMid = Color(0xFF64748B);
 const _textLight = Color(0xFFB0B7C3);
-const _border    = Color(0xFFE8EDF3);
-const _kGreen    = Color(0xFF16A34A);
-const _kRed      = Color(0xFFDC2626);
+const _border = Color(0xFFE8EDF3);
+const _kGreen = Color(0xFF16A34A);
+const _kRed = Color(0xFFDC2626);
 const _cardShadow = Color(0x14000000);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,13 +102,16 @@ class _CourtBookingPageState extends State<CourtBookingPage>
   late final Animation<double> _heroFade;
 
   double? _userRating;
-  bool _isLoadingRating  = false;
+  bool _isLoadingRating = false;
   bool _isSubmittingRating = false;
 
   @override
   void initState() {
     super.initState();
-    _heroCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _heroCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _heroFade = CurvedAnimation(parent: _heroCtrl, curve: Curves.easeOut);
     _heroCtrl.forward();
     _loadUserRating();
@@ -127,24 +129,33 @@ class _CourtBookingPageState extends State<CourtBookingPage>
     if (widget.playerToken == null) return;
     setState(() => _isLoadingRating = true);
     try {
-      final svc    = RatingService(token: widget.playerToken!);
+      final svc = RatingService(token: widget.playerToken!);
       final result = await svc.getUserRating(widget.venue.id);
       if (result != null && result['rating'] != null) {
-        setState(() => _userRating = (result['rating']['rating_value'] as num?)?.toDouble());
+        setState(
+          () => _userRating = (result['rating']['rating_value'] as num?)
+              ?.toDouble(),
+        );
       }
     } catch (e) {
-      debugPrint('_loadUserRating: $e');
+      AppLogger.error('_loadUserRating: $e');
     } finally {
       if (mounted) setState(() => _isLoadingRating = false);
     }
   }
 
   Future<void> _submitRating(double value) async {
-    if (widget.playerToken == null) { _snack('Please login to rate this venue', _kRed); return; }
+    if (widget.playerToken == null) {
+      _snack('Please login to rate this venue', _kRed);
+      return;
+    }
     setState(() => _isSubmittingRating = true);
     try {
-      final svc    = RatingService(token: widget.playerToken!);
-      final result = await svc.submitRating(venueId: int.parse(widget.venue.id), ratingValue: value);
+      final svc = RatingService(token: widget.playerToken!);
+      final result = await svc.submitRating(
+        venueId: int.parse(widget.venue.id),
+        ratingValue: value,
+      );
       if (result['success'] == true) {
         setState(() => _userRating = value);
         _snack(result['message']?.toString() ?? 'Rating submitted', _kGreen);
@@ -165,10 +176,16 @@ class _CourtBookingPageState extends State<CourtBookingPage>
         title: const Text('Delete Rating'),
         content: const Text('Are you sure you want to delete your rating?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: _kRed, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kRed,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -177,7 +194,7 @@ class _CourtBookingPageState extends State<CourtBookingPage>
     if (ok != true) return;
     setState(() => _isSubmittingRating = true);
     try {
-      final svc    = RatingService(token: widget.playerToken!);
+      final svc = RatingService(token: widget.playerToken!);
       final result = await svc.getUserRating(widget.venue.id);
       if (result != null && result['rating'] != null) {
         await svc.deleteRating(result['rating']['id'].toString());
@@ -200,35 +217,48 @@ class _CourtBookingPageState extends State<CourtBookingPage>
         isLoading: _isSubmittingRating,
       ),
     ).then((result) {
-      if (result != null && result['rating'] != null) _submitRating(result['rating'] as double);
+      if (result != null && result['rating'] != null)
+        _submitRating(result['rating'] as double);
     });
   }
 
   void _snack(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg), backgroundColor: color, behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      margin: const EdgeInsets.all(16),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   // ── Sport helpers ────────────────────────────────────────────────────────────
 
   SportType _mapSport(String s) {
     switch (s.toLowerCase()) {
-      case 'padel':      return SportType.padel;
-      case 'tennis':     return SportType.tennis;
-      case 'basketball': return SportType.basketball;
-      default:           return SportType.football;
+      case 'padel':
+        return SportType.padel;
+      case 'tennis':
+        return SportType.tennis;
+      case 'basketball':
+        return SportType.basketball;
+      default:
+        return SportType.football;
     }
   }
 
   IconData _sportIcon(String s) {
     switch (s.toLowerCase()) {
-      case 'padel':      return Icons.sports_tennis_rounded;
-      case 'tennis':     return Icons.sports_tennis;
-      case 'basketball': return Icons.sports_basketball_rounded;
-      default:           return Icons.sports_soccer_rounded;
+      case 'padel':
+        return Icons.sports_tennis_rounded;
+      case 'tennis':
+        return Icons.sports_tennis;
+      case 'basketball':
+        return Icons.sports_basketball_rounded;
+      default:
+        return Icons.sports_soccer_rounded;
     }
   }
 
@@ -242,7 +272,7 @@ class _CourtBookingPageState extends State<CourtBookingPage>
   }
 
   List<Map<String, dynamic>> get _filtered {
-    final all  = widget.venue.courts;
+    final all = widget.venue.courts;
     final list = _filterSport == null
         ? all
         : all.where((c) {
@@ -259,115 +289,212 @@ class _CourtBookingPageState extends State<CourtBookingPage>
 
   @override
   Widget build(BuildContext context) {
-    final navH = kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
+    final navH =
+        kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: _bg,
-        body: Column(children: [
-          _VenueHero(venue: widget.venue, fadeAnim: _heroFade),
-          Expanded(child: ListView(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, navH + 40),
-            children: [
-              // ── About ───────────────────────────────────────────────────────
-              if (widget.venue.description.isNotEmpty) ...[
-                const _SectionHeader('About this venue', Icons.info_outline_rounded),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _white, borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _border),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
+        body: Column(
+          children: [
+            _VenueHero(venue: widget.venue, fadeAnim: _heroFade),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(20, 20, 20, navH + 40),
+                children: [
+                  // ── About ───────────────────────────────────────────────────────
+                  if (widget.venue.description.isNotEmpty) ...[
+                    const _SectionHeader(
+                      'About this venue',
+                      Icons.info_outline_rounded,
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        widget.venue.description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: _textMid,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // ── Rating ──────────────────────────────────────────────────────
+                  const _SectionHeader(
+                    'Rating & Reviews',
+                    Icons.star_rate_rounded,
                   ),
-                  child: Text(widget.venue.description, style: const TextStyle(fontSize: 14, color: _textMid, height: 1.5)),
-                ),
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 10),
+                  _RatingCard(
+                    avgRating: widget.venue.avgRating,
+                    totalRatings: widget.venue.totalRatings,
+                    userRating: _userRating,
+                    isLoading: _isLoadingRating,
+                    isSubmitting: _isSubmittingRating,
+                    onRateTap: _showRatingDialog,
+                    onDeleteTap: _userRating != null ? _deleteRating : null,
+                  ),
+                  const SizedBox(height: 24),
 
-              // ── Rating ──────────────────────────────────────────────────────
-              const _SectionHeader('Rating & Reviews', Icons.star_rate_rounded),
-              const SizedBox(height: 10),
-              _RatingCard(
-                avgRating: widget.venue.avgRating,
-                totalRatings: widget.venue.totalRatings,
-                userRating: _userRating,
-                isLoading: _isLoadingRating,
-                isSubmitting: _isSubmittingRating,
-                onRateTap: _showRatingDialog,
-                onDeleteTap: _userRating != null ? _deleteRating : null,
-              ),
-              const SizedBox(height: 24),
-
-              // ── Manager ─────────────────────────────────────────────────────
-              const _SectionHeader('Venue Manager', Icons.person_outline_rounded),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _white, borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _border),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-                ),
-                child: Row(children: [
+                  // ── Manager ─────────────────────────────────────────────────────
+                  const _SectionHeader(
+                    'Venue Manager',
+                    Icons.person_outline_rounded,
+                  ),
+                  const SizedBox(height: 10),
                   Container(
-                    width: 50, height: 50,
-                    decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(25)),
-                    child: Center(child: Text(widget.venue.managerAvatar,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kPrimary))),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: kPrimary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: Center(
+                            child: Text(
+                              widget.venue.managerAvatar,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: kPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.venue.managerName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: _ink,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.phone_rounded,
+                                    size: 14,
+                                    color: _textMid,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    widget.venue.managerPhone,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: _textMid,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(widget.venue.managerName,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink)),
-                    const SizedBox(height: 4),
-                    Row(children: [
-                      const Icon(Icons.phone_rounded, size: 14, color: _textMid),
-                      const SizedBox(width: 6),
-                      Text(widget.venue.managerPhone, style: const TextStyle(fontSize: 13, color: _textMid)),
-                    ]),
-                  ])),
-                ]),
+                  const SizedBox(height: 28),
+
+                  // ── Courts header ───────────────────────────────────────────────
+                  _buildCourtsHeader(),
+                  const SizedBox(height: 14),
+
+                  // ── Sport filter ────────────────────────────────────────────────
+                  if (_sports.length > 1) ...[
+                    _SportFilterRow(
+                      sports: _sports,
+                      selected: _filterSport,
+                      sportIcon: _sportIcon,
+                      onSelect: (s) => setState(() => _filterSport = s),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // ── Court cards ─────────────────────────────────────────────────
+                  ..._buildCourtCards(),
+                ],
               ),
-              const SizedBox(height: 28),
-
-              // ── Courts header ───────────────────────────────────────────────
-              _buildCourtsHeader(),
-              const SizedBox(height: 14),
-
-              // ── Sport filter ────────────────────────────────────────────────
-              if (_sports.length > 1) ...[
-                _SportFilterRow(
-                  sports: _sports, selected: _filterSport,
-                  sportIcon: _sportIcon,
-                  onSelect: (s) => setState(() => _filterSport = s),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // ── Court cards ─────────────────────────────────────────────────
-              ..._buildCourtCards(),
-            ],
-          )),
-        ]),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCourtsHeader() => Row(children: [
-    Container(width: 4, height: 22, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2))),
-    const SizedBox(width: 10),
-    const Text('Available Courts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.3)),
-    const Spacer(),
-    Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: kPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-      child: Text(
-        '${_filtered.where((c) => c['available'] == true || c['isActive'] == true).length} open',
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kPrimary),
+  Widget _buildCourtsHeader() => Row(
+    children: [
+      Container(
+        width: 4,
+        height: 22,
+        decoration: BoxDecoration(
+          color: kPrimary,
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
-    ),
-  ]);
+      const SizedBox(width: 10),
+      const Text(
+        'Available Courts',
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: _ink,
+          letterSpacing: -0.3,
+        ),
+      ),
+      const Spacer(),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: kPrimary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          '${_filtered.where((c) => c['available'] == true || c['isActive'] == true).length} open',
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: kPrimary,
+          ),
+        ),
+      ),
+    ],
+  );
 
   List<Widget> _buildCourtCards() {
     final courts = _filtered;
@@ -375,7 +502,7 @@ class _CourtBookingPageState extends State<CourtBookingPage>
 
     return courts.map((c) {
       // ── Sport ────────────────────────────────────────────────────────────────
-      final sportStr  = (c['sport'] ?? c['sports'] ?? 'football').toString();
+      final sportStr = (c['sport'] ?? c['sports'] ?? 'football').toString();
       final sportType = _mapSport(sportStr);
       final sportColor = sportType.color;
 
@@ -387,43 +514,43 @@ class _CourtBookingPageState extends State<CourtBookingPage>
       final imageUrl = _courtImageUrl(c);
 
       // ── Price / capacity ─────────────────────────────────────────────────────
-      final price    = (c['pricePerHour'] ?? c['price'] ?? 0 as num).toDouble();
+      final price = (c['pricePerHour'] ?? c['price'] ?? 0 as num).toDouble();
       final capacity = (c['capacity'] ?? 0) as int;
 
       // ── CourtModel for navigation ────────────────────────────────────────────
       final courtModel = CourtModel(
-        id:           int.tryParse(c['id']?.toString() ?? '0') ?? 0,
-        name:         (c['name'] ?? c['courtName'] ?? '').toString(),
-        sport:        sportStr,
+        id: int.tryParse(c['id']?.toString() ?? '0') ?? 0,
+        name: (c['name'] ?? c['courtName'] ?? '').toString(),
+        sport: sportStr,
         pricePerHour: price,
-        capacity:     capacity,
-        isActive:     available,
-        venueId:      int.tryParse(widget.venue.id) ?? 0,
-        courtImgUrl:  imageUrl.isNotEmpty ? imageUrl : null,
+        capacity: capacity,
+        isActive: available,
+        venueId: int.tryParse(widget.venue.id) ?? 0,
+        courtImgUrl: imageUrl.isNotEmpty ? imageUrl : null,
       );
 
       // ── Old model for CourtDetailPage ─────────────────────────────────────────
       final oldModel = AppModels.CourtModel(
-        id:           courtModel.id.toString(),
-        name:         courtModel.name,
-        sport:        sportType,
+        id: courtModel.id.toString(),
+        name: courtModel.name,
+        sport: sportType,
         pricePerHour: price,
-        color:        sportColor,
-        imageUrl:     imageUrl,
-        isActive:     available,
+        color: sportColor,
+        imageUrl: imageUrl,
+        isActive: available,
       );
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: _CourtCard(
-          court:       courtModel,
-          courtRaw:    c,
-          venue:       widget.venue,
+          court: courtModel,
+          courtRaw: c,
+          venue: widget.venue,
           playerToken: widget.playerToken,
-          oldModel:    oldModel,
-          imageUrl:    imageUrl,
-          sportType:   sportType,
-          available:   available,
+          oldModel: oldModel,
+          imageUrl: imageUrl,
+          sportType: sportType,
+          available: available,
         ),
       );
     }).toList();
@@ -460,145 +587,293 @@ class _CourtCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: available
-          ? () => Navigator.push(context, _slideUp(CourtDetailPage(
-                court:       oldModel,
-                venue:       venue,
-                courtRaw:    courtRaw,
-                playerToken: playerToken,
-              )))
+          ? () => Navigator.push(
+              context,
+              _slideUp(
+                CourtDetailPage(
+                  court: oldModel,
+                  venue: venue,
+                  courtRaw: courtRaw,
+                  playerToken: playerToken,
+                ),
+              ),
+            )
           : null,
       child: Container(
         decoration: BoxDecoration(
           color: _white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: _cardShadow, blurRadius: 10, offset: const Offset(0, 3))],
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-          // ── Court image ────────────────────────────────────────────────────
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: SizedBox(
-              width: double.infinity,
-              height: 150,
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      // Show sport-colored shimmer while loading
-                      loadingBuilder: (_, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: sportColor.withOpacity(0.06),
-                          child: Center(child: SizedBox(
-                            width: 26, height: 26,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2, color: sportColor,
-                              value: progress.expectedTotalBytes != null
-                                  ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          )),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => _imgFallback(sportType, sportColor),
-                    )
-                  : _imgFallback(sportType, sportColor),
+          boxShadow: [
+            BoxShadow(
+              color: _cardShadow,
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
-          ),
-
-          // ── Card body ──────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-              // Name + availability badge
-              Row(children: [
-                Expanded(child: Text(court.name,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink))),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: (available ? _kGreen : _kRed).withOpacity(0.09),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: (available ? _kGreen : _kRed).withOpacity(0.25)),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 5, height: 5,
-                        decoration: BoxDecoration(color: available ? _kGreen : _kRed, shape: BoxShape.circle)),
-                    const SizedBox(width: 4),
-                    Text(available ? 'Available' : 'Full',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800,
-                            color: available ? _kGreen : _kRed)),
-                  ]),
-                ),
-              ]),
-              const SizedBox(height: 5),
-
-              // Sport
-              Row(children: [
-                Icon(sportType.icon, size: 12, color: sportColor),
-                const SizedBox(width: 5),
-                Text(sportType.label, style: TextStyle(fontSize: 12, color: sportColor, fontWeight: FontWeight.w600)),
-                const SizedBox(width: 12),
-                if (court.capacity > 0) ...[
-                  const Icon(Icons.people_outline_rounded, size: 12, color: _textMid),
-                  const SizedBox(width: 4),
-                  Text('${court.capacity} players', style: const TextStyle(fontSize: 11, color: _textMid)),
-                ],
-              ]),
-
-              // Amenities chips
-              if (venue.amenities.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(spacing: 5, runSpacing: 4,
-                  children: venue.amenities.take(3).map((a) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(color: const Color(0xFFF0F2F5), borderRadius: BorderRadius.circular(6)),
-                    child: Text(a, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: _textMid)),
-                  )).toList(),
-                ),
-              ],
-              const SizedBox(height: 12),
-
-              // Price + action
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('From', style: TextStyle(fontSize: 10, color: _textMid)),
-                  Text('${court.pricePerHour.toInt()} DT/hr',
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: kPrimary)),
-                ]),
-                available
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                        decoration: BoxDecoration(
-                          color: kPrimary, borderRadius: BorderRadius.circular(13),
-                          boxShadow: [BoxShadow(color: kPrimary.withOpacity(0.28), blurRadius: 8, offset: const Offset(0, 3))],
-                        ),
-                        child: const Text('Book Now', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Court image ────────────────────────────────────────────────────
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 150,
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        // Show sport-colored shimmer while loading
+                        loadingBuilder: (_, child, progress) {
+                          if (progress == null) return child;
+                          return Container(
+                            color: sportColor.withOpacity(0.06),
+                            child: Center(
+                              child: SizedBox(
+                                width: 26,
+                                height: 26,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: sportColor,
+                                  value: progress.expectedTotalBytes != null
+                                      ? progress.cumulativeBytesLoaded /
+                                            progress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (_, _, _) =>
+                            _imgFallback(sportType, sportColor),
                       )
-                    : Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                        decoration: BoxDecoration(color: const Color(0xFFEEEFF2), borderRadius: BorderRadius.circular(13)),
-                        child: const Text('Unavailable', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _textMid)),
+                    : _imgFallback(sportType, sportColor),
+              ),
+            ),
+
+            // ── Card body ──────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name + availability badge
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          court.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: _ink,
+                          ),
+                        ),
                       ),
-              ]),
-            ]),
-          ),
-        ]),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: (available ? _kGreen : _kRed).withOpacity(
+                            0.09,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: (available ? _kGreen : _kRed).withOpacity(
+                              0.25,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: available ? _kGreen : _kRed,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              available ? 'Available' : 'Full',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: available ? _kGreen : _kRed,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+
+                  // Sport
+                  Row(
+                    children: [
+                      Icon(sportType.icon, size: 12, color: sportColor),
+                      const SizedBox(width: 5),
+                      Text(
+                        sportType.label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: sportColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      if (court.capacity > 0) ...[
+                        const Icon(
+                          Icons.people_outline_rounded,
+                          size: 12,
+                          color: _textMid,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${court.capacity} players',
+                          style: const TextStyle(fontSize: 11, color: _textMid),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  // Amenities chips
+                  if (venue.amenities.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 5,
+                      runSpacing: 4,
+                      children: venue.amenities
+                          .take(3)
+                          .map(
+                            (a) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F2F5),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                a,
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w500,
+                                  color: _textMid,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+
+                  // Price + action
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'From',
+                            style: TextStyle(fontSize: 10, color: _textMid),
+                          ),
+                          Text(
+                            '${court.pricePerHour.toInt()} DT/hr',
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              color: kPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      available
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 11,
+                              ),
+                              decoration: BoxDecoration(
+                                color: kPrimary,
+                                borderRadius: BorderRadius.circular(13),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: kPrimary.withOpacity(0.28),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: const Text(
+                                'Book Now',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 11,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEEFF2),
+                                borderRadius: BorderRadius.circular(13),
+                              ),
+                              child: const Text(
+                                'Unavailable',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: _textMid,
+                                ),
+                              ),
+                            ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _imgFallback(SportType st, Color color) => Container(
     color: color.withOpacity(0.07),
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(st.icon, size: 44, color: color.withOpacity(0.45)),
-      const SizedBox(height: 6),
-      Text(st.label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color.withOpacity(0.6))),
-    ]),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(st.icon, size: 44, color: color.withOpacity(0.45)),
+        const SizedBox(height: 6),
+        Text(
+          st.label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: color.withOpacity(0.6),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -616,76 +891,158 @@ class _RatingCard extends StatelessWidget {
   final VoidCallback? onDeleteTap;
 
   const _RatingCard({
-    required this.avgRating, required this.totalRatings, required this.userRating,
-    required this.isLoading, required this.isSubmitting,
-    required this.onRateTap, this.onDeleteTap,
+    required this.avgRating,
+    required this.totalRatings,
+    required this.userRating,
+    required this.isLoading,
+    required this.isSubmitting,
+    required this.onRateTap,
+    this.onDeleteTap,
   });
 
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: _white, borderRadius: BorderRadius.circular(16),
+      color: _white,
+      borderRadius: BorderRadius.circular(16),
       border: Border.all(color: _border),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
     ),
     child: isLoading
-        ? const Center(child: SizedBox(height: 40, width: 40, child: CircularProgressIndicator(strokeWidth: 2)))
-        : Column(children: [
-            Row(children: [
-              Container(
-                width: 60, height: 60,
-                decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(30)),
-                child: Center(child: Text(avgRating.toStringAsFixed(1),
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimary))),
-              ),
-              const SizedBox(width: 16),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                StarRating(rating: avgRating, size: 16),
-                const SizedBox(height: 4),
-                Text('$totalRatings ${totalRatings == 1 ? 'rating' : 'ratings'}',
-                    style: const TextStyle(fontSize: 12, color: _textMid)),
-              ])),
-            ]),
-            const SizedBox(height: 16),
-            Divider(color: _border),
-            const SizedBox(height: 12),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(userRating != null ? 'Your rating' : 'Rate this venue',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _ink)),
-              Row(children: [
-                if (userRating != null) ...[
-                  StarRating(rating: userRating!, size: 18, interactive: false),
-                  const SizedBox(width: 8),
-                  Text(userRating!.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kPrimary)),
-                  if (onDeleteTap != null) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: isSubmitting ? null : onDeleteTap,
-                      child: Icon(Icons.delete_outline_rounded, size: 18,
-                          color: isSubmitting ? _textLight : _kRed),
+        ? const Center(
+            child: SizedBox(
+              height: 40,
+              width: 40,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        : Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: kPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                  ],
-                ],
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: isSubmitting ? null : onRateTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: userRating != null ? Colors.amber.shade600 : kPrimary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    child: Center(
+                      child: Text(
+                        avgRating.toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: kPrimary,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Text(userRating != null ? 'Edit' : 'Rate',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        StarRating(rating: avgRating, size: 16),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$totalRatings ${totalRatings == 1 ? 'rating' : 'ratings'}',
+                          style: const TextStyle(fontSize: 12, color: _textMid),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Divider(color: _border),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    userRating != null ? 'Your rating' : 'Rate this venue',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _ink,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      if (userRating != null) ...[
+                        StarRating(
+                          rating: userRating!,
+                          size: 18,
+                          interactive: false,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          userRating!.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: kPrimary,
+                          ),
+                        ),
+                        if (onDeleteTap != null) ...[
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: isSubmitting ? null : onDeleteTap,
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                              color: isSubmitting ? _textLight : _kRed,
+                            ),
+                          ),
+                        ],
+                      ],
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: isSubmitting ? null : onRateTap,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: userRating != null
+                              ? Colors.amber.shade600
+                              : kPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: Text(
+                          userRating != null ? 'Edit' : 'Rate',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (isSubmitting)
+                const Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
-              ]),
-            ]),
-            if (isSubmitting)
-              const Padding(padding: EdgeInsets.only(top: 12),
-                  child: SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))),
-          ]),
+            ],
+          ),
   );
 }
 
@@ -695,15 +1052,29 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.title, this.icon);
 
   @override
-  Widget build(BuildContext context) => Row(children: [
-    Container(
-      width: 32, height: 32,
-      decoration: BoxDecoration(color: kPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(9)),
-      child: Icon(icon, size: 14, color: kPrimary),
-    ),
-    const SizedBox(width: 10),
-    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.2)),
-  ]);
+  Widget build(BuildContext context) => Row(
+    children: [
+      Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: kPrimary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Icon(icon, size: 14, color: kPrimary),
+      ),
+      const SizedBox(width: 10),
+      Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+          color: _ink,
+          letterSpacing: -0.2,
+        ),
+      ),
+    ],
+  );
 }
 
 class _VenueHero extends StatelessWidget {
@@ -713,67 +1084,165 @@ class _VenueHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 260, width: double.infinity,
-    child: Stack(fit: StackFit.expand, children: [
-      FadeTransition(
-        opacity: fadeAnim,
-        child: venue.image.isNotEmpty
-            ? Image.network(venue.image, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _fallback())
-            : _fallback(),
-      ),
-      Container(decoration: const BoxDecoration(gradient: LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0x22000000), Color(0xEE0A0E1A)], stops: [0.3, 1.0],
-      ))),
-      Positioned(top: 0, left: 0, right: 0,
-        child: SafeArea(bottom: false, child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Row(children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: 38, height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35), shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                ),
-                child: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 15),
+    height: 260,
+    width: double.infinity,
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        FadeTransition(
+          opacity: fadeAnim,
+          child: venue.image.isNotEmpty
+              ? Image.network(
+                  venue.image,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _fallback(),
+                )
+              : _fallback(),
+        ),
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x22000000), Color(0xEE0A0E1A)],
+              stops: [0.3, 1.0],
+            ),
+          ),
+        ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.35),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_rounded,
+                        color: Colors.white,
+                        size: 15,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ]),
-        )),
-      ),
-      Positioned(bottom: 18, left: 20, right: 20,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          if (venue.sports.isNotEmpty)
-            Wrap(spacing: 6, children: venue.sports.take(3).map((s) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: kPrimary.withOpacity(0.85), borderRadius: BorderRadius.circular(20)),
-              child: Text(s, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.5)),
-            )).toList()),
-          const SizedBox(height: 8),
-          Text(venue.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5, height: 1.1)),
-          const SizedBox(height: 4),
-          Row(children: [
-            const Icon(Icons.location_on_rounded, size: 12, color: Colors.white70),
-            const SizedBox(width: 4),
-            Expanded(child: Text(venue.location, style: const TextStyle(fontSize: 12, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 8),
-            const Icon(Icons.schedule_rounded, size: 12, color: Colors.white70),
-            const SizedBox(width: 4),
-            Text('Until ${venue.openUntil}', style: const TextStyle(fontSize: 12, color: Colors.white70)),
-          ]),
-        ])),
-      Positioned(top: 80, right: 16, child: _VenueStatusBadge(venue.available)),
-    ]),
+          ),
+        ),
+        Positioned(
+          bottom: 18,
+          left: 20,
+          right: 20,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (venue.sports.isNotEmpty)
+                Wrap(
+                  spacing: 6,
+                  children: venue.sports
+                      .take(3)
+                      .map(
+                        (s) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: kPrimary.withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            s,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              const SizedBox(height: 8),
+              Text(
+                venue.name,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    size: 12,
+                    color: Colors.white70,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      venue.location,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.schedule_rounded,
+                    size: 12,
+                    color: Colors.white70,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Until ${venue.openUntil}',
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          top: 80,
+          right: 16,
+          child: _VenueStatusBadge(venue.available),
+        ),
+      ],
+    ),
   );
 
   Widget _fallback() => Container(
-    decoration: BoxDecoration(gradient: LinearGradient(
-      colors: [kPrimary.withOpacity(0.6), kPrimary],
-      begin: Alignment.topLeft, end: Alignment.bottomRight,
-    )),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [kPrimary.withOpacity(0.6), kPrimary],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
     child: const Icon(Icons.stadium_rounded, size: 56, color: Colors.white24),
   );
 }
@@ -783,25 +1252,53 @@ class _SportFilterRow extends StatelessWidget {
   final String? selected;
   final IconData Function(String) sportIcon;
   final ValueChanged<String?> onSelect;
-  const _SportFilterRow({required this.sports, required this.selected, required this.sportIcon, required this.onSelect});
+  const _SportFilterRow({
+    required this.sports,
+    required this.selected,
+    required this.sportIcon,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) => SizedBox(
     height: 36,
-    child: ListView(scrollDirection: Axis.horizontal, children: [
-      _SportChip(label: 'All', icon: Icons.grid_view_rounded, selected: selected == null, onTap: () => onSelect(null)),
-      const SizedBox(width: 7),
-      ...sports.map((s) => Padding(
-        padding: const EdgeInsets.only(right: 7),
-        child: _SportChip(label: s, icon: sportIcon(s), selected: selected == s, onTap: () => onSelect(s)),
-      )),
-    ]),
+    child: ListView(
+      scrollDirection: Axis.horizontal,
+      children: [
+        _SportChip(
+          label: 'All',
+          icon: Icons.grid_view_rounded,
+          selected: selected == null,
+          onTap: () => onSelect(null),
+        ),
+        const SizedBox(width: 7),
+        ...sports.map(
+          (s) => Padding(
+            padding: const EdgeInsets.only(right: 7),
+            child: _SportChip(
+              label: s,
+              icon: sportIcon(s),
+              selected: selected == s,
+              onTap: () => onSelect(s),
+            ),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
 class _SportChip extends StatelessWidget {
-  final String label; final IconData icon; final bool selected; final VoidCallback onTap;
-  const _SportChip({required this.label, required this.icon, required this.selected, required this.onTap});
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _SportChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) => GestureDetector(
@@ -814,14 +1311,30 @@ class _SportChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: selected ? kPrimary : _border),
         boxShadow: selected
-            ? [BoxShadow(color: kPrimary.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 2))]
+            ? [
+                BoxShadow(
+                  color: kPrimary.withOpacity(0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
             : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: selected ? Colors.white : _textMid),
-        const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: selected ? Colors.white : _textMid)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: selected ? Colors.white : _textMid),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : _textMid,
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -836,13 +1349,36 @@ class _VenueStatusBadge extends StatelessWidget {
     decoration: BoxDecoration(
       color: isOpen ? _kGreen : _kRed,
       borderRadius: BorderRadius.circular(20),
-      boxShadow: [BoxShadow(color: (isOpen ? _kGreen : _kRed).withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 3))],
+      boxShadow: [
+        BoxShadow(
+          color: (isOpen ? _kGreen : _kRed).withOpacity(0.4),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
+        ),
+      ],
     ),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-      const SizedBox(width: 6),
-      Text(isOpen ? 'Open Now' : 'Closed', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
-    ]),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          isOpen ? 'Open Now' : 'Closed',
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -853,38 +1389,51 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(vertical: 48),
-    child: Column(children: [
-      Container(
-        width: 64, height: 64,
-        decoration: BoxDecoration(color: _textLight.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-        child: Icon(Icons.sports_rounded, size: 28, color: _textLight.withOpacity(0.5)),
-      ),
-      const SizedBox(height: 14),
-      Text(sport != null ? 'No $sport courts available' : 'No courts listed',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _ink)),
-      const SizedBox(height: 4),
-      const Text('Try a different sport filter', style: TextStyle(fontSize: 12, color: _textMid)),
-    ]),
+    child: Column(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: _textLight.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Icon(
+            Icons.sports_rounded,
+            size: 28,
+            color: _textLight.withOpacity(0.5),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          sport != null ? 'No $sport courts available' : 'No courts listed',
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: _ink,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Try a different sport filter',
+          style: TextStyle(fontSize: 12, color: _textMid),
+        ),
+      ],
+    ),
   );
 }
 
 Route _slideUp(Widget page) => PageRouteBuilder(
-  pageBuilder: (_, __, ___) => page,
-  transitionsBuilder: (_, a, __, child) => SlideTransition(
-    position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+  pageBuilder: (_, _, _) => page,
+  transitionsBuilder: (_, a, _, child) => SlideTransition(
+    position: Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
     child: child,
   ),
   transitionDuration: const Duration(milliseconds: 340),
 );
-
-
-
-
-
-
-
-
 
 /*// Views/Player/court_booking_page.dart
 // Redesigned: Added venue description, simplified manager section,
@@ -971,7 +1520,7 @@ class _CourtBookingPageState extends State<CourtBookingPage>
         });
       }
     } catch (e) {
-      print('Error loading rating: $e');
+      AppLogger.error('Error loading rating: $e');
     } finally {
       setState(() {
         _isLoadingRating = false;

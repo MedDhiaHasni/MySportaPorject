@@ -52,7 +52,7 @@ class AuthHeader extends StatelessWidget {
         'assets/sportalogowhite.png',
         width: 60, // Reduced from 65 to 60
         height: 60,
-        errorBuilder: (_, __, ___) =>
+        errorBuilder: (_, _, _) =>
             Icon(Icons.sports_tennis_rounded, color: Colors.white, size: 50),
       ),
       const SizedBox(height: 8), // Reduced from 12 to 8

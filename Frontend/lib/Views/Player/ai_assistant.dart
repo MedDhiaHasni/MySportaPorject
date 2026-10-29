@@ -8,6 +8,7 @@ import 'package:sporta/Core/Constants/api_constants.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const _c900 = Color(0xFF001A1B);
@@ -35,7 +36,7 @@ class _AiAssistantState extends State<AiAssistant>
   // Use FlutterSecureStorage — same store the rest of the app writes to
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
-  List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
   bool _isLoading = false;
   bool _isTyping = false;
   String? _sessionId;
@@ -50,15 +51,43 @@ class _AiAssistantState extends State<AiAssistant>
   late Animation<double> _fabAnimation;
 
   final List<SuggestionChip> _suggestions = [
-    SuggestionChip(icon: '⚽', label: 'Football courts', query: 'Find football courts near me'),
-    SuggestionChip(icon: '🎾', label: 'Padel nearby', query: 'Find padel courts'),
-    SuggestionChip(icon: '📅', label: 'Availability', query: 'Check court availability for tomorrow'),
-    SuggestionChip(icon: '💰', label: 'Prices', query: 'What are the prices for football courts?'),
-    SuggestionChip(icon: '👥', label: 'Find teammates', query: 'I need teammates for a match'),
+    SuggestionChip(
+      icon: '⚽',
+      label: 'Football courts',
+      query: 'Find football courts near me',
+    ),
+    SuggestionChip(
+      icon: '🎾',
+      label: 'Padel nearby',
+      query: 'Find padel courts',
+    ),
+    SuggestionChip(
+      icon: '📅',
+      label: 'Availability',
+      query: 'Check court availability for tomorrow',
+    ),
+    SuggestionChip(
+      icon: '💰',
+      label: 'Prices',
+      query: 'What are the prices for football courts?',
+    ),
+    SuggestionChip(
+      icon: '👥',
+      label: 'Find teammates',
+      query: 'I need teammates for a match',
+    ),
     SuggestionChip(icon: '🏆', label: 'My bookings', query: 'Show my bookings'),
     SuggestionChip(icon: '📍', label: 'Near me', query: 'Venues near me'),
-    SuggestionChip(icon: '⭐', label: 'Best rated', query: 'Recommend the best venues'),
-    SuggestionChip(icon: '🎯', label: 'Book a court', query: 'Book a football court for tomorrow at 7 PM'),
+    SuggestionChip(
+      icon: '⭐',
+      label: 'Best rated',
+      query: 'Recommend the best venues',
+    ),
+    SuggestionChip(
+      icon: '🎯',
+      label: 'Book a court',
+      query: 'Book a football court for tomorrow at 7 PM',
+    ),
   ];
 
   @override
@@ -96,8 +125,10 @@ class _AiAssistantState extends State<AiAssistant>
       CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut),
     );
 
-    _fabAnimation =
-        CurvedAnimation(parent: _fabController, curve: Curves.elasticOut);
+    _fabAnimation = CurvedAnimation(
+      parent: _fabController,
+      curve: Curves.elasticOut,
+    );
 
     _messageController.addListener(() {
       if (_messageController.text.isNotEmpty) {
@@ -126,8 +157,6 @@ class _AiAssistantState extends State<AiAssistant>
       await _secureStorage.write(key: 'ai_session_id', value: _sessionId!);
     }
 
-    debugPrint('[AiAssistant] token=${_authToken != null ? "present" : "null"}, session=$_sessionId');
-
     if (_authToken != null) await _loadHistory();
   }
 
@@ -148,39 +177,46 @@ class _AiAssistantState extends State<AiAssistant>
           setState(() {
             _messages.clear();
             for (final entry in history) {
-              _messages.add(ChatMessage(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                content: entry['question'] as String? ?? '',
-                isUser: true,
-                timestamp: DateTime.parse(entry['createdAt'] as String),
-              ));
-              _messages.add(ChatMessage(
-                id: '${DateTime.now().millisecondsSinceEpoch}_r',
-                content: entry['answer'] as String? ?? '',
-                isUser: false,
-                timestamp: DateTime.parse(entry['createdAt'] as String),
-                contextType: entry['contextType'] as String?,
-              ));
+              _messages.add(
+                ChatMessage(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  content: entry['question'] as String? ?? '',
+                  isUser: true,
+                  timestamp: DateTime.parse(entry['createdAt'] as String),
+                ),
+              );
+              _messages.add(
+                ChatMessage(
+                  id: '${DateTime.now().millisecondsSinceEpoch}_r',
+                  content: entry['answer'] as String? ?? '',
+                  isUser: false,
+                  timestamp: DateTime.parse(entry['createdAt'] as String),
+                  contextType: entry['contextType'] as String?,
+                ),
+              );
             }
           });
           _scrollToBottom();
         }
       }
     } catch (e) {
-      debugPrint('[AiAssistant] Load history error: $e');
+      AppLogger.error('[AiAssistant] Load history error: $e');
     }
   }
 
   void _addWelcomeMessage() {
     if (_messages.isEmpty) {
-      _messages.add(ChatMessage(
-        id: 'welcome',
-        content: 'Hey there! 👋 I\'m **SportaAI** — your personal sports assistant.\n\n'
-            'I can help you find venues, check availability, compare prices, book courts, and connect with teammates.\n\n'
-            'What\'s on your agenda today?',
-        isUser: false,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(
+        ChatMessage(
+          id: 'welcome',
+          content:
+              'Hey there! 👋 I\'m **SportaAI** — your personal sports assistant.\n\n'
+              'I can help you find venues, check availability, compare prices, book courts, and connect with teammates.\n\n'
+              'What\'s on your agenda today?',
+          isUser: false,
+          timestamp: DateTime.now(),
+        ),
+      );
     }
   }
 
@@ -191,8 +227,8 @@ class _AiAssistantState extends State<AiAssistant>
     // Refresh token just before sending — handles the case where the widget
     // was built before _initSession finished
     if (_authToken == null || _authToken!.isEmpty) {
-      _authToken = widget.playerToken ?? await _secureStorage.read(key: 'jwt_token');
-      debugPrint('[AiAssistant] token refreshed before send: ${_authToken != null ? "present" : "null"}');
+      _authToken =
+          widget.playerToken ?? await _secureStorage.read(key: 'jwt_token');
     }
 
     final userMessage = ChatMessage(
@@ -219,39 +255,46 @@ class _AiAssistantState extends State<AiAssistant>
         setState(() {
           _isTyping = false;
           _isLoading = false;
-          _messages.add(ChatMessage(
-            id: '${DateTime.now().millisecondsSinceEpoch}_r',
-            content: response.reply,
-            isUser: false,
-            timestamp: DateTime.now(),
-            intent: response.intent,
-            contextType: response.contextType,
-            bookingData: response.bookingData,
-          ));
+          _messages.add(
+            ChatMessage(
+              id: '${DateTime.now().millisecondsSinceEpoch}_r',
+              content: response.reply,
+              isUser: false,
+              timestamp: DateTime.now(),
+              intent: response.intent,
+              contextType: response.contextType,
+              bookingData: response.bookingData,
+            ),
+          );
         });
         _scrollToBottom();
 
-        if (response.contextType == 'booking_created' && response.bookingData != null) {
+        if (response.contextType == 'booking_created' &&
+            response.bookingData != null) {
           _showBookingSuccessDialog(response.bookingData!);
-        } else if (response.contextType == 'booking_cancelled' && response.bookingData != null) {
+        } else if (response.contextType == 'booking_cancelled' &&
+            response.bookingData != null) {
           _showBookingCancelledDialog(response.bookingData!);
         } else if (response.contextType == 'auth_required') {
           _showLoginRequiredDialog();
         }
       }
     } catch (e) {
-      debugPrint('[AiAssistant] send error: $e');
+      AppLogger.error('[AiAssistant] send error: $e');
       if (mounted) {
         setState(() {
           _isTyping = false;
           _isLoading = false;
-          _messages.add(ChatMessage(
-            id: '${DateTime.now().millisecondsSinceEpoch}_err',
-            content: '❌ Connection issue. Please check your network and try again.',
-            isUser: false,
-            timestamp: DateTime.now(),
-            isError: true,
-          ));
+          _messages.add(
+            ChatMessage(
+              id: '${DateTime.now().millisecondsSinceEpoch}_err',
+              content:
+                  '❌ Connection issue. Please check your network and try again.',
+              isUser: false,
+              timestamp: DateTime.now(),
+              isError: true,
+            ),
+          );
         });
         _scrollToBottom();
       }
@@ -267,13 +310,8 @@ class _AiAssistantState extends State<AiAssistant>
         if (_authToken != null && _authToken!.isNotEmpty)
           'Authorization': 'Bearer $_authToken',
       },
-      body: json.encode({
-        'question': question,
-        'sessionId': _sessionId,
-      }),
+      body: json.encode({'question': question, 'sessionId': _sessionId}),
     );
-
-    debugPrint('[AiAssistant] POST ${ApiConstants.aiChat} → ${response.statusCode}');
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body) as Map<String, dynamic>;
@@ -292,12 +330,13 @@ class _AiAssistantState extends State<AiAssistant>
 
       // If the backend only set intent but not contextType for bookings, derive it
       final intent = data['intent'] as String? ?? 'general';
-      final resolvedContextType = contextType ??
+      final resolvedContextType =
+          contextType ??
           (intent == 'create_booking' && bookingData != null
               ? 'booking_created'
               : intent == 'cancel_booking' && bookingData != null
-                  ? 'booking_cancelled'
-                  : null);
+              ? 'booking_cancelled'
+              : null);
 
       return AIResponse(
         reply: data['reply'] as String? ?? 'Could not generate a response.',
@@ -340,12 +379,20 @@ class _AiAssistantState extends State<AiAssistant>
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Icon(Icons.check_rounded, color: Colors.white, size: 32),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Booking Created!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _c900),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: _c900,
+                ),
               ),
               const SizedBox(height: 16),
               Container(
@@ -356,20 +403,32 @@ class _AiAssistantState extends State<AiAssistant>
                 ),
                 child: Column(
                   children: [
-                    _BookingDetailRow(label: 'Reference', value: booking['reference']?.toString() ?? 'N/A'),
+                    _BookingDetailRow(
+                      label: 'Reference',
+                      value: booking['reference']?.toString() ?? 'N/A',
+                    ),
                     const SizedBox(height: 8),
-                    _BookingDetailRow(label: 'Court', value: booking['court']?.toString() ?? 'N/A'),
+                    _BookingDetailRow(
+                      label: 'Court',
+                      value: booking['court']?.toString() ?? 'N/A',
+                    ),
                     const SizedBox(height: 8),
-                    _BookingDetailRow(label: 'Venue', value: booking['venue']?.toString() ?? 'N/A'),
+                    _BookingDetailRow(
+                      label: 'Venue',
+                      value: booking['venue']?.toString() ?? 'N/A',
+                    ),
                     const SizedBox(height: 8),
                     _BookingDetailRow(
                       label: 'Date',
-                      value: (booking['date']?.toString() ?? 'N/A').split('T')[0],
+                      value: (booking['date']?.toString() ?? 'N/A').split(
+                        'T',
+                      )[0],
                     ),
                     const SizedBox(height: 8),
                     _BookingDetailRow(
                       label: 'Time',
-                      value: '${booking['startTime'] ?? ''} - ${booking['endTime'] ?? ''}',
+                      value:
+                          '${booking['startTime'] ?? ''} - ${booking['endTime'] ?? ''}',
                     ),
                     const SizedBox(height: 8),
                     _BookingDetailRow(
@@ -387,7 +446,8 @@ class _AiAssistantState extends State<AiAssistant>
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
                       style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
                       child: const Text('Close'),
                     ),
                   ),
@@ -398,10 +458,13 @@ class _AiAssistantState extends State<AiAssistant>
                         backgroundColor: _c400,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('View My Bookings',
-                          style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        'View My Bookings',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -427,16 +490,24 @@ class _AiAssistantState extends State<AiAssistant>
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                    shape: BoxShape.circle, color: Colors.red.shade50),
-                child: const Icon(Icons.check_circle_outline_rounded,
-                    color: Colors.red, size: 32),
+                  shape: BoxShape.circle,
+                  color: Colors.red.shade50,
+                ),
+                child: const Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: Colors.red,
+                  size: 32,
+                ),
               ),
               const SizedBox(height: 16),
-              const Text('Booking Cancelled',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: _c900)),
+              const Text(
+                'Booking Cancelled',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: _c900,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(
                 'Your booking ${booking['reference'] ?? ''} has been cancelled.',
@@ -449,12 +520,14 @@ class _AiAssistantState extends State<AiAssistant>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _c400,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 40, vertical: 12),
+                    horizontal: 40,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text('OK',
-                    style: TextStyle(color: Colors.white)),
+                child: const Text('OK', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -477,16 +550,24 @@ class _AiAssistantState extends State<AiAssistant>
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                    shape: BoxShape.circle, color: Colors.amber.shade50),
-                child: const Icon(Icons.lock_outline_rounded,
-                    color: Colors.amber, size: 32),
+                  shape: BoxShape.circle,
+                  color: Colors.amber.shade50,
+                ),
+                child: const Icon(
+                  Icons.lock_outline_rounded,
+                  color: Colors.amber,
+                  size: 32,
+                ),
               ),
               const SizedBox(height: 16),
-              const Text('Login Required',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: _c900)),
+              const Text(
+                'Login Required',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: _c900,
+                ),
+              ),
               const SizedBox(height: 8),
               const Text(
                 'Please log in to make a booking.',
@@ -507,13 +588,15 @@ class _AiAssistantState extends State<AiAssistant>
                       onPressed: () => Navigator.pop(ctx),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _c400,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('Login',
-                          style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        'Login',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -546,7 +629,7 @@ class _AiAssistantState extends State<AiAssistant>
           },
         );
       } catch (e) {
-        debugPrint('[AiAssistant] Clear history error: $e');
+        AppLogger.error('[AiAssistant] Clear history error: $e');
       }
       setState(() {
         _messages.clear();
@@ -612,8 +695,10 @@ class _AiAssistantState extends State<AiAssistant>
                 children: [
                   AnimatedBuilder(
                     animation: _pulseAnimation,
-                    builder: (ctx, child) =>
-                        Transform.scale(scale: _pulseAnimation.value, child: child),
+                    builder: (ctx, child) => Transform.scale(
+                      scale: _pulseAnimation.value,
+                      child: child,
+                    ),
                     child: Container(
                       width: 52,
                       height: 52,
@@ -626,13 +711,15 @@ class _AiAssistantState extends State<AiAssistant>
                         ),
                         boxShadow: [
                           BoxShadow(
-                              color: _cAccent.withOpacity(0.35),
-                              blurRadius: 18,
-                              spreadRadius: 2),
+                            color: _cAccent.withOpacity(0.35),
+                            blurRadius: 18,
+                            spreadRadius: 2,
+                          ),
                         ],
                       ),
                       child: const Center(
-                          child: Text('🤖', style: TextStyle(fontSize: 26))),
+                        child: Text('🤖', style: TextStyle(fontSize: 26)),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -662,9 +749,10 @@ class _AiAssistantState extends State<AiAssistant>
                             Text(
                               'Online · Ready to help',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white.withOpacity(0.65),
-                                  letterSpacing: 0.2),
+                                fontSize: 12,
+                                color: Colors.white.withOpacity(0.65),
+                                letterSpacing: 0.2,
+                              ),
                             ),
                           ],
                         ),
@@ -678,12 +766,16 @@ class _AiAssistantState extends State<AiAssistant>
                       height: 42,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
-                        border:
-                            Border.all(color: Colors.white.withOpacity(0.15)),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.15),
+                        ),
                         color: Colors.white.withOpacity(0.07),
                       ),
-                      child: const Icon(Icons.autorenew_rounded,
-                          color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.autorenew_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -724,8 +816,7 @@ class _AiAssistantState extends State<AiAssistant>
           _AIAvatar(size: 32),
           const SizedBox(width: 10),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
               color: _cCard,
               borderRadius: const BorderRadius.only(
@@ -736,9 +827,10 @@ class _AiAssistantState extends State<AiAssistant>
               ),
               boxShadow: [
                 BoxShadow(
-                    color: _c800.withOpacity(0.07),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4)),
+                  color: _c800.withOpacity(0.07),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
             child: Row(
@@ -746,9 +838,8 @@ class _AiAssistantState extends State<AiAssistant>
               children: List.generate(3, (idx) {
                 return AnimatedBuilder(
                   animation: _shimmerController,
-                  builder: (_, __) {
-                    final phase =
-                        (_shimmerController.value + idx * 0.2) % 1.0;
+                  builder: (_, _) {
+                    final phase = (_shimmerController.value + idx * 0.2) % 1.0;
                     final scale = 0.7 + 0.3 * math.sin(phase * math.pi);
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -770,8 +861,7 @@ class _AiAssistantState extends State<AiAssistant>
   }
 
   Widget _buildSuggestions() {
-    final show =
-        _messages.isNotEmpty && !_isLoading && !_messages.last.isUser;
+    final show = _messages.isNotEmpty && !_isLoading && !_messages.last.isUser;
     if (!show) return const SizedBox.shrink();
 
     return SizedBox(
@@ -780,7 +870,7 @@ class _AiAssistantState extends State<AiAssistant>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: _suggestions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, idx) {
           final s = _suggestions[idx];
           return GestureDetector(
@@ -789,18 +879,17 @@ class _AiAssistantState extends State<AiAssistant>
               _sendMessage(s.query);
             },
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: _cCard,
                 borderRadius: BorderRadius.circular(30),
-                border:
-                    Border.all(color: _c400.withOpacity(0.3), width: 1),
+                border: Border.all(color: _c400.withOpacity(0.3), width: 1),
                 boxShadow: [
                   BoxShadow(
-                      color: _c800.withOpacity(0.06),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2)),
+                    color: _c800.withOpacity(0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Row(
@@ -808,11 +897,14 @@ class _AiAssistantState extends State<AiAssistant>
                 children: [
                   Text(s.icon, style: const TextStyle(fontSize: 13)),
                   const SizedBox(width: 6),
-                  Text(s.label,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _c600)),
+                  Text(
+                    s.label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _c600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -842,8 +934,7 @@ class _AiAssistantState extends State<AiAssistant>
         ],
       ),
       child: Padding(
-        padding:
-            EdgeInsets.fromLTRB(16, 14, 16, bottomPad + 14),
+        padding: EdgeInsets.fromLTRB(16, 14, 16, bottomPad + 14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -868,17 +959,20 @@ class _AiAssistantState extends State<AiAssistant>
                   minLines: 1,
                   maxLines: 5,
                   style: const TextStyle(
-                      fontSize: 15, color: _c900, height: 1.4),
+                    fontSize: 15,
+                    color: _c900,
+                    height: 1.4,
+                  ),
                   textCapitalization: TextCapitalization.sentences,
-                  onSubmitted: (_) =>
-                      _sendMessage(_messageController.text),
+                  onSubmitted: (_) => _sendMessage(_messageController.text),
                   decoration: InputDecoration(
                     hintText: 'Ask Sporta AI anything…',
                     hintStyle: TextStyle(
-                        color: Colors.grey.shade400, fontSize: 14),
+                      color: Colors.grey.shade400,
+                      fontSize: 14,
+                    ),
                     border: InputBorder.none,
-                    contentPadding:
-                        const EdgeInsets.fromLTRB(18, 12, 10, 12),
+                    contentPadding: const EdgeInsets.fromLTRB(18, 12, 10, 12),
                   ),
                 ),
               ),
@@ -895,8 +989,7 @@ class _AiAssistantState extends State<AiAssistant>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: _isLoading
-                      ? const LinearGradient(
-                          colors: [Colors.grey, Colors.grey])
+                      ? const LinearGradient(colors: [Colors.grey, Colors.grey])
                       : const LinearGradient(
                           colors: [_c800, _c400],
                           begin: Alignment.topLeft,
@@ -905,19 +998,25 @@ class _AiAssistantState extends State<AiAssistant>
                   boxShadow: [
                     if (!_isLoading)
                       BoxShadow(
-                          color: _c400.withOpacity(0.4),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4)),
+                        color: _c400.withOpacity(0.4),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
                   ],
                 ),
                 child: _isLoading
                     ? const Padding(
                         padding: EdgeInsets.all(14),
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : const Icon(Icons.arrow_upward_rounded,
-                        color: Colors.white, size: 22),
+                    : const Icon(
+                        Icons.arrow_upward_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
               ),
             ),
           ],
@@ -944,17 +1043,22 @@ class _BookingDetailRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey)),
-        Text(value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: isPrice ? _c400 : _c900,
-            )),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: isPrice ? _c400 : _c900,
+          ),
+        ),
       ],
     );
   }
@@ -965,8 +1069,7 @@ class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final Animation<double> shimmerAnimation;
 
-  const _MessageBubble(
-      {required this.message, required this.shimmerAnimation});
+  const _MessageBubble({required this.message, required this.shimmerAnimation});
 
   @override
   Widget build(BuildContext context) {
@@ -976,8 +1079,9 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[_AIAvatar(size: 32), const SizedBox(width: 10)],
@@ -993,10 +1097,12 @@ class _MessageBubble extends StatelessWidget {
                 ],
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   constraints: BoxConstraints(
-                      maxWidth:
-                          MediaQuery.of(context).size.width * 0.74),
+                    maxWidth: MediaQuery.of(context).size.width * 0.74,
+                  ),
                   decoration: BoxDecoration(
                     gradient: isUser
                         ? const LinearGradient(
@@ -1007,9 +1113,7 @@ class _MessageBubble extends StatelessWidget {
                         : null,
                     color: isUser
                         ? null
-                        : (isError
-                            ? const Color(0xFFFFF1F1)
-                            : _cCard),
+                        : (isError ? const Color(0xFFFFF1F1) : _cCard),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(20),
                       topRight: const Radius.circular(20),
@@ -1018,8 +1122,9 @@ class _MessageBubble extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (isUser ? _c800 : Colors.black)
-                            .withOpacity(0.08),
+                        color: (isUser ? _c800 : Colors.black).withOpacity(
+                          0.08,
+                        ),
                         blurRadius: 10,
                         offset: const Offset(0, 3),
                       ),
@@ -1041,8 +1146,8 @@ class _MessageBubble extends StatelessWidget {
                       color: isUser
                           ? Colors.white
                           : (isError
-                              ? Colors.red.shade700
-                              : const Color(0xFF1A2A2A)),
+                                ? Colors.red.shade700
+                                : const Color(0xFF1A2A2A)),
                     ),
                   ),
                 ),
@@ -1052,9 +1157,10 @@ class _MessageBubble extends StatelessWidget {
                   child: Text(
                     _fmtTime(message.timestamp),
                     style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade400,
-                        letterSpacing: 0.3),
+                      fontSize: 10,
+                      color: Colors.grey.shade400,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ),
               ],
@@ -1067,14 +1173,12 @@ class _MessageBubble extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(colors: [
-                  _c400.withOpacity(0.2),
-                  _c200.withOpacity(0.3)
-                ]),
+                gradient: LinearGradient(
+                  colors: [_c400.withOpacity(0.2), _c200.withOpacity(0.3)],
+                ),
                 border: Border.all(color: _c400.withOpacity(0.3)),
               ),
-              child: const Icon(Icons.person_rounded,
-                  color: _c600, size: 18),
+              child: const Icon(Icons.person_rounded, color: _c600, size: 18),
             ),
           ],
         ],
@@ -1107,10 +1211,9 @@ class _ContextTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [
-          _c400.withOpacity(0.12),
-          _c200.withOpacity(0.08)
-        ]),
+        gradient: LinearGradient(
+          colors: [_c400.withOpacity(0.12), _c200.withOpacity(0.08)],
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _c400.withOpacity(0.2)),
       ),
@@ -1119,11 +1222,14 @@ class _ContextTag extends StatelessWidget {
         children: [
           Text(entry.$1, style: const TextStyle(fontSize: 10)),
           const SizedBox(width: 4),
-          Text(entry.$2,
-              style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: _c600)),
+          Text(
+            entry.$2,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: _c600,
+            ),
+          ),
         ],
       ),
     );
@@ -1149,8 +1255,8 @@ class _AIAvatar extends StatelessWidget {
         ),
       ),
       child: Center(
-          child: Text('🤖',
-              style: TextStyle(fontSize: size * 0.5))),
+        child: Text('🤖', style: TextStyle(fontSize: size * 0.5)),
+      ),
     );
   }
 }
@@ -1170,11 +1276,13 @@ class _LiveDotState extends State<_LiveDot>
   void initState() {
     super.initState();
     _c = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
-    _a = Tween<double>(begin: 0.4, end: 1.0)
-        .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut));
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _a = Tween<double>(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut));
   }
 
   @override
@@ -1187,7 +1295,7 @@ class _LiveDotState extends State<_LiveDot>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _a,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         width: 7,
         height: 7,
         decoration: BoxDecoration(
@@ -1195,8 +1303,9 @@ class _LiveDotState extends State<_LiveDot>
           color: Colors.greenAccent.shade400.withOpacity(_a.value),
           boxShadow: [
             BoxShadow(
-                color: Colors.greenAccent.withOpacity(0.4 * _a.value),
-                blurRadius: 5)
+              color: Colors.greenAccent.withOpacity(0.4 * _a.value),
+              blurRadius: 5,
+            ),
           ],
         ),
       ),
@@ -1215,9 +1324,17 @@ class _WavePainter extends CustomPainter {
     final path = Path()
       ..moveTo(0, size.height)
       ..quadraticBezierTo(
-          size.width * 0.25, 0, size.width * 0.5, size.height * 0.5)
+        size.width * 0.25,
+        0,
+        size.width * 0.5,
+        size.height * 0.5,
+      )
       ..quadraticBezierTo(
-          size.width * 0.75, size.height, size.width, size.height * 0.3)
+        size.width * 0.75,
+        size.height,
+        size.width,
+        size.height * 0.3,
+      )
       ..lineTo(size.width, size.height)
       ..close();
     canvas.drawPath(path, paint);
@@ -1231,8 +1348,7 @@ class _WavePainter extends CustomPainter {
 class _ClearConfirmSheet extends StatelessWidget {
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
-  const _ClearConfirmSheet(
-      {required this.onConfirm, required this.onCancel});
+  const _ClearConfirmSheet({required this.onConfirm, required this.onCancel});
 
   @override
   Widget build(BuildContext context) {
@@ -1244,9 +1360,10 @@ class _ClearConfirmSheet extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-              color: _c800.withOpacity(0.15),
-              blurRadius: 30,
-              offset: const Offset(0, -4))
+            color: _c800.withOpacity(0.15),
+            blurRadius: 30,
+            offset: const Offset(0, -4),
+          ),
         ],
       ),
       child: Column(
@@ -1257,32 +1374,42 @@ class _ClearConfirmSheet extends StatelessWidget {
             height: 5,
             margin: const EdgeInsets.only(bottom: 24),
             decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(10)),
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           Container(
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-                shape: BoxShape.circle, color: Colors.red.shade50),
-            child: const Icon(Icons.delete_sweep_rounded,
-                color: Colors.red, size: 32),
+              shape: BoxShape.circle,
+              color: Colors.red.shade50,
+            ),
+            child: const Icon(
+              Icons.delete_sweep_rounded,
+              color: Colors.red,
+              size: 32,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
             'Clear conversation?',
             style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: _c900,
-                letterSpacing: -0.5),
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: _c900,
+              letterSpacing: -0.5,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'All messages will be permanently deleted.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 13.5, color: Colors.grey.shade500, height: 1.5),
+              fontSize: 13.5,
+              color: Colors.grey.shade500,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -1293,13 +1420,18 @@ class _ClearConfirmSheet extends StatelessWidget {
                   child: Container(
                     height: 50,
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: Colors.grey.shade100),
+                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.grey.shade100,
+                    ),
                     child: const Center(
-                        child: Text('Cancel',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87))),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1318,16 +1450,21 @@ class _ClearConfirmSheet extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                            color: Colors.red.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4))
+                          color: Colors.red.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
                     ),
                     child: const Center(
-                        child: Text('Clear',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white))),
+                      child: Text(
+                        'Clear',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1382,25 +1519,12 @@ class SuggestionChip {
   final String icon;
   final String label;
   final String query;
-  SuggestionChip(
-      {required this.icon, required this.label, required this.query});
+  SuggestionChip({
+    required this.icon,
+    required this.label,
+    required this.query,
+  });
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/views/player/ai_assistant.dart
 import 'dart:async';
@@ -1554,7 +1678,7 @@ class _AiAssistantState extends State<AiAssistant> with TickerProviderStateMixin
         }
       }
     } catch (e) {
-      debugPrint('Load history error: $e');
+      AppLogger.error('Load history error: $e');
     }
   }
 
@@ -1677,7 +1801,7 @@ class _AiAssistantState extends State<AiAssistant> with TickerProviderStateMixin
           },
         );
       } catch (e) {
-        debugPrint('Clear history error: $e');
+        AppLogger.error('Clear history error: $e');
       }
       setState(() {
         _messages.clear();
@@ -2406,24 +2530,7 @@ class SuggestionChip {
   SuggestionChip({required this.icon, required this.label, required this.query});
 }*/
 
-
-
-
-
-
-
 //*************************************** */
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/views/player/ai_assistant.dart
 import 'dart:async';
@@ -2543,7 +2650,7 @@ class _AiAssistantState extends State<AiAssistant> with TickerProviderStateMixin
         }
       }
     } catch (e) {
-      debugPrint('Load history error: $e');
+      AppLogger.error('Load history error: $e');
     }
   }
 
@@ -2613,7 +2720,7 @@ class _AiAssistantState extends State<AiAssistant> with TickerProviderStateMixin
         _scrollToBottom();
       }
     } catch (e) {
-      debugPrint('AI API error: $e');
+      AppLogger.error('AI API error: $e');
       if (mounted) {
         setState(() {
           _isTyping = false;
@@ -2645,8 +2752,6 @@ class _AiAssistantState extends State<AiAssistant> with TickerProviderStateMixin
         }),
       );
       
-      debugPrint('AI API Response Status: ${response.statusCode}');
-      debugPrint('AI API Response Body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -2673,7 +2778,7 @@ class _AiAssistantState extends State<AiAssistant> with TickerProviderStateMixin
         );
       }
     } catch (e) {
-      debugPrint('AI API exception: $e');
+      AppLogger.error('AI API exception: $e');
       rethrow;
     }
   }
@@ -2708,7 +2813,7 @@ class _AiAssistantState extends State<AiAssistant> with TickerProviderStateMixin
           },
         );
       } catch (e) {
-        debugPrint('Clear history error: $e');
+        AppLogger.error('Clear history error: $e');
       }
       
       setState(() {
