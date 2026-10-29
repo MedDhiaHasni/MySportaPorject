@@ -5,6 +5,12 @@ module.exports = {
   routes: [
     {
       method: 'POST',
+      path: '/payments/webhook',
+      handler: 'payment.webhook',
+      config: { auth: false },
+    },
+    {
+      method: 'POST',
       path: '/payments/create-intent',
       handler: 'payment.createIntent',
       config: { auth: false, policies: ['global::authMiddleware'] },
@@ -22,7 +28,7 @@ module.exports = {
       handler: 'payment.findAll',
       config: {
         auth: false,
-        policies: ['global::authMiddleware', 'global::isManager'],
+        policies: ['global::authMiddleware'],
       },
     },
     {

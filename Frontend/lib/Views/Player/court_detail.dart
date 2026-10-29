@@ -343,6 +343,8 @@ class _CourtDetailPageState extends State<CourtDetailPage> {
 
       if (confirmResult.success && confirmResult.status == 'succeeded') {
         _goSuccess(result, 'pay_now', 'confirmed');
+      } else if (confirmResult.status == 'pending') {
+        _showPendingPayment();
       } else {
         _showErr(
           confirmResult.message ??
@@ -419,6 +421,19 @@ class _CourtDetailPageState extends State<CourtDetailPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showPendingPayment() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Payment received. Confirmation is taking longer than expected; check My Bookings shortly.',
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 6),
       ),
     );
   }

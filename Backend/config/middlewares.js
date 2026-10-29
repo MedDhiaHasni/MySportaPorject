@@ -5,7 +5,7 @@ module.exports = [
   'strapi::cors',
   'strapi::poweredBy',
   'strapi::query',
-  'strapi::body',
+  ['strapi::body', { includeUnparsed: true }],
   'strapi::session',
   'strapi::favicon',
   'strapi::public',

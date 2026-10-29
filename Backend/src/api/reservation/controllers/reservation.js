@@ -503,6 +503,13 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
         return ctx.badRequest(`Reservation is already "${existing.booking_status}"`);
       }
 
+      const refund = await strapi
+        .service('api::payment.payment')
+        .refundReservation(id);
+      if (refund.status === 'pending') {
+        strapi.log.info(`[reservation] Refund for ${id} is pending`);
+      }
+
       // Free the time slot
       if (existing.time_slot?.id) {
         await strapi.entityService.update('api::time-slot.time-slot', existing.time_slot.id, {

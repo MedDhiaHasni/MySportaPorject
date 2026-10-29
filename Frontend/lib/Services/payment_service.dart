@@ -2,6 +2,7 @@
 // Covers:
 //   Player  → createIntent, confirmPayment
 //   Manager → getAllPayments (with stats + filters), getPaymentByReservation
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sporta/Core/Constants/api_constants.dart';
@@ -279,41 +280,48 @@ class PaymentService {
   }
 
   // ── Player: POST /payments/:id/confirm ────────────────────────────────────
-  /// Verifies the payment with Stripe server-side and confirms the reservation.
+  /// Waits for the Stripe webhook to persist the payment result.
   /// Call this AFTER flutter_stripe presents the payment sheet successfully.
   Future<PaymentConfirmResult> confirmPayment(String paymentId) async {
-    try {
-      final r = await http
-          .post(
-            Uri.parse(ApiConstants.confirmPayment(paymentId)),
-            headers: _headers,
-          )
-          .timeout(const Duration(seconds: 20));
+    const attempts = 7;
+    for (var attempt = 0; attempt < attempts; attempt++) {
+      try {
+        final r = await http
+            .post(
+              Uri.parse(ApiConstants.confirmPayment(paymentId)),
+              headers: _headers,
+            )
+            .timeout(const Duration(seconds: 20));
 
-      final data = json.decode(r.body) as Map<String, dynamic>;
+        final data = json.decode(r.body) as Map<String, dynamic>;
+        if (r.statusCode != 200) {
+          return PaymentConfirmResult(
+            success: false,
+            status: 'error',
+            error:
+                data['error']?['message']?.toString() ??
+                data['message']?.toString() ??
+                'Confirmation failed',
+          );
+        }
 
-      if (r.statusCode == 200) {
-        return PaymentConfirmResult(
+        final status = data['status'] as String? ?? 'unknown';
+        final result = PaymentConfirmResult(
           success: data['success'] == true,
-          status: data['status'] as String? ?? 'unknown',
+          status: status,
           message: data['message'] as String?,
         );
+        if (status != 'pending' || attempt == attempts - 1) return result;
+      } catch (e) {
+        return PaymentConfirmResult(
+          success: false,
+          status: 'error',
+          error: e.toString(),
+        );
       }
-      return PaymentConfirmResult(
-        success: false,
-        status: 'failed',
-        error:
-            data['error']?['message']?.toString() ??
-            data['message']?.toString() ??
-            'Confirmation failed',
-      );
-    } catch (e) {
-      return PaymentConfirmResult(
-        success: false,
-        status: 'error',
-        error: e.toString(),
-      );
+      await Future<void>.delayed(const Duration(seconds: 2));
     }
+    return const PaymentConfirmResult(success: false, status: 'pending');
   }
 
   // ── Manager / Admin: GET /payments ────────────────────────────────────────
