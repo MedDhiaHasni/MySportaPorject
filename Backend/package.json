@@ -11,6 +11,7 @@
     "develop": "strapi develop",
     "start": "strapi start",
     "strapi": "strapi",
+    "check:chat-uids": "node scripts/check-chat-uids.js",
     "test:firestore:rules": "npx --yes firebase-tools@15.34.2 --config ../firebase.json emulators:exec --project demo-sporta --only firestore \"node --test tests/firestore.rules.test.mjs\"",
     "upgrade": "npx @strapi/upgrade latest",
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
@@ -19,6 +20,7 @@
     "@strapi/plugin-cloud": "5.39.0",
     "@strapi/plugin-users-permissions": "5.39.0",
     "@strapi/strapi": "5.39.0",
+    "dotenv": "16.4.5",
     "firebase-admin": "^13.8.0",
     "mysql2": "3.9.8",
     "nodemailer": "^8.0.4",

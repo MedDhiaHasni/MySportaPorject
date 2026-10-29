@@ -218,7 +218,7 @@ module.exports = createCoreController('api::worker.worker', ({ strapi }) => ({
           const playerUser = await strapi.entityService.findOne('plugin::users-permissions.user', playerProfile?.player?.id || reservation.player.id, {});
 
           const pUid = playerProfile?.firebaseUid || `sporta_player_${reservation.player.id}`;
-          const wUid = worker.firebaseUid || `sporta_worker_${worker.id}`;
+          const wUid = worker.firebaseUid?.trim() || `sporta_worker_${user.id}`;
 
           await ref.set({
             reservationId: Number(id),
