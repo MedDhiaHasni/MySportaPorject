@@ -3,14 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:sporta/Core/Theme/app_theme.dart';
 import 'package:sporta/Views/Admin/admin_login.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sporta/Views/SplashOnboarding/splash.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
+import 'package:sporta/Widgets/design_system_preview.dart';
 
 // Global navigator key for showing dialogs from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+const _showDesignSystemPreview = bool.fromEnvironment(
+  'SPORTA_DESIGN_SYSTEM_PREVIEW',
+);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -137,8 +142,14 @@ class SportaApp extends StatelessWidget {
       title: 'Sporta',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
       navigatorKey: navigatorKey, // ✅ Add this line
-      home: kIsWeb ? const AdminLoginPage() : const Splash(),
+      home: kDebugMode && _showDesignSystemPreview
+          ? const DesignSystemPreviewScreen()
+          : kIsWeb
+          ? const AdminLoginPage()
+          : const Splash(),
     );
   }
 }

@@ -15,9 +15,7 @@ import 'package:sporta/Views/Player/court_booking_page.dart';
 import 'package:sporta/Widgets/star_rating.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
 
-// ── Put your Mapbox public token here ────────────────────────────────────────
-const _kMapboxToken =
-    'pk.eyJ1IjoiWU9VUl9VU0VSTkFNRSIsImEiOiJZT1VSX1RPS0VOIn0.XXXXXXXXXX';
+const _kMapboxToken = String.fromEnvironment('MAPBOX_ACCESS_TOKEN');
 // Style options:
 //   Streets:  'mapbox://styles/mapbox/streets-v12'
 //   Light:    'mapbox://styles/mapbox/light-v11'
@@ -246,8 +244,9 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    // Set the Mapbox access token before any map widget is created
-    MapboxOptions.setAccessToken(_kMapboxToken);
+    if (_kMapboxToken.isNotEmpty) {
+      MapboxOptions.setAccessToken(_kMapboxToken);
+    }
     _loadVenues();
     WidgetsBinding.instance.addPostFrameCallback((_) => _initLoc());
   }
@@ -748,19 +747,65 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
     return Stack(
       children: [
         // ── Mapbox map ────────────────────────────────────────────────────────
-        MapWidget(
-          key: const ValueKey('mapbox_explore'),
-          styleUri: _kMapStyle,
-          cameraOptions: CameraOptions(
-            center: Point(coordinates: Position(initLng, initLat)),
-            zoom: initZoom,
+        if (_kMapboxToken.isEmpty)
+          Positioned.fill(
+            child: ColoredBox(
+              color: _bg,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.map_outlined,
+                        size: 48,
+                        color: _textMid,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Map unavailable',
+                        style: TextStyle(
+                          color: _textDark,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Configure MAPBOX_ACCESS_TOKEN to use map view.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: _textMid),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: () => setState(() {
+                          _view = 0;
+                          _selMarker = null;
+                        }),
+                        icon: const Icon(Icons.list_rounded),
+                        label: const Text('Switch to list'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          MapWidget(
+            key: const ValueKey('mapbox_explore'),
+            styleUri: _kMapStyle,
+            cameraOptions: CameraOptions(
+              center: Point(coordinates: Position(initLng, initLat)),
+              zoom: initZoom,
+            ),
+            onMapCreated: _onMapCreated,
+            onTapListener: (ctx) {
+              setState(() => _selMarker = null);
+              _refreshMarkers();
+            },
           ),
-          onMapCreated: _onMapCreated,
-          onTapListener: (ctx) {
-            setState(() => _selMarker = null);
-            _refreshMarkers();
-          },
-        ),
 
         // ── Top bar ───────────────────────────────────────────────────────────
         Positioned(
@@ -916,33 +961,34 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
         ),
 
         // ── Zoom buttons ──────────────────────────────────────────────────────
-        Positioned(
-          right: 16,
-          bottom: _selMarker != null ? 230 : 100,
-          child: Column(
-            children: [
-              _ZoomBtn(Icons.add_rounded, () async {
-                final cam = await _mapboxMap?.getCameraState();
-                if (cam != null) {
-                  _mapboxMap?.flyTo(
-                    CameraOptions(zoom: (cam.zoom + 1).clamp(1, 22)),
-                    MapAnimationOptions(duration: 300),
-                  );
-                }
-              }, top: true),
-              Container(width: 40, height: 1, color: Colors.grey.shade200),
-              _ZoomBtn(Icons.remove_rounded, () async {
-                final cam = await _mapboxMap?.getCameraState();
-                if (cam != null) {
-                  _mapboxMap?.flyTo(
-                    CameraOptions(zoom: (cam.zoom - 1).clamp(1, 22)),
-                    MapAnimationOptions(duration: 300),
-                  );
-                }
-              }, top: false),
-            ],
+        if (_kMapboxToken.isNotEmpty)
+          Positioned(
+            right: 16,
+            bottom: _selMarker != null ? 230 : 100,
+            child: Column(
+              children: [
+                _ZoomBtn(Icons.add_rounded, () async {
+                  final cam = await _mapboxMap?.getCameraState();
+                  if (cam != null) {
+                    _mapboxMap?.flyTo(
+                      CameraOptions(zoom: (cam.zoom + 1).clamp(1, 22)),
+                      MapAnimationOptions(duration: 300),
+                    );
+                  }
+                }, top: true),
+                Container(width: 40, height: 1, color: Colors.grey.shade200),
+                _ZoomBtn(Icons.remove_rounded, () async {
+                  final cam = await _mapboxMap?.getCameraState();
+                  if (cam != null) {
+                    _mapboxMap?.flyTo(
+                      CameraOptions(zoom: (cam.zoom - 1).clamp(1, 22)),
+                      MapAnimationOptions(duration: 300),
+                    );
+                  }
+                }, top: false),
+              ],
+            ),
           ),
-        ),
 
         // ── Venue preview card ────────────────────────────────────────────────
         if (_selMarker != null && _selMarker! < visible.length)
