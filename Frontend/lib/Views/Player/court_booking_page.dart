@@ -622,35 +622,37 @@ class _CourtCard extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 height: 150,
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        // Show sport-colored shimmer while loading
-                        loadingBuilder: (_, child, progress) {
-                          if (progress == null) return child;
-                          return Container(
-                            color: sportColor.withOpacity(0.06),
-                            child: Center(
-                              child: SizedBox(
-                                width: 26,
-                                height: 26,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: sportColor,
-                                  value: progress.expectedTotalBytes != null
-                                      ? progress.cumulativeBytesLoaded /
-                                            progress.expectedTotalBytes!
-                                      : null,
+                child: Hero(
+                  tag: 'court-image-${oldModel.id}',
+                  child: imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (_, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              color: sportColor.withOpacity(0.06),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 26,
+                                  height: 26,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: sportColor,
+                                    value: progress.expectedTotalBytes != null
+                                        ? progress.cumulativeBytesLoaded /
+                                              progress.expectedTotalBytes!
+                                        : null,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (_, _, _) =>
-                            _imgFallback(sportType, sportColor),
-                      )
-                    : _imgFallback(sportType, sportColor),
+                            );
+                          },
+                          errorBuilder: (_, _, _) =>
+                              _imgFallback(sportType, sportColor),
+                        )
+                      : _imgFallback(sportType, sportColor),
+                ),
               ),
             ),
 
