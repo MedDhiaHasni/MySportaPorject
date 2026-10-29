@@ -21,10 +21,11 @@ module.exports = {
    * This gives you an opportunity to set up your data model,
    * run jobs, or perform some special logic.
    */
- 
-   async bootstrap({ strapi }) {
+  async bootstrap({ strapi }) {
+    await require('./utils/reservation-slot-constraint')
+      .ensureReservationSlotUniqueIndex(strapi);
 
-     if (!process.env.OPENROUTER_API_KEY) {
+    if (!process.env.OPENROUTER_API_KEY) {
       strapi.log.warn('[ai-agent] OPENROUTER_API_KEY missing in .env');
     }
 

@@ -286,14 +286,6 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
 
       if (!requestData.time_slot) return ctx.badRequest('time_slot is required');
 
-      const slot = await strapi.entityService.findOne('api::time-slot.time-slot', requestData.time_slot, {
-        populate: ['reservation', 'day_plan'],
-      });
-      if (!slot)            return ctx.notFound('Time slot not found');
-      if (!slot.isActive)   return ctx.badRequest('This time slot is not available');
-      if (slot.reservation) return ctx.badRequest('This time slot is already booked');
-      if (slot.day_plan?.dayType === 'day_off') return ctx.badRequest('Cannot book on a day-off');
-
       const booking_reference = `SPT-${nanoid(8).toUpperCase()}`;
 
       let totalPrice = requestData.total_price;
@@ -302,8 +294,9 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
         if (court?.pricePerHour) totalPrice = court.pricePerHour * (requestData.duration_hours || 1);
       }
 
-      const entity = await strapi.service('api::reservation.reservation').create({
-        data: {
+      const entity = await strapi
+        .service('api::reservation.reservation')
+        .createForAvailableSlot(requestData.time_slot, {
           time_slot:         requestData.time_slot,
           court:             requestData.court,
           booking_date_play: requestData.booking_date_play,
@@ -316,18 +309,13 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
           booking_reference,
           booking_date:      new Date().toISOString(),
           booking_status:    'pending',
-        },
-        populate: ['court', 'player', 'time_slot'],
-      });
-
-      await strapi.entityService.update('api::time-slot.time-slot', requestData.time_slot, {
-        data: { isActive: false },
-      });
+        });
 
       strapi.log.info(`[reservation] Created ${booking_reference} for player ${player.id}`);
       return ctx.send({ data: entity }, 201);
     } catch (error) {
       strapi.log.error('[reservation] create error:', error.message);
+      if (error.status === 404) return ctx.notFound(error.message);
       return ctx.badRequest(error.message);
     }
   },
