@@ -34,6 +34,25 @@ module.exports = {
         }
     },
 
+    async firebaseToken(ctx) {
+        const user = ctx.state.user;
+        if (!user) return ctx.unauthorized('Authentication required');
+
+        try {
+            const result = await authService.createFirebaseCustomToken(user.id);
+            return ctx.send({
+                success: true,
+                customToken: result.customToken,
+                firebaseUid: result.firebaseUid,
+            });
+        } catch (error) {
+            strapi.log.error('[auth] Firebase custom token issuance failed', error.code || error.message);
+            if (error.status === 403) return ctx.forbidden(error.message);
+            if (error.status === 404) return ctx.notFound(error.message);
+            return ctx.internalServerError('Unable to issue Firebase sign-in token');
+        }
+    },
+
     async reset(ctx) {
         try {
             await authService.resetPassword(ctx.request.body.token, ctx.request.body.password);

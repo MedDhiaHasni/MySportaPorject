@@ -125,6 +125,61 @@ module.exports = {
         return { user, profile, photoUrl };
     },
 
+    async createFirebaseCustomToken(userId) {
+        const user = await strapi.db
+            .query('plugin::users-permissions.user')
+            .findOne({ where: { id: userId }, select: ['id', 'user_role'] });
+        if (!user) {
+            const error = new Error('Authenticated user was not found');
+            error.status = 404;
+            throw error;
+        }
+
+        const profileTypes = {
+            player: 'api::player.player',
+            manager: 'api::manager.manager',
+            worker: 'api::worker.worker',
+        };
+        const profileType = profileTypes[user.user_role];
+        let firebaseUid;
+
+        if (profileType) {
+            const relation = user.user_role;
+            const profile = await strapi.db.query(profileType).findOne({
+                where: { [relation]: user.id },
+                select: ['id', 'firebaseUid'],
+            });
+            if (!profile) {
+                const error = new Error('No chat identity is linked to this account');
+                error.status = 404;
+                throw error;
+            }
+
+            const storedUid = profile.firebaseUid?.trim();
+            if (storedUid) {
+                firebaseUid = storedUid;
+            } else if (user.user_role === 'worker') {
+                firebaseUid = `sporta_worker_${user.id}`;
+            } else {
+                firebaseUid = `sporta_${user.user_role}_${profile.id}`;
+            }
+        } else if (user.user_role === 'admin') {
+            firebaseUid = `sporta_admin_${user.id}`;
+        } else {
+            const error = new Error('This account role cannot use Firebase chat');
+            error.status = 403;
+            throw error;
+        }
+
+        const customToken = await require('../../../firebase/firebase.service')
+            .createCustomToken(firebaseUid, {
+                role: user.user_role,
+                strapiUserId: String(user.id),
+            });
+
+        return { customToken, firebaseUid };
+    },
+
     async updateProfile(userId, { username, email, phone }) {
         const user = await strapi.db.query('plugin::users-permissions.user').findOne({ where: { id: userId } });
         if (!user) throw new Error('User not found');
