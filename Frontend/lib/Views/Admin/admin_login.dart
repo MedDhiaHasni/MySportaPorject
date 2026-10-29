@@ -138,7 +138,9 @@ class _AdminLoginPageState extends State<AdminLoginPage>
     final controller = TextEditingController();
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(
+        context,
+      ).colorScheme.surface.withValues(alpha: 0),
       isScrollControlled: true,
       useSafeArea: true,
       builder: (context) => Padding(
