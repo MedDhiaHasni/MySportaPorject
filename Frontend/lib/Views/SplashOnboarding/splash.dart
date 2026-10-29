@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Views/SplashOnboarding/onboarding.dart';
 
 import 'dart:async';
@@ -27,46 +28,44 @@ class _SplashState extends State<Splash> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      body: Container(
-        height: double.infinity,
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.fromARGB(255, 0, 93, 94),
-              Color.fromARGB(255, 0, 93, 94),
-            ],
+      body: ColoredBox(
+        color: MatchdayColors.brand,
+        child: SafeArea(
+          child: Center(
+            child: AnimatedOpacity(
+              opacity: 1,
+              duration: const Duration(milliseconds: 220),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/sportawhite.png',
+                    height: AppSpacing.xxl * 3,
+                    width: AppSpacing.xxl * 3,
+                    semanticLabel: 'Sporta',
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Sporta',
+                    style: textTheme.displayLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Born To Play',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Image(
-              image: AssetImage("assets/sportalogowhite.png"),
-              height: 120,
-              width: 120,
-            ),
-
-            Text(
-              'Sporta',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 64,
-              ),
-            ),
-
-            Text(
-              'Born To Play',
-              style: TextStyle(
-                fontStyle: FontStyle.italic,
-                color: Colors.white,
-              ),
-            ),
-          ],
         ),
       ),
     );
