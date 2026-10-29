@@ -58,11 +58,15 @@ module.exports = {
     },
 
     async forgot(ctx) {
+        const response = {
+            message: 'If an account exists for that email, a reset link has been sent',
+        };
         try {
             await authService.forgotPassword(ctx.request.body.email);
-            ctx.send({ message: 'Reset link has been sent' });
+            ctx.send(response);
         } catch (error) {
-            ctx.badRequest(error.message);
+            strapi.log.error('[auth] Password reset request failed', error);
+            ctx.send(response);
         }
     },
 

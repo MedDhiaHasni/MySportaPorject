@@ -1,6 +1,6 @@
 // @ts-nocheck
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || "secret";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 module.exports = async (ctx) => {
     const authHeader = ctx.request.header.authorization;
@@ -97,7 +97,7 @@ module.exports = async (ctx) => {
 
 /*// @ts-nocheck
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || "secret";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 module.exports = async (ctx) => {
     const authHeader = ctx.request.header.authorization;
@@ -172,7 +172,7 @@ module.exports = async (ctx) => {
 ************************
 
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || "secret";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 module.exports = async (ctx) => {
     const authHeader = ctx.request.header.authorization;

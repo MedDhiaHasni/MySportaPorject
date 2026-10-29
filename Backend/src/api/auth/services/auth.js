@@ -2,7 +2,8 @@
 // @ts-nocheck
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 module.exports = {
 
@@ -36,6 +37,12 @@ module.exports = {
     },
 
     async resetPassword(token, password) {
+        const separator = typeof token === 'string' ? token.lastIndexOf('.') : -1;
+        const expiresAt = separator > 0 ? Number(token.slice(separator + 1)) : NaN;
+        if (!Number.isSafeInteger(expiresAt) || expiresAt <= Date.now()) {
+            throw new Error('Invalid or expired reset token');
+        }
+
         const user = await strapi.db.query('plugin::users-permissions.user').findOne({ where: { resetPasswordToken: token } });
         if (!user) throw new Error('Invalid or expired reset token');
         await strapi.plugins['users-permissions'].services.user.edit(user.id, { password });
@@ -48,7 +55,7 @@ module.exports = {
     async changePassword(userId, oldPassword, newPassword) {
         const user = await strapi.db.query('plugin::users-permissions.user').findOne({ where: { id: userId } });
         if (!user) throw new Error('User not found');
-        const valid = strapi.plugins['users-permissions'].services.user.validatePassword(oldPassword, user.password);
+        const valid = await strapi.plugins['users-permissions'].services.user.validatePassword(oldPassword, user.password);
         if (!valid) throw new Error('Invalid old password');
         await strapi.plugins['users-permissions'].services.user.edit(user.id, { password: newPassword });
     },
@@ -65,12 +72,11 @@ module.exports = {
         const { sendEmail } = require('../../../utils/email');
 
         const user = await strapi.db.query('plugin::users-permissions.user').findOne({ where: { email } });
-        if (!user) throw new Error('No account found with that email address');
+        if (!user) return;
 
-        // Generate a secure random token
-        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = Date.now() + RESET_TOKEN_TTL_MS;
+        const token = `${crypto.randomBytes(32).toString('hex')}.${expiresAt}`;
 
-        // Save token to user record (expires in 1 hour — enforced by UI/backend)
         await strapi.db.query('plugin::users-permissions.user').update({
             where: { id: user.id },
             data:  { resetPasswordToken: token },
@@ -79,8 +85,6 @@ module.exports = {
         // n7adher el reset link
         const publicUrl  = (process.env.PUBLIC_URL || 'http://localhost:1337').replace(/\/$/, ''); // na7i hak el / fi le5er
         const resetLink  = `${publicUrl}/reset-password.html?token=${token}`;
-
-        console.log(`[forgotPassword] Reset link for ${email}: ${resetLink}`);
 
         await sendEmail(
             email,
@@ -317,7 +321,7 @@ function _buildEmailHtml(name, link) {
 // @ts-nocheck
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 module.exports = {
 
@@ -535,7 +539,7 @@ async updateProfilePhoto(userId, fileId) {
 // @ts-nocheck
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 module.exports = {
 
