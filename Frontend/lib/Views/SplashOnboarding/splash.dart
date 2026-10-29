@@ -50,7 +50,7 @@ class _SplashState extends State<Splash> {
                   Text(
                     'Sporta',
                     style: textTheme.displayLarge?.copyWith(
-                      color: Colors.white,
+                      color: MatchdayColors.onBrand,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -58,7 +58,7 @@ class _SplashState extends State<Splash> {
                   Text(
                     'Born To Play',
                     style: textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
+                      color: MatchdayColors.onBrand,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
