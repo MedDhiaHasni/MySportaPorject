@@ -1,99 +1,87 @@
 import 'package:flutter/material.dart';
+
 import 'app_tokens.dart';
 
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light => _buildTheme(
-    brightness: Brightness.light,
-    background: MatchdayColors.lightBackground,
-    surface: MatchdayColors.lightSurface,
-    surfaceAlt: MatchdayColors.lightSurfaceAlt,
-    text: MatchdayColors.lightText,
-    mutedText: MatchdayColors.lightMutedText,
-    border: MatchdayColors.lightBorder,
-    secondary: MatchdayColors.brand,
-    onSecondary: Colors.white,
-    primaryContainer: const Color(0xFFD8EEEA),
-    onPrimaryContainer: MatchdayColors.lightText,
-  );
+  static ThemeData get light => _buildTheme(Brightness.light);
+  static ThemeData get dark => _buildTheme(Brightness.dark);
 
-  static ThemeData get dark => _buildTheme(
-    brightness: Brightness.dark,
-    background: MatchdayColors.darkBackground,
-    surface: MatchdayColors.darkSurface,
-    surfaceAlt: MatchdayColors.darkSurfaceAlt,
-    text: MatchdayColors.darkText,
-    mutedText: MatchdayColors.darkMutedText,
-    border: MatchdayColors.darkBorder,
-    secondary: MatchdayColors.brandTint,
-    onSecondary: MatchdayColors.darkBackground,
-    primaryContainer: MatchdayColors.darkSurfaceAlt,
-    onPrimaryContainer: MatchdayColors.brandTint,
-  );
-
-  static ThemeData _buildTheme({
-    required Brightness brightness,
-    required Color background,
-    required Color surface,
-    required Color surfaceAlt,
-    required Color text,
-    required Color mutedText,
-    required Color border,
-    required Color secondary,
-    required Color onSecondary,
-    required Color primaryContainer,
-    required Color onPrimaryContainer,
-  }) {
+  static ThemeData _buildTheme(Brightness brightness) {
     final isLight = brightness == Brightness.light;
-    final textTheme = _textTheme(
-      base: isLight
-          ? ThemeData.light(useMaterial3: true).textTheme
-          : ThemeData.dark(useMaterial3: true).textTheme,
-      text: text,
-      mutedText: mutedText,
-    );
-    final scheme = ColorScheme(
+    final background = isLight
+        ? NightMatchColors.lightBackground
+        : NightMatchColors.background;
+    final surface = isLight
+        ? NightMatchColors.lightSurface
+        : NightMatchColors.surface;
+    final elevatedSurface = isLight
+        ? NightMatchColors.lightElevatedSurface
+        : NightMatchColors.elevatedSurface;
+    final text = isLight ? NightMatchColors.lightText : NightMatchColors.text;
+    final muted = isLight
+        ? NightMatchColors.lightMutedText
+        : NightMatchColors.mutedText;
+    final accentText = isLight
+        ? NightMatchColors.brandTeal
+        : NightMatchColors.actionLime;
+    final scheme = ColorScheme.fromSeed(
+      seedColor: NightMatchColors.actionLime,
       brightness: brightness,
-      primary: isLight ? MatchdayColors.brand : MatchdayColors.brandTint,
-      onPrimary: isLight ? Colors.white : MatchdayColors.darkBackground,
-      secondary: secondary,
-      onSecondary: onSecondary,
-      error: isLight ? MatchdayColors.error : MatchdayColors.errorDark,
-      onError: isLight ? Colors.white : MatchdayColors.darkBackground,
+    ).copyWith(
+      primary: NightMatchColors.actionLime,
+      onPrimary: NightMatchColors.onAction,
+      secondary: accentText,
+      onSecondary: isLight
+          ? NightMatchColors.lightSurface
+          : NightMatchColors.onAction,
+      tertiary: NightMatchColors.brandTeal,
+      onTertiary: NightMatchColors.text,
+      error: isLight
+          ? NightMatchColors.lightError
+          : NightMatchColors.error,
+      onError: NightMatchColors.onAction,
       surface: surface,
       onSurface: text,
-      surfaceContainerHighest: surfaceAlt,
-      onSurfaceVariant: mutedText,
-      outline: border,
-      outlineVariant: border,
-      tertiary: MatchdayColors.accent,
-      onTertiary: MatchdayColors.lightText,
-      primaryContainer: primaryContainer,
-      onPrimaryContainer: onPrimaryContainer,
+      surfaceContainerLow: surface,
+      surfaceContainer: elevatedSurface,
+      surfaceContainerHighest: elevatedSurface,
+      onSurfaceVariant: muted,
+      outline: isLight
+          ? const Color(0xFFB7C7C4)
+          : const Color(0xFF41615D),
+      outlineVariant: isLight
+          ? const Color(0xFFD8E1DF)
+          : const Color(0xFF294542),
+      primaryContainer: isLight
+          ? const Color(0xFFE9F7B8)
+          : const Color(0xFF354712),
+      onPrimaryContainer: NightMatchColors.onAction,
       secondaryContainer: isLight
-          ? const Color(0xFFD8EEEA)
-          : const Color(0xFF1B4540),
+          ? const Color(0xFFDDEBE8)
+          : const Color(0xFF1D4541),
       onSecondaryContainer: isLight
-          ? MatchdayColors.lightText
-          : MatchdayColors.brandTint,
+          ? NightMatchColors.brandTeal
+          : NightMatchColors.text,
       errorContainer: isLight
           ? const Color(0xFFFFE2DE)
           : const Color(0xFF5C211E),
       onErrorContainer: isLight
           ? const Color(0xFF601A15)
           : const Color(0xFFFFDAD5),
-      surfaceTint: isLight ? MatchdayColors.brand : MatchdayColors.brandTint,
       inverseSurface: isLight
-          ? MatchdayColors.darkSurface
-          : MatchdayColors.lightSurface,
+          ? NightMatchColors.surface
+          : NightMatchColors.lightSurface,
       onInverseSurface: isLight
-          ? MatchdayColors.darkText
-          : MatchdayColors.lightText,
-      inversePrimary: MatchdayColors.brandTint,
-      shadow: Colors.black,
-      scrim: Colors.black,
+          ? NightMatchColors.text
+          : NightMatchColors.lightText,
+      inversePrimary: NightMatchColors.brandTeal,
     );
+    final baseTextTheme = isLight
+        ? ThemeData.light().textTheme
+        : ThemeData.dark().textTheme;
+    final textTheme = _textTheme(baseTextTheme, text, muted);
 
     return ThemeData(
       useMaterial3: true,
@@ -101,46 +89,44 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
       canvasColor: surface,
-      dividerColor: border,
+      dividerColor: scheme.outlineVariant,
       textTheme: textTheme,
-      iconTheme: IconThemeData(color: secondary),
+      iconTheme: IconThemeData(color: accentText),
       appBarTheme: AppBarTheme(
-        backgroundColor: surface,
+        backgroundColor: background,
         foregroundColor: text,
         elevation: AppElevation.none,
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: _filledButtonStyle(isLight: isLight),
+        style: _buttonStyle(isLight),
       ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: _filledButtonStyle(isLight: isLight),
-      ),
+      filledButtonTheme: FilledButtonThemeData(style: _buttonStyle(isLight)),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: secondary,
+          foregroundColor: accentText,
           minimumSize: const Size(48, 48),
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 20),
-          side: BorderSide(color: secondary),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: AppSpacing.md,
           ),
+          side: BorderSide(color: accentText),
+          shape: const StadiumBorder(),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: secondary,
+          foregroundColor: accentText,
           minimumSize: const Size(48, 48),
-          padding: const EdgeInsetsDirectional.symmetric(horizontal: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: AppSpacing.sm,
           ),
+          shape: const StadiumBorder(),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          foregroundColor: secondary,
+          foregroundColor: accentText,
           minimumSize: const Size(48, 48),
           tapTargetSize: MaterialTapTargetSize.padded,
         ),
@@ -148,60 +134,66 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        labelStyle: TextStyle(color: mutedText),
-        hintStyle: TextStyle(color: mutedText),
-        contentPadding: const EdgeInsetsDirectional.fromSTEB(16, 16, 16, 16),
+        labelStyle: TextStyle(color: muted),
+        hintStyle: TextStyle(color: muted),
+        contentPadding: const EdgeInsetsDirectional.fromSTEB(
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          borderSide: BorderSide(color: border),
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          borderSide: BorderSide(color: border),
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          borderSide: BorderSide(color: secondary, width: 2),
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(color: accentText, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.circular(AppRadius.input),
           borderSide: BorderSide(color: scheme.error),
         ),
       ),
       cardTheme: CardThemeData(
         color: surface,
-        elevation: AppElevation.low,
+        elevation: AppElevation.none,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          side: BorderSide(color: border),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          side: BorderSide(color: scheme.outlineVariant),
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: surface,
-        modalBackgroundColor: surface,
+        backgroundColor: Colors.transparent,
+        modalBackgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         showDragHandle: false,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadiusDirectional.vertical(
-            top: Radius.circular(AppRadius.xl),
+            top: Radius.circular(AppRadius.card),
           ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor: primaryContainer,
+        indicatorColor: scheme.primaryContainer,
         elevation: AppElevation.medium,
         labelTextStyle: WidgetStatePropertyAll(
-          textTheme.labelSmall?.copyWith(color: mutedText),
+          textTheme.labelSmall?.copyWith(color: muted),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: isLight
-            ? MatchdayColors.darkSurface
-            : MatchdayColors.lightSurface,
+            ? NightMatchColors.surface
+            : NightMatchColors.lightSurface,
         contentTextStyle: TextStyle(
-          color: isLight ? MatchdayColors.darkText : MatchdayColors.lightText,
+          color: isLight ? NightMatchColors.text : NightMatchColors.lightText,
+          fontFamily: AppFonts.body,
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -210,80 +202,108 @@ class AppTheme {
     );
   }
 
-  static ButtonStyle _filledButtonStyle({required bool isLight}) =>
-      ElevatedButton.styleFrom(
-        backgroundColor: MatchdayColors.brand,
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: isLight
-            ? const Color(0xFFE0E7E5)
-            : const Color(0xFF263936),
-        disabledForegroundColor: isLight
-            ? MatchdayColors.lightMutedText
-            : MatchdayColors.darkMutedText,
-        minimumSize: const Size(48, 48),
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 20),
-        elevation: AppElevation.none,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-      );
+  static ButtonStyle _buttonStyle(bool isLight) => ElevatedButton.styleFrom(
+    backgroundColor: NightMatchColors.actionLime,
+    foregroundColor: NightMatchColors.onAction,
+    disabledBackgroundColor: isLight
+        ? const Color(0xFFDCE4D0)
+        : const Color(0xFF35412B),
+    disabledForegroundColor: isLight
+        ? NightMatchColors.lightMutedText
+        : NightMatchColors.mutedText,
+    minimumSize: const Size(48, 52),
+    padding: const EdgeInsetsDirectional.symmetric(
+      horizontal: AppSpacing.lg,
+    ),
+    elevation: AppElevation.none,
+    shape: const StadiumBorder(),
+  );
 
-  static TextTheme _textTheme({
-    required TextTheme base,
-    required Color text,
-    required Color mutedText,
-  }) {
+  static TextTheme _textTheme(TextTheme base, Color text, Color muted) {
     final body = base.apply(
-      fontFamily: MatchdayFonts.body,
-      fontFamilyFallback: const [MatchdayFonts.arabic],
+      fontFamily: AppFonts.body,
+      fontFamilyFallback: const [AppFonts.arabic],
       bodyColor: text,
       displayColor: text,
     );
     TextStyle headline(TextStyle? style, double size, FontWeight weight) =>
         (style ?? const TextStyle()).copyWith(
-          fontFamily: MatchdayFonts.headline,
-          fontFamilyFallback: const [MatchdayFonts.arabic, MatchdayFonts.body],
+          fontFamily: AppFonts.headline,
+          fontFamilyFallback: const [AppFonts.arabic, AppFonts.body],
           fontSize: size,
           fontWeight: weight,
           color: text,
-          height: 1.1,
+          height: 1.12,
         );
 
     return body.copyWith(
-      displayLarge: headline(base.displayLarge, 40, FontWeight.w700),
-      displayMedium: headline(base.displayMedium, 36, FontWeight.w700),
-      displaySmall: headline(base.displaySmall, 32, FontWeight.w700),
-      headlineLarge: headline(base.headlineLarge, 32, FontWeight.w700),
-      headlineMedium: headline(base.headlineMedium, 28, FontWeight.w700),
-      headlineSmall: headline(base.headlineSmall, 24, FontWeight.w600),
+      displayLarge: headline(
+        base.displayLarge,
+        AppTypeScale.displayLarge,
+        FontWeight.w700,
+      ),
+      displayMedium: headline(
+        base.displayMedium,
+        AppTypeScale.displayMedium,
+        FontWeight.w700,
+      ),
+      displaySmall: headline(
+        base.displaySmall,
+        AppTypeScale.displaySmall,
+        FontWeight.w700,
+      ),
+      headlineLarge: headline(
+        base.headlineLarge,
+        AppTypeScale.headlineLarge,
+        FontWeight.w700,
+      ),
+      headlineMedium: headline(
+        base.headlineMedium,
+        AppTypeScale.headlineMedium,
+        FontWeight.w700,
+      ),
+      headlineSmall: headline(
+        base.headlineSmall,
+        AppTypeScale.headlineSmall,
+        FontWeight.w600,
+      ),
       titleLarge: body.titleLarge?.copyWith(
-        fontSize: 20,
+        fontSize: AppTypeScale.titleLarge,
         fontWeight: FontWeight.w700,
       ),
       titleMedium: body.titleMedium?.copyWith(
-        fontSize: 16,
+        fontSize: AppTypeScale.titleMedium,
         fontWeight: FontWeight.w600,
       ),
       titleSmall: body.titleSmall?.copyWith(
-        fontSize: 14,
+        fontSize: AppTypeScale.titleSmall,
         fontWeight: FontWeight.w600,
       ),
-      bodyLarge: body.bodyLarge?.copyWith(fontSize: 16, height: 1.5),
-      bodyMedium: body.bodyMedium?.copyWith(fontSize: 14, height: 1.5),
+      bodyLarge: body.bodyLarge?.copyWith(
+        fontSize: AppTypeScale.bodyLarge,
+        height: 1.5,
+      ),
+      bodyMedium: body.bodyMedium?.copyWith(
+        fontSize: AppTypeScale.bodyMedium,
+        height: 1.5,
+      ),
       bodySmall: body.bodySmall?.copyWith(
-        fontSize: 12,
+        fontSize: AppTypeScale.bodySmall,
         height: 1.4,
-        color: mutedText,
+        color: muted,
       ),
       labelLarge: body.labelLarge?.copyWith(
-        fontSize: 14,
+        fontSize: AppTypeScale.labelLarge,
         fontWeight: FontWeight.w600,
       ),
       labelMedium: body.labelMedium?.copyWith(
-        fontSize: 12,
+        fontSize: AppTypeScale.labelMedium,
         fontWeight: FontWeight.w600,
       ),
-      labelSmall: body.labelSmall?.copyWith(fontSize: 11, color: mutedText),
+      labelSmall: body.labelSmall?.copyWith(
+        fontSize: AppTypeScale.labelSmall,
+        color: muted,
+      ),
     );
   }
 }

@@ -202,7 +202,7 @@ class _ForgotPasswordErrorBanner extends StatelessWidget {
         padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
         decoration: BoxDecoration(
           color: theme.colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

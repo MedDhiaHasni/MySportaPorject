@@ -64,7 +64,7 @@ class AppTextField extends StatelessWidget {
           AppSpacing.md,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.circular(AppRadius.input),
         ),
       ),
     );

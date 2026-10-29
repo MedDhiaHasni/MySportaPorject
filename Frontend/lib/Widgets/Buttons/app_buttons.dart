@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../Core/Theme/app_tokens.dart';
 
@@ -25,7 +26,7 @@ class AppPrimaryButton extends StatelessWidget {
             dimension: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Colors.white,
+              color: NightMatchColors.onAction,
             ),
           )
         : Row(
@@ -40,18 +41,20 @@ class AppPrimaryButton extends StatelessWidget {
             ],
           );
     final button = FilledButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: isLoading || onPressed == null
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              onPressed!();
+            },
       style: FilledButton.styleFrom(
-        minimumSize: const Size(48, 48),
-        backgroundColor: MatchdayColors.brand,
-        foregroundColor: Colors.white,
+        backgroundColor: NightMatchColors.actionLime,
+        foregroundColor: NightMatchColors.onAction,
+        minimumSize: const Size(48, 52),
         padding: const EdgeInsetsDirectional.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.lg,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
+        shape: const StadiumBorder(),
       ),
       child: child,
     );
@@ -75,22 +78,23 @@ class AppSecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final button = OutlinedButton.icon(
-      onPressed: onPressed,
+    final button = FilledButton.icon(
+      onPressed: onPressed == null
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              onPressed!();
+            },
       icon: icon == null ? const SizedBox.shrink() : Icon(icon, size: 20),
       label: Text(label, textAlign: TextAlign.center),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: scheme.secondary,
-        minimumSize: const Size(48, 48),
+      style: FilledButton.styleFrom(
+        backgroundColor: NightMatchColors.brandTeal,
+        foregroundColor: NightMatchColors.text,
+        minimumSize: const Size(48, 52),
         padding: const EdgeInsetsDirectional.symmetric(
           horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
         ),
-        side: BorderSide(color: scheme.secondary),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
+        shape: const StadiumBorder(),
       ),
     );
     return expand ? SizedBox(width: double.infinity, child: button) : button;

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../Core/Theme/app_tokens.dart';
+import 'Buttons/app_buttons.dart';
 
 enum TimeSlotState { available, selected, unavailable }
 
@@ -23,19 +25,23 @@ class SportChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final foreground = selected ? scheme.onSecondaryContainer : scheme.secondary;
-    final background = selected
-        ? scheme.secondaryContainer
-        : scheme.surface.withValues(alpha: 0.96);
+    final foreground = selected
+        ? NightMatchColors.onAction
+        : theme.colorScheme.onSurface;
     final chip = Container(
       constraints: const BoxConstraints(minHeight: 40),
-      padding: const EdgeInsetsDirectional.symmetric(horizontal: AppSpacing.sm),
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
-        color: background,
+        color: selected
+            ? NightMatchColors.actionLime
+            : theme.colorScheme.surface.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(
-          color: selected ? scheme.secondary : scheme.outlineVariant,
+          color: selected
+              ? NightMatchColors.actionLime
+              : theme.colorScheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -52,7 +58,6 @@ class SportChip extends StatelessWidget {
         ],
       ),
     );
-
     if (onTap == null) return chip;
     return Semantics(
       button: true,
@@ -64,6 +69,79 @@ class SportChip extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           child: Center(child: chip),
+        ),
+      ),
+    );
+  }
+}
+
+class SportCategoryCircle extends StatelessWidget {
+  const SportCategoryCircle({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground = selected
+        ? NightMatchColors.onAction
+        : theme.colorScheme.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: SizedBox(
+          width: 72,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: MediaQuery.of(context).disableAnimations
+                    ? Duration.zero
+                    : const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? NightMatchColors.actionLime
+                      : theme.colorScheme.surfaceContainerHighest,
+                  shape: BoxShape.circle,
+                  boxShadow: selected && theme.brightness == Brightness.dark
+                      ? AppElevation.nightGlow
+                      : const [],
+                ),
+                child: Icon(icon, color: foreground),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: selected
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -86,51 +164,50 @@ class ReservationStatusBadge extends StatelessWidget {
     final (background, foreground, icon, defaultLabel) = switch (status) {
       ReservationStatus.pending => (
         isDark
-            ? MatchdayColors.pendingBackgroundDark
-            : MatchdayColors.pendingBackground,
+            ? NightMatchColors.pendingBackgroundDark
+            : NightMatchColors.pendingBackground,
         isDark
-            ? MatchdayColors.pendingForegroundDark
-            : MatchdayColors.pendingForeground,
+            ? NightMatchColors.pendingForegroundDark
+            : NightMatchColors.pendingForeground,
         Icons.schedule_rounded,
         'Pending',
       ),
       ReservationStatus.confirmed => (
         isDark
-            ? MatchdayColors.confirmedBackgroundDark
-            : MatchdayColors.confirmedBackground,
+            ? NightMatchColors.confirmedBackgroundDark
+            : NightMatchColors.confirmedBackground,
         isDark
-            ? MatchdayColors.confirmedForegroundDark
-            : MatchdayColors.confirmedForeground,
+            ? NightMatchColors.confirmedForegroundDark
+            : NightMatchColors.confirmedForeground,
         Icons.check_circle_outline_rounded,
         'Confirmed',
       ),
       ReservationStatus.cancelled => (
         isDark
-            ? MatchdayColors.cancelledBackgroundDark
-            : MatchdayColors.cancelledBackground,
+            ? NightMatchColors.cancelledBackgroundDark
+            : NightMatchColors.cancelledBackground,
         isDark
-            ? MatchdayColors.cancelledForegroundDark
-            : MatchdayColors.cancelledForeground,
+            ? NightMatchColors.cancelledForegroundDark
+            : NightMatchColors.cancelledForeground,
         Icons.cancel_outlined,
         'Cancelled',
       ),
       ReservationStatus.refunded => (
         isDark
-            ? MatchdayColors.refundedBackgroundDark
-            : MatchdayColors.refundedBackground,
+            ? NightMatchColors.refundedBackgroundDark
+            : NightMatchColors.refundedBackground,
         isDark
-            ? MatchdayColors.refundedForegroundDark
-            : MatchdayColors.refundedForeground,
+            ? NightMatchColors.refundedForegroundDark
+            : NightMatchColors.refundedForeground,
         Icons.currency_exchange_rounded,
         'Refunded',
       ),
     };
     final text = label ?? defaultLabel;
-
     return Semantics(
       label: text,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 32),
+        constraints: const BoxConstraints(minHeight: 36),
         padding: const EdgeInsetsDirectional.symmetric(
           horizontal: AppSpacing.sm,
           vertical: AppSpacing.xs,
@@ -176,39 +253,42 @@ class TimeSlotButton extends StatelessWidget {
     final unavailable = state == TimeSlotState.unavailable;
     final enabled = !unavailable && onPressed != null;
     final foreground = selected
-        ? Colors.white
-        : unavailable
-        ? scheme.onSurfaceVariant
+        ? NightMatchColors.onAction
         : scheme.onSurface;
     final background = selected
-        ? MatchdayColors.brand
+        ? NightMatchColors.actionLime
         : unavailable
         ? scheme.surfaceContainerHighest
         : scheme.surface;
-    final border = selected ? MatchdayColors.brand : scheme.outline;
-    final stateText = selected
+    final statusLabel = selected
         ? 'selected'
         : unavailable
         ? 'unavailable'
         : 'available';
-
     return Semantics(
       button: true,
       enabled: enabled,
       selected: selected,
-      label: '$label, $stateText',
+      label: '$label, $statusLabel',
       child: OutlinedButton(
-        onPressed: enabled ? onPressed : null,
+        onPressed: enabled
+            ? () {
+                HapticFeedback.selectionClick();
+                onPressed!();
+              }
+            : null,
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(88, 48),
+          minimumSize: const Size(88, 52),
           padding: const EdgeInsetsDirectional.symmetric(
             horizontal: AppSpacing.sm,
           ),
           backgroundColor: background,
           foregroundColor: foreground,
-          side: BorderSide(color: border),
+          side: BorderSide(
+            color: selected ? NightMatchColors.actionLime : scheme.outline,
+          ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+            borderRadius: BorderRadius.circular(AppRadius.input),
           ),
         ),
         child: Row(
@@ -222,7 +302,7 @@ class TimeSlotButton extends StatelessWidget {
               const Icon(Icons.block_rounded, size: 16),
               const SizedBox(width: AppSpacing.xxs),
             ],
-            Text(label, maxLines: 1),
+            Flexible(child: Text(label, maxLines: 1)),
           ],
         ),
       ),
@@ -248,13 +328,11 @@ class DateRailItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final weekday =
         MaterialLocalizations.of(context).narrowWeekdays[date.weekday % 7];
     final foreground = selected
-        ? (isDark ? scheme.onSecondaryContainer : Colors.white)
+        ? NightMatchColors.onAction
         : scheme.onSurface;
-
     return Semantics(
       button: true,
       selected: selected,
@@ -262,21 +340,24 @@ class DateRailItem extends StatelessWidget {
           '${MaterialLocalizations.of(context).formatFullDate(date)}${isToday ? ', today' : ''}',
       child: SizedBox(
         width: 64,
-        height: 72,
+        height: 84,
         child: Material(
           color: selected
-              ? (isDark ? scheme.secondaryContainer : MatchdayColors.brand)
-              : scheme.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
+              ? NightMatchColors.actionLime
+              : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppRadius.input),
           child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
+            borderRadius: BorderRadius.circular(AppRadius.input),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderRadius: BorderRadius.circular(AppRadius.input),
                 border: Border.all(
                   color: selected
-                      ? (isDark ? scheme.secondary : MatchdayColors.brand)
+                      ? NightMatchColors.actionLime
                       : scheme.outlineVariant,
                 ),
               ),
@@ -289,7 +370,9 @@ class DateRailItem extends StatelessWidget {
                   Text(
                     isToday ? 'Today' : weekday,
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: selected ? Colors.white : scheme.onSurfaceVariant,
+                      color: selected
+                          ? NightMatchColors.onAction
+                          : scheme.onSurfaceVariant,
                     ),
                   ),
                   Text(
@@ -301,10 +384,10 @@ class DateRailItem extends StatelessWidget {
                   ),
                   if (isToday && !selected)
                     Container(
-                      width: 4,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: scheme.secondary,
+                      width: AppSpacing.xxs,
+                      height: AppSpacing.xxs,
+                      decoration: const BoxDecoration(
+                        color: NightMatchColors.actionLime,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -313,6 +396,68 @@ class DateRailItem extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class StickyBookingBar extends StatelessWidget {
+  const StickyBookingBar({
+    required this.priceLabel,
+    required this.onBook,
+    required this.enabled,
+    this.isLoading = false,
+    this.bookLabel = 'Book now',
+    super.key,
+  });
+
+  final String priceLabel;
+  final VoidCallback onBook;
+  final bool enabled;
+  final bool isLoading;
+  final String bookLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+        boxShadow: theme.brightness == Brightness.dark
+            ? AppElevation.nightGlow
+            : const [],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(priceLabel, style: theme.textTheme.titleMedium),
+                Text(
+                  'per hour',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppPrimaryButton(
+            label: bookLabel,
+            onPressed: enabled ? onBook : null,
+            isLoading: isLoading,
+            expand: false,
+          ),
+        ],
       ),
     );
   }

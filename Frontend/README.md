@@ -1,11 +1,11 @@
 # Sporta
 
-## Matchday design system
+## Night Match design system
 
-The app bundles Barlow Condensed for headlines and numbers, Inter for body text,
-and Noto Sans Arabic as a fallback for Arabic. Theme mode follows the device
-setting. Shared design tokens and components live in `lib/Core/Theme/` and
-`lib/Widgets/`.
+The app uses a dark-first Night Match theme with a system-following light mode.
+It bundles Sora for headlines and prices, Inter for body text, and Noto Sans
+Arabic as a fallback for Arabic. Shared tokens and components live in
+`lib/Core/Theme/` and `lib/Widgets/`.
 
 ### Mapbox configuration
 

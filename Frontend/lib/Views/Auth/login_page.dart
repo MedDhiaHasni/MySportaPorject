@@ -140,8 +140,8 @@ class _LoginPageState extends State<LoginPage> {
                   Container(
                     padding: const EdgeInsetsDirectional.all(AppSpacing.lg),
                     decoration: BoxDecoration(
-                      color: MatchdayColors.brand,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      color: NightMatchColors.brandTeal,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
                     ),
                     child: Column(
                       children: [
@@ -155,7 +155,7 @@ class _LoginPageState extends State<LoginPage> {
                         Text(
                           'Sporta',
                           style: theme.textTheme.headlineSmall?.copyWith(
-                            color: MatchdayColors.onBrand,
+                            color: NightMatchColors.text,
                           ),
                         ),
                       ],
@@ -327,7 +327,7 @@ class _LoginErrorBanner extends StatelessWidget {
         padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
         decoration: BoxDecoration(
           color: theme.colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

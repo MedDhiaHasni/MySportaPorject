@@ -1,31 +1,26 @@
 import 'package:flutter/material.dart';
 
-abstract final class MatchdayColors {
-  static const brand = Color(0xFF035C5B);
-  static const onBrand = Color(0xFFFFFFFF);
-  static const brandTint = Color(0xFF56C9B7);
-  static const accent = Color(0xFFF4B942);
+abstract final class NightMatchColors {
+  static const background = Color(0xFF061A19);
+  static const surface = Color(0xFF0D2928);
+  static const elevatedSurface = Color(0xFF143634);
+  static const brandTeal = Color(0xFF035C5B);
+  static const actionLime = Color(0xFFC6F432);
+  static const onAction = Color(0xFF0A1F1E);
+  static const text = Color(0xFFF2F7F6);
+  static const mutedText = Color(0xFF9DB5B2);
+  static const error = Color(0xFFFF8A80);
+  static const lightError = Color(0xFFB3261E);
+  static const lightSuccess = Color(0xFF1D6A43);
+  static const success = Color(0xFF74D3A3);
+  static const heroScrimTop = Color(0x140A1F1E);
+  static const heroScrimBottom = Color(0xE60A1F1E);
 
-  static const lightBackground = Color(0xFFF3F7F6);
+  static const lightBackground = Color(0xFFF4F7F6);
   static const lightSurface = Color(0xFFFFFFFF);
-  static const lightSurfaceAlt = Color(0xFFE9F0EF);
-  static const lightText = Color(0xFF122625);
-  static const lightMutedText = Color(0xFF536765);
-  static const lightBorder = Color(0xFFD8E2E0);
-
-  static const darkBackground = Color(0xFF0B1716);
-  static const darkSurface = Color(0xFF142321);
-  static const darkSurfaceAlt = Color(0xFF1D302E);
-  static const darkText = Color(0xFFF3F8F7);
-  static const darkMutedText = Color(0xFFB4C7C4);
-  static const darkBorder = Color(0xFF36504D);
-
-  static const success = Color(0xFF166534);
-  static const successDark = Color(0xFF74D3A3);
-  static const warning = Color(0xFF8A4B08);
-  static const warningDark = Color(0xFFF0C36A);
-  static const error = Color(0xFFB42318);
-  static const errorDark = Color(0xFFFF8A80);
+  static const lightElevatedSurface = Color(0xFFEBF1EF);
+  static const lightText = Color(0xFF0A1F1E);
+  static const lightMutedText = Color(0xFF49615E);
 
   static const pendingBackground = Color(0xFFFFF1CC);
   static const pendingForeground = Color(0xFF704900);
@@ -48,8 +43,8 @@ abstract final class MatchdayColors {
   static const refundedForegroundDark = Color(0xFFD0B8FF);
 }
 
-abstract final class MatchdayFonts {
-  static const headline = 'BarlowCondensed';
+abstract final class AppFonts {
+  static const headline = 'Sora';
   static const body = 'Inter';
   static const arabic = 'NotoSansArabic';
 }
@@ -62,25 +57,51 @@ abstract final class AppSpacing {
   static const double lg = 24;
   static const double xl = 32;
   static const double xxl = 48;
+  static const double xxxl = 64;
 }
 
 abstract final class AppRadius {
   static const double xs = 8;
-  static const double sm = 12;
-  static const double md = 16;
-  static const double lg = 20;
-  static const double xl = 24;
+  static const double input = 16;
+  static const double card = 28;
   static const double pill = 999;
+}
+
+abstract final class AppLayout {
+  static const double heroHeight = 320;
+  static const double bottomNavigationHeight = 76;
+}
+
+abstract final class AppTypeScale {
+  static const double displayLarge = 48;
+  static const double displayMedium = 40;
+  static const double displaySmall = 36;
+  static const double headlineLarge = 32;
+  static const double headlineMedium = 28;
+  static const double headlineSmall = 24;
+  static const double titleLarge = 20;
+  static const double titleMedium = 16;
+  static const double titleSmall = 14;
+  static const double bodyLarge = 16;
+  static const double bodyMedium = 14;
+  static const double bodySmall = 12;
+  static const double labelLarge = 14;
+  static const double labelMedium = 12;
+  static const double labelSmall = 11;
 }
 
 abstract final class AppElevation {
   static const double none = 0;
   static const double low = 1;
-  static const double medium = 3;
+  static const double medium = 4;
   static const double high = 8;
 
-  static const List<BoxShadow> card = [
-    BoxShadow(color: Color(0x0A0B1716), blurRadius: 16, offset: Offset(0, 4)),
-    BoxShadow(color: Color(0x060B1716), blurRadius: 3, offset: Offset(0, 1)),
+  static const List<BoxShadow> nightGlow = [
+    BoxShadow(
+      color: Color(0x332DDAAF),
+      blurRadius: 28,
+      spreadRadius: -10,
+      offset: Offset(0, 8),
+    ),
   ];
 }

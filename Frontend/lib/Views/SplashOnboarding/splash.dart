@@ -31,7 +31,7 @@ class _SplashState extends State<Splash> {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       body: ColoredBox(
-        color: MatchdayColors.brand,
+        color: NightMatchColors.brandTeal,
         child: SafeArea(
           child: Center(
             child: AnimatedOpacity(
@@ -50,7 +50,7 @@ class _SplashState extends State<Splash> {
                   Text(
                     'Sporta',
                     style: textTheme.displayLarge?.copyWith(
-                      color: MatchdayColors.onBrand,
+                      color: NightMatchColors.text,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -58,7 +58,7 @@ class _SplashState extends State<Splash> {
                   Text(
                     'Born To Play',
                     style: textTheme.titleMedium?.copyWith(
-                      color: MatchdayColors.onBrand,
+                      color: NightMatchColors.text,
                       fontStyle: FontStyle.italic,
                     ),
                   ),

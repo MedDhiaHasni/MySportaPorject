@@ -184,12 +184,12 @@ class _AdminLoginPageState extends State<AdminLoginPage>
         content: Text(
           message,
           style: theme.textTheme.labelLarge?.copyWith(
-            color: MatchdayColors.onBrand,
+            color: NightMatchColors.text,
           ),
         ),
         backgroundColor: isError
             ? theme.colorScheme.error
-            : MatchdayColors.success,
+            : NightMatchColors.success,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -218,8 +218,8 @@ class _AdminLoginPageState extends State<AdminLoginPage>
                       Container(
                         padding: const EdgeInsetsDirectional.all(AppSpacing.lg),
                         decoration: BoxDecoration(
-                          color: MatchdayColors.brand,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          color: NightMatchColors.brandTeal,
+                          borderRadius: BorderRadius.circular(AppRadius.card),
                         ),
                         child: Column(
                           children: [
@@ -233,7 +233,7 @@ class _AdminLoginPageState extends State<AdminLoginPage>
                             Text(
                               'Sporta',
                               style: theme.textTheme.headlineSmall?.copyWith(
-                                color: MatchdayColors.onBrand,
+                                color: NightMatchColors.text,
                               ),
                             ),
                           ],
@@ -372,7 +372,7 @@ class _AdminErrorBanner extends StatelessWidget {
         padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
         decoration: BoxDecoration(
           color: theme.colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

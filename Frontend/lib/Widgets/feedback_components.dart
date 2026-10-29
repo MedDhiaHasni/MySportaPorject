@@ -1,14 +1,12 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../Core/Theme/app_tokens.dart';
 import 'Buttons/app_buttons.dart';
 
 class AppBottomSheet extends StatelessWidget {
-  const AppBottomSheet({
-    required this.child,
-    this.title,
-    super.key,
-  });
+  const AppBottomSheet({required this.child, this.title, super.key});
 
   final String? title;
   final Widget child;
@@ -18,43 +16,51 @@ class AppBottomSheet extends StatelessWidget {
     final theme = Theme.of(context);
     return SafeArea(
       top: false,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsetsDirectional.fromSTEB(
-          AppSpacing.md,
-          AppSpacing.xs,
-          AppSpacing.md,
-          AppSpacing.lg,
+      child: ClipRRect(
+        borderRadius: const BorderRadiusDirectional.vertical(
+          top: Radius.circular(AppRadius.card),
         ),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadiusDirectional.vertical(
-            top: Radius.circular(AppRadius.xl),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.5,
-                  ),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              AppSpacing.md,
+              AppSpacing.xs,
+              AppSpacing.md,
+              AppSpacing.lg,
+            ),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withValues(alpha: 0.92),
+              border: Border(
+                top: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
             ),
-            if (title != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              Text(title!, style: theme.textTheme.titleLarge),
-            ],
-            const SizedBox(height: AppSpacing.md),
-            child,
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: AppSpacing.xxs,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                  ),
+                ),
+                if (title != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(title!, style: theme.textTheme.titleLarge),
+                ],
+                const SizedBox(height: AppSpacing.md),
+                child,
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -143,7 +149,11 @@ class EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge,
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               message,
@@ -196,7 +206,11 @@ class ErrorState extends StatelessWidget {
               color: theme.colorScheme.error,
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge,
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               message,

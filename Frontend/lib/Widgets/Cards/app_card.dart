@@ -20,17 +20,17 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final card = Container(
       width: double.infinity,
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: scheme.outlineVariant),
-        boxShadow: Theme.of(context).brightness == Brightness.light
-            ? AppElevation.card
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        boxShadow: theme.brightness == Brightness.dark
+            ? AppElevation.nightGlow
             : const [],
       ),
       child: child,
@@ -41,7 +41,7 @@ class AppCard extends StatelessWidget {
       button: true,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         child: card,
       ),
     );
@@ -56,9 +56,12 @@ class VenueCard extends StatelessWidget {
     required this.distance,
     required this.price,
     required this.earliestSlot,
-    required this.onTap,
+    this.onTap,
     this.photoUrl,
     this.photoProvider,
+    this.availabilityLabel,
+    this.width = 300,
+    this.height = 220,
     super.key,
   });
 
@@ -70,137 +73,171 @@ class VenueCard extends StatelessWidget {
   final String distance;
   final String price;
   final String earliestSlot;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final String? availabilityLabel;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Semantics(
-      button: true,
-      label:
-          '$name, $sport, rating $rating, $distance, $price, earliest time $earliestSlot',
-      child: Material(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
+    final hero = ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _VenueImage(
+              photoUrl: photoUrl,
+              photoProvider: photoProvider,
+              placeholderColor: scheme.surfaceContainerHighest,
+              iconColor: scheme.secondary,
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: AlignmentDirectional.topCenter,
+                  end: AlignmentDirectional.bottomCenter,
+                  stops: [0.24, 1],
+                  colors: [Colors.transparent, Color(0xE6000000)],
+                ),
+              ),
+            ),
+            PositionedDirectional(
+              top: AppSpacing.sm,
+              start: AppSpacing.sm,
+              child: SportChip(label: sport),
+            ),
+            PositionedDirectional(
+              top: AppSpacing.sm,
+              end: AppSpacing.sm,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: 48,
+                  minHeight: 48,
+                ),
+                padding: const EdgeInsetsDirectional.symmetric(
+                  horizontal: AppSpacing.sm,
+                ),
+                decoration: const BoxDecoration(
+                  color: NightMatchColors.actionLime,
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(AppRadius.pill),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _VenueImage(
-                      photoUrl: photoUrl,
-                      photoProvider: photoProvider,
-                      placeholderColor: scheme.surfaceContainerHighest,
-                      iconColor: scheme.secondary,
+                    const Icon(
+                      Icons.star_rounded,
+                      size: 18,
+                      color: NightMatchColors.onAction,
                     ),
-                    PositionedDirectional(
-                      top: AppSpacing.sm,
-                      start: AppSpacing.sm,
-                      child: SportChip(label: sport),
-                    ),
-                    PositionedDirectional(
-                      top: AppSpacing.sm,
-                      end: AppSpacing.sm,
-                      child: Container(
-                        constraints: const BoxConstraints(
-                          minWidth: 48,
-                          minHeight: 48,
-                        ),
-                        padding: const EdgeInsetsDirectional.symmetric(
-                          horizontal: AppSpacing.sm,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.surface.withValues(alpha: 0.96),
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 18,
-                              color: MatchdayColors.warning,
-                            ),
-                            const SizedBox(width: AppSpacing.xxs),
-                            Text(rating, style: theme.textTheme.labelLarge),
-                          ],
-                        ),
+                    const SizedBox(width: AppSpacing.xxs),
+                    Text(
+                      rating,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: NightMatchColors.onAction,
                       ),
                     ),
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleLarge,
+            ),
+            PositionedDirectional(
+              start: AppSpacing.md,
+              end: AppSpacing.md,
+              bottom: AppSpacing.md,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: NightMatchColors.text,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.near_me_outlined,
-                          size: 16,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: AppSpacing.xxs),
-                        Expanded(
-                          child: Text(
-                            distance,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.near_me_outlined,
+                        size: 16,
+                        color: NightMatchColors.text,
+                      ),
+                      const SizedBox(width: AppSpacing.xxs),
+                      Expanded(
+                        child: Text(
+                          distance,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: NightMatchColors.text,
                           ),
                         ),
-                        Text(
-                          price,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                      ),
+                      Text(
+                        price,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: NightMatchColors.actionLime,
+                          fontWeight: FontWeight.w700,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  if (availabilityLabel != null || earliestSlot.isNotEmpty)
                     Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.schedule_rounded,
                           size: 16,
-                          color: scheme.secondary,
+                          color: NightMatchColors.actionLime,
                         ),
                         const SizedBox(width: AppSpacing.xs),
                         Expanded(
                           child: Text(
-                            'Earliest: $earliestSlot',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: scheme.secondary,
-                              fontWeight: FontWeight.w600,
+                            availabilityLabel ?? 'Earliest: $earliestSlot',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: NightMatchColors.text,
                             ),
                           ),
                         ),
-                        const Icon(Icons.arrow_forward_rounded, size: 20),
+                        if (onTap != null)
+                          const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: NightMatchColors.text,
+                          ),
                       ],
                     ),
-                  ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+    if (onTap == null) {
+      return Semantics(
+        label:
+            '$name, $sport, rating $rating, $distance, $price, earliest time $earliestSlot',
+        child: hero,
+      );
+    }
+    return Semantics(
+      button: true,
+      label:
+          '$name, $sport, rating $rating, $distance, $price, earliest time $earliestSlot',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: hero,
       ),
     );
   }
@@ -234,18 +271,16 @@ class _VenueImage extends StatelessWidget {
         errorBuilder: placeholder,
       );
     }
-
     if (photoUrl == null || photoUrl!.isEmpty) {
       return placeholder(context, StateError('No venue photo'), null);
     }
-
     return Image.network(
       photoUrl!,
       fit: BoxFit.cover,
       errorBuilder: placeholder,
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;
-        return const LoadingSkeleton(height: 180);
+        return const LoadingSkeleton(height: 220);
       },
     );
   }
@@ -280,7 +315,7 @@ class DashboardStatCard extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+              borderRadius: BorderRadius.circular(AppRadius.input),
             ),
             child: Icon(icon, color: color),
           ),

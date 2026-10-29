@@ -69,7 +69,7 @@ class _SignUpPageState extends State<SignUpPage> {
               content: const Text(
                 'Account created successfully! Please login.',
               ),
-              backgroundColor: MatchdayColors.success,
+              backgroundColor: NightMatchColors.success,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -133,8 +133,8 @@ class _SignUpPageState extends State<SignUpPage> {
                   Container(
                     padding: const EdgeInsetsDirectional.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: MatchdayColors.brand,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      color: NightMatchColors.brandTeal,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
                     ),
                     child: Row(
                       children: [
@@ -148,7 +148,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         Text(
                           'Sporta',
                           style: theme.textTheme.headlineSmall?.copyWith(
-                            color: MatchdayColors.onBrand,
+                            color: NightMatchColors.text,
                           ),
                         ),
                       ],
@@ -323,7 +323,7 @@ class _SignUpErrorBanner extends StatelessWidget {
         padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
         decoration: BoxDecoration(
           color: theme.colorScheme.errorContainer,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
