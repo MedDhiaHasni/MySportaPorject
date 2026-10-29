@@ -1,6 +1,7 @@
 // lib/Services/firebase_identity_service.dart
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
@@ -15,38 +16,51 @@ class FirebaseIdentityService {
   String? get firebaseUid => _firebaseUid;
   String? get fcmToken => _fcmToken;
 
-  // ── Called from main() — just init Firebase so Firestore works ───────────
-
-  Future<void> initAnonymous() async {
-    try {
-      final auth = FirebaseAuth.instance;
-      if (auth.currentUser == null) {
-        await auth.signInAnonymously();
-      }
-    } catch (e) {
-      AppLogger.error('[FirebaseIdentity] initAnonymous error: $e');
-    }
-  }
-
-  // ── Called from Navigation after Strapi login ────────────────────────────
-  // Builds a deterministic uid: "sporta_player_3" or "sporta_manager_1"
-  // This is unique per user account and never changes.
-  Future<void> initForUser({
-    required String strapiToken,
-    required String strapiUserId,
-    required String role, // 'player' or 'manager'
+  Future<bool> signInWithStrapiToken(
+    String strapiToken, {
+    bool force = false,
   }) async {
     try {
-      // Build deterministic uid — unique per Strapi user, consistent across devices
-      _firebaseUid = 'sporta_${role}_$strapiUserId';
+      final auth = FirebaseAuth.instance;
+      final currentUser = auth.currentUser;
+      if (!force && currentUser != null && !currentUser.isAnonymous) {
+        final needsSync = _firebaseUid != currentUser.uid;
+        _firebaseUid = currentUser.uid;
+        if (needsSync) {
+          await _fetchFcmToken();
+          await _syncToStrapi(strapiToken);
+        }
+        return true;
+      }
 
-      // Fetch FCM token
+      if (currentUser != null) await auth.signOut();
+
+      final tokenResponse =
+          await PlayerManagerAuthService.createFirebaseToken(strapiToken);
+      final customToken = tokenResponse['customToken']?.toString();
+      final expectedUid = tokenResponse['firebaseUid']?.toString();
+      if (customToken == null ||
+          customToken.isEmpty ||
+          expectedUid == null ||
+          expectedUid.isEmpty) {
+        throw StateError('The secure chat sign-in response was incomplete');
+      }
+
+      final credential = await auth.signInWithCustomToken(customToken);
+      final user = credential.user;
+      if (user == null || user.uid != expectedUid) {
+        await auth.signOut();
+        throw StateError('The secure chat identity did not match');
+      }
+
+      _firebaseUid = user.uid;
       await _fetchFcmToken();
-
-      // Save both to Strapi
       await _syncToStrapi(strapiToken);
+      return true;
     } catch (e) {
-      AppLogger.error('[FirebaseIdentity] initForUser error: $e');
+      _firebaseUid = null;
+      AppLogger.error('[FirebaseIdentity] custom-token sign-in failed: $e');
+      return false;
     }
   }
 
@@ -84,7 +98,13 @@ class FirebaseIdentityService {
   }
 
   Future<void> signOut() async {
-    _firebaseUid = null;
-    _fcmToken = null;
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        await FirebaseAuth.instance.signOut();
+      }
+    } finally {
+      _firebaseUid = null;
+      _fcmToken = null;
+    }
   }
 }

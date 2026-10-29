@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
+import 'package:sporta/Services/firebase_identity_service.dart';
 import 'package:sporta/Views/Auth/login_page.dart';
 
 class ManagerProfilePage extends StatefulWidget {
@@ -111,6 +112,7 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
 
     if (confirm == true) {
       try {
+        await FirebaseIdentityService.instance.signOut();
         // Clear all stored data
         await _storage.delete(key: 'jwt_token');
         await _storage.delete(key: 'user_role');

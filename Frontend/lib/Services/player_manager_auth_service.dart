@@ -18,20 +18,48 @@ class PlayerManagerAuthService {
     required String email,
     required String password,
   }) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'email': email, 'password': password}),
+    );
+    if (response.statusCode == 429) {
+      throw Exception('Too many attempts, try again later');
+    }
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return {'success': true, 'token': data['token'], 'user': data['user']};
+    }
+    final error = json.decode(response.body);
+    throw Exception(error['error']?['message'] ?? 'Login failed');
+  }
+
+  static Future<Map<String, dynamic>> createFirebaseToken(String token) async {
+    final response = await http
+        .post(
+          Uri.parse('$_baseUrl/auth/firebase-token'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    }
+    if (response.statusCode == 429) {
+      throw Exception('Too many attempts, try again later');
+    }
+
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'password': password}),
+      final error = json.decode(response.body) as Map<String, dynamic>;
+      throw Exception(
+        error['error']?['message']?.toString() ??
+            'Unable to initialize secure chat sign-in',
       );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {'success': true, 'token': data['token'], 'user': data['user']};
-      }
-      final error = json.decode(response.body);
-      throw Exception(error['error']?['message'] ?? 'Login failed');
-    } catch (e) {
-      throw Exception(e.toString());
+    } on FormatException {
+      throw Exception('Unable to initialize secure chat sign-in');
     }
   }
 

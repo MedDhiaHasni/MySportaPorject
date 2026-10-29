@@ -2,14 +2,12 @@
 // Manager sees two types of conversations:
 //   • player ↔ manager  (doc: reservation_{id})     — from players booking courts
 //   • worker ↔ manager  (doc: worker_manager_{id})  — permanent team channels
-// Uses deterministic UID: "sporta_manager_{strapiUserId}"
+// Uses the UID of the authenticated Firebase account.
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Services/chat_service.dart';
-import 'package:sporta/Services/firebase_identity_service.dart';
-import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -56,37 +54,20 @@ class _MessagesState extends State<Messages>
       _uidError = null;
     });
     try {
-      final cached = FirebaseIdentityService.instance.firebaseUid;
-      if (cached != null && cached.isNotEmpty) {
-        _setUid(cached);
-        return;
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null || firebaseUser.isAnonymous) {
+        throw StateError('No authenticated Firebase user is available');
       }
-
-      final token = await const FlutterSecureStorage().read(key: 'jwt_token');
-      if (token != null && token.isNotEmpty) {
-        final profile = await PlayerManagerAuthService.getMe(token);
-        final user = profile.containsKey('user')
-            ? profile['user'] as Map<String, dynamic>
-            : profile;
-        final id = user['id']?.toString() ?? '';
-        if (id.isNotEmpty) {
-          _setUid('sporta_manager_$id');
-          return;
-        }
-      }
-      var fbUser = FirebaseAuth.instance.currentUser;
-      fbUser ??= (await FirebaseAuth.instance.signInAnonymously()).user;
-      if (fbUser != null) {
-        _setUid(fbUser.uid);
-        return;
-      }
-      throw Exception('Could not resolve UID');
+      _setUid(firebaseUser.uid);
     } catch (e) {
-      if (mounted)
+      AppLogger.error('[Manager chat] secure Firebase identity unavailable: $e');
+      if (mounted) {
         setState(() {
-          _uidError = e.toString();
+          _uidError =
+              'Secure chat sign-in failed. Please log out and sign in again. Other app features remain available.';
           _loadingUid = false;
         });
+      }
     }
   }
 

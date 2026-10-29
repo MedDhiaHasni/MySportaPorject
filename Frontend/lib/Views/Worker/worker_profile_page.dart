@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Constants/api_constants.dart';
 import 'package:sporta/Services/worker_service.dart';
+import 'package:sporta/Services/firebase_identity_service.dart';
 import 'package:sporta/Views/Auth/login_page.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
 
@@ -155,6 +156,7 @@ class _WorkerProfilePageState extends State<WorkerProfilePage> {
 
     if (confirm == true) {
       try {
+        await FirebaseIdentityService.instance.signOut();
         await _storage.delete(key: 'jwt_token');
         await _storage.delete(key: 'user_role');
         await _storage.delete(key: 'user_id');

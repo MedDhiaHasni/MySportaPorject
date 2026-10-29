@@ -1,6 +1,6 @@
 // lib/Views/Worker/worker_navigation.dart
-// After the worker token is available, syncs the Firebase UID to Strapi.
-// This ensures worker.firebaseUid in MySQL = the real anonymous Firebase UID,
+// After the worker token is available, initializes the server-owned Firebase UID.
+// This ensures worker.firebaseUid in MySQL matches the authenticated Firebase UID,
 // so the backend writes the correct uid into Firestore conversation.participants.
 
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
@@ -12,10 +12,8 @@ import 'package:sporta/Views/Worker/worker_reservations_page.dart';
 import 'package:sporta/Views/Worker/worker_upcoming_page.dart';
 import 'package:sporta/Views/Worker/worker_chat_page.dart';
 import 'package:sporta/Services/firebase_identity_service.dart';
-import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:sporta/Services/notification_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
 
 final workerNavigationKey = GlobalKey<_WorkerNavigationState>();
@@ -107,21 +105,6 @@ class _WorkerNavigationState extends State<WorkerNavigation>
     }
   }
 
-  Future<void> _syncFcmToken(String token, String userId) async {
-    try {
-      final fcmToken = await FirebaseMessaging.instance.getToken();
-      if (fcmToken != null && fcmToken.isNotEmpty) {
-        await PlayerManagerAuthService.updateFirebaseUid(
-          token: token,
-          firebaseUid: 'sporta_worker_$userId',
-          fcmToken: fcmToken,
-        );
-      }
-    } catch (e) {
-      AppLogger.error('[WorkerNavigation] FCM token sync error: $e');
-    }
-  }
-
   Future<void> _initFirebaseForUser() async {
     try {
       String? token = widget.workerToken;
@@ -131,23 +114,7 @@ class _WorkerNavigationState extends State<WorkerNavigation>
       }
       if (token == null || token.isEmpty) return;
 
-      // Get Strapi user ID to build deterministic uid
-      final profile = await PlayerManagerAuthService.getMe(token);
-      final user = profile.containsKey('user')
-          ? profile['user'] as Map<String, dynamic>
-          : profile;
-      final userId = user['id']?.toString() ?? '';
-      if (userId.isEmpty) return;
-
-      // uid will be "sporta_worker_{userId}" — unique per worker account
-      await FirebaseIdentityService.instance.initForUser(
-        strapiToken: token,
-        strapiUserId: userId,
-        role: 'worker',
-      );
-
-      // ✅ Sync FCM token to backend
-      await _syncFcmToken(token, userId);
+      await FirebaseIdentityService.instance.signInWithStrapiToken(token);
     } catch (e) {
       AppLogger.error('[WorkerNavigation] Firebase init failed: $e');
     }

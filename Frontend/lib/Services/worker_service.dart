@@ -19,27 +19,25 @@ class WorkerService {
     required String email,
     required String password,
   }) async {
-    try {
-      final response = await http.post(
+    final response = await http.post(
         Uri.parse(ApiConstants.login),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': email, 'password': password}),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        final user = data['user'] as Map<String, dynamic>;
-        if (user['user_role'] != 'worker') {
-          throw Exception('This account is not a worker account');
-        }
-        return {'success': true, 'token': data['token'], 'user': user};
-      } else {
-        final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? 'Login failed');
-      }
-    } catch (e) {
-      throw Exception(e.toString());
+    if (response.statusCode == 429) {
+      throw Exception('Too many attempts, try again later');
     }
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final user = data['user'] as Map<String, dynamic>;
+      if (user['user_role'] != 'worker') {
+        throw Exception('This account is not a worker account');
+      }
+      return {'success': true, 'token': data['token'], 'user': user};
+    }
+    final error = json.decode(response.body) as Map<String, dynamic>;
+    throw Exception(error['error']?['message'] ?? 'Login failed');
   }
 
   static Future<void> forgotPassword(String email) async {

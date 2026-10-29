@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sporta/Services/admin_auth_service.dart';
+import 'package:sporta/Services/firebase_identity_service.dart';
 import 'package:sporta/Views/Admin/admindashboard.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -97,6 +98,10 @@ class _AdminLoginPageState extends State<AdminLoginPage>
 
       final token = response['token'] as String;
       await _storage.write(key: 'jwt_token', value: token);
+      await FirebaseIdentityService.instance.signInWithStrapiToken(
+        token,
+        force: true,
+      );
       await _storage.write(
         key: 'user_role',
         value: response['user']['user_role'],

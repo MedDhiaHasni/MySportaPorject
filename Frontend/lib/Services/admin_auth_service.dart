@@ -35,6 +35,9 @@ class AdminAuthService {
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'email': email, 'password': password}),
     );
+    if (r.statusCode == 429) {
+      throw Exception('Too many attempts, try again later');
+    }
     if (r.statusCode == 200) {
       final d = json.decode(r.body) as Map<String, dynamic>;
       return {'success': true, 'token': d['token'], 'user': d['user']};

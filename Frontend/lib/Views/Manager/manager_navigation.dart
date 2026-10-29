@@ -8,10 +8,8 @@ import 'package:sporta/Views/Manager/venue_page.dart';
 import 'package:sporta/Views/Manager/bookings.dart';
 import 'package:sporta/Views/Manager/messages.dart';
 import 'package:sporta/Services/firebase_identity_service.dart';
-import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:sporta/Services/notification_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
 
 class ManagerNavigation extends StatefulWidget {
@@ -91,21 +89,6 @@ class _ManagerNavigationState extends State<ManagerNavigation>
     }
   }
 
-  Future<void> _syncFcmToken(String token, String userId) async {
-    try {
-      final fcmToken = await FirebaseMessaging.instance.getToken();
-      if (fcmToken != null && fcmToken.isNotEmpty) {
-        await PlayerManagerAuthService.updateFirebaseUid(
-          token: token,
-          firebaseUid: 'sporta_manager_$userId',
-          fcmToken: fcmToken,
-        );
-      }
-    } catch (e) {
-      AppLogger.error('[ManagerNavigation] FCM token sync error: $e');
-    }
-  }
-
   Future<void> _initFirebaseForUser() async {
     try {
       String? token = widget.managerToken;
@@ -115,22 +98,7 @@ class _ManagerNavigationState extends State<ManagerNavigation>
       }
       if (token == null || token.isEmpty) return;
 
-      final profile = await PlayerManagerAuthService.getMe(token);
-      final user = profile.containsKey('user')
-          ? profile['user'] as Map<String, dynamic>
-          : profile;
-      final userId = user['id']?.toString() ?? '';
-      if (userId.isEmpty) return;
-
-      // uid will be "sporta_manager_{userId}" — unique per manager account
-      await FirebaseIdentityService.instance.initForUser(
-        strapiToken: token,
-        strapiUserId: userId,
-        role: 'manager',
-      );
-
-      // ✅ Sync FCM token to backend
-      await _syncFcmToken(token, userId);
+      await FirebaseIdentityService.instance.signInWithStrapiToken(token);
     } catch (e) {
       AppLogger.error('[ManagerNavigation] Firebase init failed: $e');
     }

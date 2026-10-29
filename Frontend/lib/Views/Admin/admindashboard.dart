@@ -10,6 +10,7 @@ import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Constants/api_constants.dart';
 import 'package:sporta/Models/app_enums.dart';
 import 'package:sporta/Services/admin_auth_service.dart';
+import 'package:sporta/Services/firebase_identity_service.dart';
 import 'package:sporta/Views/Admin/admin_login.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
@@ -830,6 +831,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // ── Logout ────────────────────────────────────────────────────────────────
 
   Future<void> _logout() async {
+    await FirebaseIdentityService.instance.signOut();
     await const FlutterSecureStorage().deleteAll();
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(

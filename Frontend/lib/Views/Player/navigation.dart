@@ -13,10 +13,8 @@ import 'package:sporta/Views/Player/explore.dart';
 import 'package:sporta/Views/Player/home.dart';
 import 'package:sporta/Views/Player/matches_page.dart';
 import 'package:sporta/Services/firebase_identity_service.dart';
-import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:sporta/Services/notification_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
 
 final navigationKey = GlobalKey<_NavigationState>();
@@ -120,21 +118,6 @@ class _NavigationState extends State<Navigation>
     }
   }
 
-  Future<void> _syncFcmToken(String token, String userId) async {
-    try {
-      final fcmToken = await FirebaseMessaging.instance.getToken();
-      if (fcmToken != null && fcmToken.isNotEmpty) {
-        await PlayerManagerAuthService.updateFirebaseUid(
-          token: token,
-          firebaseUid: 'sporta_player_$userId',
-          fcmToken: fcmToken,
-        );
-      }
-    } catch (e) {
-      AppLogger.error('[Navigation] FCM token sync error: $e');
-    }
-  }
-
   Future<void> _initFirebaseForUser() async {
     try {
       String? token = widget.playerToken;
@@ -144,23 +127,7 @@ class _NavigationState extends State<Navigation>
       }
       if (token == null || token.isEmpty) return;
 
-      // Get Strapi user ID to build deterministic uid
-      final profile = await PlayerManagerAuthService.getMe(token);
-      final user = profile.containsKey('user')
-          ? profile['user'] as Map<String, dynamic>
-          : profile;
-      final userId = user['id']?.toString() ?? '';
-      if (userId.isEmpty) return;
-
-      // uid will be "sporta_player_{userId}" — unique per player account
-      await FirebaseIdentityService.instance.initForUser(
-        strapiToken: token,
-        strapiUserId: userId,
-        role: 'player',
-      );
-
-      //  Sync FCM token to backend
-      await _syncFcmToken(token, userId);
+      await FirebaseIdentityService.instance.signInWithStrapiToken(token);
     } catch (e) {
       AppLogger.error('[Navigation] Firebase init failed: $e');
     }

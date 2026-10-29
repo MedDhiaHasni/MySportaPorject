@@ -9,6 +9,7 @@ import 'package:sporta/Views/Worker/worker_navigation.dart';
 import 'package:sporta/Widgets/Inputs/app_input_field.dart';
 import 'package:sporta/Widgets/Shared/auth_header.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
+import 'package:sporta/Services/firebase_identity_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
 
@@ -54,6 +55,10 @@ class _LoginPageState extends State<LoginPage> {
           await _storage.write(key: 'jwt_token', value: token);
           await _storage.write(key: 'user_role', value: userRole);
           await _storage.write(key: 'user_id', value: userId);
+          await FirebaseIdentityService.instance.signInWithStrapiToken(
+            token,
+            force: true,
+          );
 
           if (_remember) {
             await _storage.write(
@@ -95,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
       } catch (error) {
         AppLogger.error('ERROR: $error');
         setState(() => _isLoading = false);
-        _showErrorDialog(error.toString());
+        _showErrorDialog(error.toString().replaceFirst('Exception: ', ''));
       }
     }
   }
