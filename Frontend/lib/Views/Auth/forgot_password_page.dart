@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
-import 'package:sporta/Core/Utils/validators.dart';
-import 'package:sporta/Widgets/Inputs/app_input_field.dart';
-import 'package:sporta/Services/player_manager_auth_service.dart';
+import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
+import 'package:sporta/Core/Utils/validators.dart';
+import 'package:sporta/Services/player_manager_auth_service.dart';
+import 'package:sporta/Widgets/Buttons/app_buttons.dart';
+import 'package:sporta/Widgets/Cards/app_card.dart';
+import 'package:sporta/Widgets/Inputs/app_text_field.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
+
   @override
   State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
@@ -16,6 +19,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isSent = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -24,214 +28,201 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   Future<void> _sendResetLink() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        await PlayerManagerAuthService.forgotPassword(_email.text.trim());
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-        setState(() {
-          _isLoading = false;
-          _isSent = true;
-        });
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Password reset link sent to your email!'),
-            backgroundColor: kGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-
-        // Auto navigate back after 2 seconds
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.pop(context);
-          }
-        });
-      } catch (error) {
-        AppLogger.error('Error sending reset link: $error');
-        setState(() => _isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error.toString()),
-            backgroundColor: kRed,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-      }
+    try {
+      await PlayerManagerAuthService.forgotPassword(_email.text.trim());
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _isSent = true;
+      });
+    } catch (error) {
+      AppLogger.error('Error sending reset link: $error');
+      if (!mounted) return;
+      final message = error.toString().replaceFirst('Exception: ', '');
+      final normalizedMessage = message.toLowerCase();
+      setState(() {
+        _isLoading = false;
+        _errorMessage =
+            normalizedMessage.contains('429') ||
+                normalizedMessage.contains('too many') ||
+                normalizedMessage.contains('rate limit')
+            ? 'Too many attempts, try again later'
+            : message;
+      });
     }
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: kBg,
-    appBar: AppBar(
-      backgroundColor: kBg,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: kTextDark,
-          size: 20,
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_rounded),
         ),
-        onPressed: () => Navigator.pop(context),
       ),
-    ),
-    body: SingleChildScrollView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: _isSent
+                    ? _confirmationStep(context)
+                    : _requestStep(context),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _requestStep(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return AppCard(
+      key: const ValueKey('forgot-password-request'),
       child: Form(
         key: _formKey,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Icon ──────────────────────────────────────────────────
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: kPrimary.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Image.asset(
-                  'assets/envelope1.png',
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.email_outlined,
-                      size: 48,
-                      color: kPrimary.withOpacity(0.6),
-                    );
-                  },
-                ),
-              ),
+            Icon(
+              Icons.lock_reset_rounded,
+              size: AppSpacing.xxl,
+              color: scheme.secondary,
             ),
-            const SizedBox(height: 28),
-
-            const Text(
-              'Forgot Password?',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: kTextDark,
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "No worries! Enter the email associated with your Sporta account and we'll send you a reset link.",
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Reset your password',
+              style: theme.textTheme.headlineMedium,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: kTextMid, height: 1.6),
             ),
-            const SizedBox(height: 36),
-
-            // ── Email ──────────────────────────────────────────────────
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Email Address',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: kTextDark,
-                ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Enter your email and we’ll send instructions if an account is associated with it.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            TextFormField(
+            const SizedBox(height: AppSpacing.lg),
+            if (_errorMessage != null) ...[
+              _ForgotPasswordErrorBanner(message: _errorMessage!),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            AppTextField(
               controller: _email,
+              label: 'Email address',
+              hint: 'your@email.com',
+              prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
-              decoration: appInputDecoration(
-                'your@email.com',
-                Icons.email_outlined,
-              ),
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _sendResetLink(),
               validator: Validators.email,
             ),
-            const SizedBox(height: 28),
-
-            // ── Send button ────────────────────────────────────────────
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _sendResetLink,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 4,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Send Reset Link',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(
-                            Icons.send_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // ── Back to login link ─────────────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Remember your password? ',
-                  style: TextStyle(fontSize: 14, color: kTextMid),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Text(
-                    'Back to Login',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: kPrimary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(height: AppSpacing.md),
+            AppPrimaryButton(
+              label: 'Send reset instructions',
+              icon: Icons.send_rounded,
+              isLoading: _isLoading,
+              onPressed: _isLoading ? null : _sendResetLink,
             ),
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
+
+  Widget _confirmationStep(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return AppCard(
+      key: const ValueKey('forgot-password-confirmation'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Icon(
+            Icons.mark_email_read_outlined,
+            size: AppSpacing.xxl,
+            color: scheme.secondary,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'Check your inbox',
+            style: theme.textTheme.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'If an account exists for this email address, password reset instructions will arrive shortly.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          AppPrimaryButton(
+            label: 'Back to login',
+            icon: Icons.arrow_back_rounded,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ForgotPasswordErrorBanner extends StatelessWidget {
+  const _ForgotPasswordErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              color: theme.colorScheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
