@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 abstract final class MatchdayColors {
   static const brand = Color(0xFF035C5B);
+  static const onBrand = Color(0xFFFFFFFF);
   static const brandTint = Color(0xFF56C9B7);
   static const accent = Color(0xFFF4B942);
 
@@ -79,15 +80,7 @@ abstract final class AppElevation {
   static const double high = 8;
 
   static const List<BoxShadow> card = [
-    BoxShadow(
-      color: Color(0x0A0B1716),
-      blurRadius: 16,
-      offset: Offset(0, 4),
-    ),
-    BoxShadow(
-      color: Color(0x060B1716),
-      blurRadius: 3,
-      offset: Offset(0, 1),
-    ),
+    BoxShadow(color: Color(0x0A0B1716), blurRadius: 16, offset: Offset(0, 4)),
+    BoxShadow(color: Color(0x060B1716), blurRadius: 3, offset: Offset(0, 1)),
   ];
 }

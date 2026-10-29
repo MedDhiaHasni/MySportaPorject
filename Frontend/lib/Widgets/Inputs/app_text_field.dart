@@ -13,6 +13,7 @@ class AppTextField extends StatelessWidget {
     this.suffix,
     this.validator,
     this.onChanged,
+    this.onFieldSubmitted,
     this.obscureText = false,
     this.maxLines = 1,
     this.enabled = true,
@@ -28,6 +29,7 @@ class AppTextField extends StatelessWidget {
   final Widget? suffix;
   final String? Function(String?)? validator;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onFieldSubmitted;
   final bool obscureText;
   final int maxLines;
   final bool enabled;
@@ -44,6 +46,7 @@ class AppTextField extends StatelessWidget {
       enabled: enabled,
       validator: validator,
       onChanged: onChanged,
+      onFieldSubmitted: onFieldSubmitted,
       style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(
         labelText: label,

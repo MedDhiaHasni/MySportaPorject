@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Utils/validators.dart';
+import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Views/Auth/forgot_password_page.dart';
 import 'package:sporta/Views/Auth/sign_up_page.dart';
 import 'package:sporta/Views/Manager/manager_navigation.dart';
 import 'package:sporta/Views/Player/navigation.dart';
 import 'package:sporta/Views/Worker/worker_navigation.dart';
-import 'package:sporta/Widgets/Inputs/app_input_field.dart';
-import 'package:sporta/Widgets/Shared/auth_header.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:sporta/Services/firebase_identity_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
+import 'package:sporta/Widgets/Buttons/app_buttons.dart';
+import 'package:sporta/Widgets/Cards/app_card.dart';
+import 'package:sporta/Widgets/Inputs/app_text_field.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -26,6 +27,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _remember = false;
   bool _obscure = true;
   bool _isLoading = false;
+  String? _errorMessage;
 
   final _storage = const FlutterSecureStorage();
 
@@ -37,6 +39,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
+    setState(() => _errorMessage = null);
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
@@ -90,272 +93,211 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
           } else {
-            setState(() => _isLoading = false);
-            _showErrorDialog('Invalid user role');
+            setState(() {
+              _isLoading = false;
+              _errorMessage = 'Invalid user role';
+            });
           }
         } else {
-          setState(() => _isLoading = false);
-          _showErrorDialog('No token received');
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'No token received';
+          });
         }
       } catch (error) {
         AppLogger.error('ERROR: $error');
-        setState(() => _isLoading = false);
-        _showErrorDialog(error.toString().replaceFirst('Exception: ', ''));
+        final message = error.toString().replaceFirst('Exception: ', '');
+        final normalizedMessage = message.toLowerCase();
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+              normalizedMessage.contains('429') ||
+                  normalizedMessage.contains('too many') ||
+                  normalizedMessage.contains('rate limit')
+              ? 'Too many attempts, try again later'
+              : message;
+        });
       }
     }
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Login Failed',
-          style: TextStyle(color: kRed, fontWeight: FontWeight.w800),
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Try Again'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: kBg,
-    body: SingleChildScrollView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      child: Column(
-        children: [
-          const AuthHeader(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
-            child: Form(
-              key: _formKey,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Welcome Back 👋',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: kTextDark,
+                  Container(
+                    padding: const EdgeInsetsDirectional.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: MatchdayColors.brand,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Login to continue playing',
-                    style: TextStyle(fontSize: 14, color: kTextMid),
-                  ),
-                  const SizedBox(height: 24),
-
-                  const Text('Email Address', style: _label),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: appInputDecoration(
-                      'your@email.com',
-                      Icons.email_outlined,
-                    ),
-                    validator: Validators.email,
-                  ),
-                  const SizedBox(height: 16),
-
-                  const Text('Password', style: _label),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _password,
-                    obscureText: _obscure,
-                    decoration:
-                        appInputDecoration(
-                          '••••••••',
-                          Icons.lock_outline,
-                        ).copyWith(
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscure
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: Colors.grey,
-                              size: 20,
-                            ),
-                            onPressed: () =>
-                                setState(() => _obscure = !_obscure),
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/sportawhite.png',
+                          width: AppSpacing.xxl,
+                          height: AppSpacing.xxl,
+                          semanticLabel: 'Sporta',
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Sporta',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: MatchdayColors.onBrand,
                           ),
                         ),
-                    validator: Validators.password,
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
+                  const SizedBox(height: AppSpacing.lg),
+                  Text('Welcome back', style: theme.textTheme.headlineLarge),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'Log in to find your next game.',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppCard(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Checkbox(
-                            value: _remember,
-                            onChanged: (v) =>
-                                setState(() => _remember = v ?? false),
-                            activeColor: kPrimary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
+                          if (_errorMessage != null) ...[
+                            _LoginErrorBanner(message: _errorMessage!),
+                            const SizedBox(height: AppSpacing.md),
+                          ],
+                          AppTextField(
+                            controller: _email,
+                            label: 'Email address',
+                            hint: 'your@email.com',
+                            prefixIcon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            validator: Validators.email,
                           ),
-                          const Text(
-                            'Remember me',
-                            style: TextStyle(fontSize: 13, color: kTextMid),
-                          ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ForgotPasswordPage(),
-                          ),
-                        ),
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: kPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 4,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
+                          const SizedBox(height: AppSpacing.md),
+                          AppTextField(
+                            controller: _password,
+                            label: 'Password',
+                            hint: 'Enter your password',
+                            prefixIcon: Icons.lock_outline_rounded,
+                            obscureText: _obscure,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _submit(),
+                            validator: Validators.password,
+                            suffix: IconButton(
+                              tooltip: _obscure
+                                  ? 'Show password'
+                                  : 'Hide password',
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                               ),
-                            )
-                          : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Login',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Checkbox(
+                                    value: _remember,
+                                    onChanged: (value) => setState(
+                                      () => _remember = value ?? false,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Remember me',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ],
+                              ),
+                              AppTextButton(
+                                label: 'Forgot password?',
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ForgotPasswordPage(),
                                   ),
                                 ),
-                                SizedBox(width: 8),
-                                Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: Colors.white,
-                                  size: 18,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          AppPrimaryButton(
+                            label: 'Log in',
+                            icon: Icons.arrow_forward_rounded,
+                            isLoading: _isLoading,
+                            onPressed: _isLoading ? null : _submit,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding: const EdgeInsetsDirectional.symmetric(
+                                  horizontal: AppSpacing.sm,
                                 ),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.grey[300])),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14),
-                        child: Text(
-                          'OR CONTINUE WITH',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: kTextMid,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.8,
+                                child: Text(
+                                  'OR CONTINUE WITH',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(child: Divider()),
+                            ],
                           ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: Colors.grey[300])),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.grey[300]!),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        backgroundColor: Colors.white,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/google.png',
-                            width: 22,
-                            height: 22,
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'Continue with Google',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                          const SizedBox(height: AppSpacing.sm),
+                          OutlinedButton.icon(
+                            onPressed: () {},
+                            icon: Image.asset(
+                              'assets/google.png',
+                              width: AppSpacing.lg,
+                              height: AppSpacing.lg,
+                              semanticLabel: 'Google',
                             ),
+                            label: const Text('Continue with Google'),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  const SizedBox(height: AppSpacing.md),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      const Text(
-                        "Don't have an account? ",
-                        style: TextStyle(fontSize: 14, color: kTextMid),
+                      Text(
+                        "Don't have an account?",
+                        style: theme.textTheme.bodyMedium,
                       ),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
+                      AppTextButton(
+                        label: 'Sign up',
+                        onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const SignUpPage()),
-                        ),
-                        child: const Text(
-                          'Sign up',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: kPrimary,
-                            fontWeight: FontWeight.w800,
-                          ),
                         ),
                       ),
                     ],
@@ -364,17 +306,51 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
-const _label = TextStyle(
-  fontSize: 13,
-  fontWeight: FontWeight.w700,
-  color: kTextDark,
-);
+class _LoginErrorBanner extends StatelessWidget {
+  const _LoginErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              color: theme.colorScheme.onErrorContainer,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 /*import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
