@@ -4,7 +4,6 @@
 // Passes playerToken + playerFirebaseUid into all screens that need them.
 // firebaseUid is fetched once from the player profile on init.
 
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Views/Player/ai_assistant.dart';
@@ -16,6 +15,7 @@ import 'package:sporta/Services/firebase_identity_service.dart';
 import 'package:sporta/Services/notification_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
+import 'package:sporta/Widgets/navigation_components.dart';
 
 final navigationKey = GlobalKey<_NavigationState>();
 
@@ -35,8 +35,6 @@ class _NavigationState extends State<Navigation>
   AnimationController? _pageController;
   Animation<double>? _fadeAnim;
   Animation<Offset>? _slideAnim;
-
-  final GlobalKey<CurvedNavigationBarState> _navKey = GlobalKey();
 
   final _icons = const [
     Icons.home_rounded,
@@ -149,48 +147,30 @@ class _NavigationState extends State<Navigation>
             end: Offset.zero,
           ),
         );
-    setState(() => _selectedIndex = index);
-    _pageController!.forward(from: 0.0);
+        setState(() => _selectedIndex = index);
+        if (MediaQuery.of(context).disableAnimations) {
+          _pageController!.value = 1;
+        } else {
+          _pageController!.forward(from: 0.0);
+        }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    extendBody: true,
-    backgroundColor: const Color(0xFFF2F4F7),
-    body: _buildBody(),
-    bottomNavigationBar: CurvedNavigationBar(
-      key: _navKey,
-      index: _selectedIndex,
-      height: 65,
-      color: kPrimary,
-      backgroundColor: Colors.transparent,
-      buttonBackgroundColor: Colors.white,
-      animationCurve: Curves.easeInOut,
-      animationDuration: const Duration(milliseconds: 320),
-      onTap: _onTap,
-      items: List.generate(_icons.length, (i) {
-        final sel = _selectedIndex == i;
-        return IgnorePointer(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(_icons[i], size: 24, color: sel ? kPrimary : Colors.white),
-              if (!sel) ...[
-                const SizedBox(height: 2),
-                Text(
-                  _labels[i],
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ],
+        extendBody: true,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: _buildBody(),
+        bottomNavigationBar: FloatingBottomNav(
+          destinations: List.generate(
+            _icons.length,
+            (index) => PlayerNavDestination(
+              label: _labels[index],
+              icon: _icons[index],
+            ),
           ),
-        );
-      }),
-    ),
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onTap,
+        ),
   );
 
   Widget _buildBody() {
