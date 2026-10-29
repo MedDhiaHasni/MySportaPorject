@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Views/Auth/login_page.dart';
+import 'package:sporta/Widgets/Buttons/app_buttons.dart';
 
 class Onboarding extends StatefulWidget {
   const Onboarding({super.key});
@@ -13,15 +15,23 @@ class _OnboardingState extends State<Onboarding> {
   final PageController controlleronboard = PageController();
   int _currentPage = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    controlleronboard.addListener(() {
-      setState(() {
-        _currentPage = controlleronboard.page?.round() ?? 0;
-      });
-    });
-  }
+  static const _pages = [
+    (
+      image: 'assets/onb1.png',
+      headline: 'Book matches instantly',
+      benefit: 'Find an open slot and get your game on.',
+    ),
+    (
+      image: 'assets/onb2.png',
+      headline: 'Find your team',
+      benefit: 'Meet players and join games near you.',
+    ),
+    (
+      image: 'assets/onb3.png',
+      headline: 'Your game, made easier',
+      benefit: 'Get help with bookings whenever you need it.',
+    ),
+  ];
 
   @override
   void dispose() {
@@ -35,261 +45,152 @@ class _OnboardingState extends State<Onboarding> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Stack(
-        children: [
-          // Pages
-          PageView(
-            controller: controlleronboard,
-            children: [
-              _buildPage(
-                context: context,
-                size: size,
-                imagePath: 'assets/onb1.png',
-                tagline: 'BOOK & PLAY',
-                title: 'Book Matches\nInstantly',
-                description:
-                    'Reserve your slot, organize your game,\nand hit the field — all in seconds.',
-                bgColor: const Color(0xFFFFF8F0),
-                accentColor: const Color(0xFF005D5E),
-              ),
-              _buildPage(
-                context: context,
-                size: size,
-                imagePath: 'assets/onb2.png',
-                tagline: 'FIND YOUR TEAM',
-                title: 'Connect With\nOther Players',
-                description:
-                    'Find teammates, join open matches,\nand grow your sports network.',
-                bgColor: const Color(0xFFF0F8F8),
-                accentColor: const Color(0xFF005D5E),
-              ),
-              _buildPage(
-                context: context,
-                size: size,
-                imagePath: 'assets/onb3.png',
-                tagline: 'JUST ASK',
-                title: 'Your AI Assistant\nNever Sleeps',
-                description:
-                    'Need to book a field at 2 AM? Just chat.\nYour assistant handles the rest.',
-                bgColor: const Color(0xFFF5F0FF),
-                accentColor: const Color(0xFF005D5E),
-              ),
-            ],
-          ),
-
-          // Skip button
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 16, top: 8),
-                child: TextButton(
-                  onPressed: _goToLogin,
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    backgroundColor: Colors.white.withOpacity(0.8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Skip',
-                        style: TextStyle(
-                          color: Color(0xFF005D5E),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      SizedBox(width: 2),
-                      Icon(
-                        Icons.chevron_right,
-                        color: Color(0xFF005D5E),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Bottom bar: indicator + button
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 24,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SmoothPageIndicator(
-                      controller: controlleronboard,
-                      count: 3,
-                      effect: const ExpandingDotsEffect(
-                        activeDotColor: Color(0xFF005D5E),
-                        dotColor: Color(0xFFB2DFDB),
-                        dotHeight: 8,
-                        dotWidth: 8,
-                        expansionFactor: 3,
-                        spacing: 6,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        if (_currentPage < 2) {
-                          controlleronboard.nextPage(
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeInOut,
-                          );
-                        } else {
-                          _goToLogin();
-                        }
-                      },
-                      child: Container(
-                        width: 58,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF005D5E),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF005D5E).withOpacity(0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _currentPage < 2
-                              ? Icons.arrow_forward_rounded
-                              : Icons.check_rounded,
-                          color: Colors.white,
-                          size: 26,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _nextPage() {
+    if (_currentPage < _pages.length - 1) {
+      controlleronboard.nextPage(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _goToLogin();
+    }
   }
 
-  Widget _buildPage({
-    required BuildContext context,
-    required Size size,
-    required String imagePath,
-    required String tagline,
-    required String title,
-    required String description,
-    required Color bgColor,
-    required Color accentColor,
-  }) {
-    return Column(
-      children: [
-        // Top image section — takes ~58% of screen
-        Expanded(
-          flex: 58,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Background color only (circles removed)
-              Container(color: bgColor),
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
-              // Image
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    top: 80,
-                    bottom: 24,
-                    left: 32,
-                    right: 32,
-                  ),
-                  child: Image.asset(imagePath, fit: BoxFit.contain),
-                ),
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                0,
               ),
-            ],
-          ),
-        ),
-
-        // Bottom text section — takes ~42% of screen
-        Expanded(
-          flex: 42,
-          child: Container(
-            color: const Color(0xFFF5F5F5),
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 100),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Tagline chip
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    tagline,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: accentColor,
-                      letterSpacing: 1.8,
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: _currentPage < _pages.length - 1
+                    ? AppTextButton(
+                        label: 'Skip',
+                        icon: Icons.arrow_forward_rounded,
+                        onPressed: _goToLogin,
+                      )
+                    : const SizedBox(height: 48),
+              ),
+            ),
+            Expanded(
+              child: PageView.builder(
+                controller: controlleronboard,
+                itemCount: _pages.length,
+                onPageChanged: (page) => setState(() => _currentPage = page),
+                itemBuilder: (context, index) {
+                  final page = _pages[index];
+                  return Padding(
+                    padding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          flex: 6,
+                          child: Center(
+                            child: Image.asset(
+                              page.image,
+                              fit: BoxFit.contain,
+                              semanticLabel: page.headline,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 4,
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsetsDirectional.only(
+                              top: AppSpacing.md,
+                              bottom: AppSpacing.md,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'SPORTA • ${index + 1} / ${_pages.length}',
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: scheme.secondary,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  page.headline,
+                                  style: theme.textTheme.headlineLarge,
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  page.benefit,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(
+                AppSpacing.lg,
+                AppSpacing.xs,
+                AppSpacing.lg,
+                AppSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Semantics(
+                        label: 'Page ${_currentPage + 1} of ${_pages.length}',
+                        child: SmoothPageIndicator(
+                          controller: controlleronboard,
+                          count: _pages.length,
+                          effect: ExpandingDotsEffect(
+                            activeDotColor: scheme.secondary,
+                            dotColor: scheme.outlineVariant,
+                            dotHeight: AppSpacing.xs,
+                            dotWidth: AppSpacing.xs,
+                            expansionFactor: 3,
+                            spacing: AppSpacing.xs,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-
-                // Main title
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0D0D0D),
-                    fontSize: 34,
-                    height: 1.15,
-                    letterSpacing: -0.5,
+                  Expanded(
+                    child: AppPrimaryButton(
+                      label: _currentPage == _pages.length - 1
+                          ? 'Get started'
+                          : 'Continue',
+                      icon: _currentPage == _pages.length - 1
+                          ? Icons.check_rounded
+                          : Icons.arrow_forward_rounded,
+                      onPressed: _nextPage,
+                      expand: false,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                // Description
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    color: Colors.grey[600],
-                    fontSize: 15,
-                    height: 1.6,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
