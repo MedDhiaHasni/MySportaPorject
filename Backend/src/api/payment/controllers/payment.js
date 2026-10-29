@@ -154,6 +154,49 @@ module.exports = {
       const user              = ctx.state.user;
       if (!user) return ctx.unauthorized('Authentication required');
 
+      const reservation = await strapi.entityService.findOne(
+        'api::reservation.reservation',
+        reservationId,
+        {
+          populate: [
+            'player',
+            'court',
+            'court.venue',
+            'court.venue.manager',
+          ],
+        },
+      );
+      if (!reservation) return ctx.notFound('Reservation not found');
+
+      let isAuthorized = user.user_role === 'admin';
+      if (user.user_role === 'player') {
+        const player = await strapi.db.query('api::player.player').findOne({
+          where: { player: user.id },
+        });
+        isAuthorized =
+          !!player && String(reservation.player?.id) === String(player.id);
+      } else if (user.user_role === 'manager') {
+        const manager = await strapi.db.query('api::manager.manager').findOne({
+          where: { manager: user.id },
+        });
+        isAuthorized =
+          !!manager &&
+          String(reservation.court?.venue?.manager?.id) === String(manager.id);
+      } else if (user.user_role === 'worker') {
+        const worker = await strapi.entityService.findMany('api::worker.worker', {
+          filters: { worker: user.id },
+          populate: { courts: true },
+          limit: 1,
+        });
+        isAuthorized = !!worker?.[0]?.courts?.some(
+          (court) => String(court.id) === String(reservation.court?.id),
+        );
+      }
+
+      if (!isAuthorized) {
+        return ctx.forbidden('You are not authorized to view this reservation payment');
+      }
+
       const payments = await strapi.db.query('api::payment.payment').findMany({
         where:   { reservation: { id: reservationId } },
         orderBy: { createdAt: 'desc' },

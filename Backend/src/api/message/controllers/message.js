@@ -3,35 +3,50 @@ const messageService = require('../services/message');
 
 module.exports = {
     async create(ctx) {
-        await messageService.sendMessage(ctx.request.body);
-        ctx.send({ message: "Message sent" });
+        try {
+            await messageService.sendMessage(ctx.request.body, ctx.state.user);
+            ctx.send({ message: 'Message sent' });
+        } catch (error) {
+            if (!error.status) strapi.log.error('[message] Send failed', error.message);
+            ctx.status = error.status || 500;
+            ctx.body = { error: { message: error.status ? error.message : 'Failed to send message' } };
+        }
     },
 
     async findByConversation(ctx) {
-        const { conversationId } = ctx.params;
-        const messages = await messageService.getMessages(conversationId);
-        ctx.send(messages);
+        try {
+            const { conversationId } = ctx.params;
+            const messages = await messageService.getMessages(conversationId, ctx.state.user);
+            ctx.send(messages);
+        } catch (error) {
+            if (!error.status) strapi.log.error('[message] Read conversation failed', error.message);
+            ctx.status = error.status || 500;
+            ctx.body = { error: { message: error.status ? error.message : 'Failed to get messages' } };
+        }
     },
 
     async findOne(ctx) {
         try {
             const { conversationId, id } = ctx.params;
-
-            console.log("conversationId:", conversationId);
-            console.log("messageId:", id);
-
-            const message = await messageService.getMessageById(conversationId, id);
+            const message = await messageService.getMessageById(conversationId, id, ctx.state.user);
+            if (!message) return ctx.notFound('Message not found');
             ctx.send(message);
-
         } catch (err) {
-            console.error("ERROR:", err);
-            ctx.throw(500, err.message);
+            if (!err.status) strapi.log.error('[message] Read message failed', err.message);
+            ctx.status = err.status || 500;
+            ctx.body = { error: { message: err.status ? err.message : 'Failed to get message' } };
         }
     },
 
     async delete(ctx) {
-        const { conversationId, id } = ctx.params;
-        await messageService.deleteMessage(conversationId, id);
-        ctx.send({ message: "Deleted successfully" });
+        try {
+            const { conversationId, id } = ctx.params;
+            await messageService.deleteMessage(conversationId, id, ctx.state.user);
+            ctx.send({ message: 'Deleted successfully' });
+        } catch (error) {
+            if (!error.status) strapi.log.error('[message] Delete failed', error.message);
+            ctx.status = error.status || 500;
+            ctx.body = { error: { message: error.status ? error.message : 'Failed to delete message' } };
+        }
     }
 };

@@ -6,4 +6,17 @@
 
 const { createCoreRouter } = require('@strapi/strapi').factories;
 
-module.exports = createCoreRouter('api::ai-conversation.ai-conversation');
+const authConfig = {
+  auth: false,
+  policies: ['global::authMiddleware'],
+};
+
+module.exports = createCoreRouter('api::ai-conversation.ai-conversation', {
+  config: {
+    find: authConfig,
+    findOne: authConfig,
+    create: authConfig,
+    update: authConfig,
+    delete: authConfig,
+  },
+});

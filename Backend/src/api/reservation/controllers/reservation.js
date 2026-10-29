@@ -48,14 +48,15 @@ async function courtBelongsToManager(strapi, courtId, managerId) {
       where:    { id: courtId },
       populate: { venue: { populate: ['manager'] } },
     });
-    return court?.venue?.manager?.id === managerId;
+    const ownerId = court?.venue?.manager?.id;
+    return ownerId != null && managerId != null && String(ownerId) === String(managerId);
   } catch { return false; }
 }
 
 function courtAssignedToWorker(reservation, workerProfile) {
   const courtId = reservation.court?.id;
   if (!courtId || !workerProfile?.courts) return false;
-  return workerProfile.courts.some(c => c.id === courtId);
+  return workerProfile.courts.some(c => String(c.id) === String(courtId));
 }
 
 // Central permission check
@@ -64,15 +65,18 @@ async function canActOnReservation(strapi, user, reservation, action) {
   if (role === 'admin') return { allowed: true };
 
   if (role === 'player') {
-    // Players just ynajem ycancel
-    if (action !== 'request_cancel') {
-      return { allowed: false, reason: 'Players can only request a cancellation' };
+    if (!['read', 'request_cancel'].includes(action)) {
+      return { allowed: false, reason: 'Players can only view or request cancellation for their own reservations' };
     }
     const players = await strapi.entityService.findMany('api::player.player', {
       filters: { player: user.id }, limit: 1,
     });
-    if (reservation.player?.id !== players?.[0]?.id) {
-      return { allowed: false, reason: 'You can only cancel your own reservations' };
+    if (
+      reservation.player?.id == null ||
+      players?.[0]?.id == null ||
+      String(reservation.player.id) !== String(players[0].id)
+    ) {
+      return { allowed: false, reason: 'You can only access your own reservations' };
     }
     return { allowed: true };
   }
@@ -224,6 +228,8 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
       const courtIds = courts.map(c => c.id);
       if (!courtIds.length) return ctx.send(this.transformResponse([]));
       filters.court = { id: { $in: courtIds } };
+    } else if (user?.user_role !== 'admin') {
+      return ctx.forbidden('You are not authorized to view reservations');
     }
 
     const entities = await strapi.service('api::reservation.reservation').findMany({
@@ -253,12 +259,8 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
     });
     if (!entity) return ctx.notFound('Reservation not found');
 
-    if (user?.user_role === 'player') {
-      const players = await strapi.entityService.findMany('api::player.player', {
-        filters: { player: user.id }, limit: 1,
-      });
-      if (entity.player?.id !== players?.[0]?.id) return ctx.forbidden();
-    }
+    const permission = await canActOnReservation(strapi, user, entity, 'read');
+    if (!permission.allowed) return ctx.forbidden(permission.reason);
 
     if (entity.court) {
       entity.court.court_img_url = absUrl(strapi, entity.court.court_img?.url ?? null);
@@ -567,6 +569,26 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
         return ctx.forbidden('Only managers and admins can delete reservations');
       }
 
+      const existing = await strapi.entityService.findOne(
+        'api::reservation.reservation',
+        id,
+        { populate: ['court'] },
+      );
+      if (!existing) return ctx.notFound('Reservation not found');
+
+      if (user.user_role === 'manager') {
+        const manager = await resolveManagerProfile(strapi, user.id);
+        if (!manager) return ctx.unauthorized('Manager profile not found');
+        const belongsToManager = await courtBelongsToManager(
+          strapi,
+          existing.court?.id,
+          manager.id,
+        );
+        if (!belongsToManager) {
+          return ctx.forbidden('This reservation is not for one of your venues');
+        }
+      }
+
       await updateFirestoreStatus(strapi, id, 'deleted').catch(() => {});
       const entity = await strapi.service('api::reservation.reservation').delete(id);
       return this.transformResponse(entity);
@@ -576,4 +598,3 @@ module.exports = createCoreController('api::reservation.reservation', ({ strapi 
     }
   },
 }));
-
