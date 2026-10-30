@@ -59,6 +59,14 @@ class _AdminLoginPageState extends State<AdminLoginPage>
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context) && _anim.value != 1) {
+      _anim.value = 1;
+    }
+  }
+
   Future<void> _handleLogin() async {
     setState(() => _errorMsg = null);
     if (!_formKey.currentState!.validate()) return;
