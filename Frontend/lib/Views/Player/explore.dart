@@ -218,6 +218,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
 
   // ── Mapbox ─────────────────────────────────────────────────────────────────
   MapboxMap? _mapboxMap;
+  bool _mapboxReady = false;
   PointAnnotationManager? _annotationManager;
   // Maps annotation id → venue index in _filtered
   final Map<String, int> _annotationIdToIndex = {};
@@ -244,11 +245,27 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    if (_kMapboxToken.isNotEmpty) {
-      MapboxOptions.setAccessToken(_kMapboxToken);
-    }
+    _configureMapbox();
     _loadVenues();
     WidgetsBinding.instance.addPostFrameCallback((_) => _initLoc());
+  }
+
+  Future<void> _configureMapbox() async {
+    try {
+      if (_kMapboxToken.isNotEmpty) {
+        MapboxOptions.setAccessToken(_kMapboxToken);
+      }
+      final token = await MapboxOptions.getAccessToken();
+      if (!mounted) return;
+      setState(() => _mapboxReady = token.trim().isNotEmpty);
+    } catch (_) {
+      AppLogger.error(
+        '[Explore] Mapbox access token is unavailable. Check the native '
+        'platform configuration or MAPBOX_ACCESS_TOKEN.',
+      );
+      if (!mounted) return;
+      setState(() => _mapboxReady = false);
+    }
   }
 
   @override
@@ -747,7 +764,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
     return Stack(
       children: [
         // ── Mapbox map ────────────────────────────────────────────────────────
-        if (_kMapboxToken.isEmpty)
+        if (!_mapboxReady)
           Positioned.fill(
             child: ColoredBox(
               color: _bg,
@@ -757,11 +774,7 @@ class _ExploreState extends State<Explore> with TickerProviderStateMixin {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.map_outlined,
-                        size: 48,
-                        color: _textMid,
-                      ),
+                      const Icon(Icons.map_outlined, size: 48, color: _textMid),
                       const SizedBox(height: 12),
                       const Text(
                         'Map unavailable',
