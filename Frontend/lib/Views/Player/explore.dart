@@ -15,7 +15,11 @@ import 'package:sporta/Views/Player/court_booking_page.dart';
 import 'package:sporta/Widgets/star_rating.dart';
 import 'package:sporta/Core/Utils/app_logger.dart';
 
-const _kMapboxToken = String.fromEnvironment('MAPBOX_ACCESS_TOKEN');
+const _kMapboxToken = String.fromEnvironment(
+  'MAPBOX_ACCESS_TOKEN',
+  defaultValue:
+      'pk.eyJ1IjoiaGFzbmk3IiwiYSI6ImNtcHZud2M2ODAwamsycHF1emJiaG53NjcifQ.d4idEEQc51YuabZjcVR0RA',
+);
 // Style options:
 //   Streets:  'mapbox://styles/mapbox/streets-v12'
 //   Light:    'mapbox://styles/mapbox/light-v11'
