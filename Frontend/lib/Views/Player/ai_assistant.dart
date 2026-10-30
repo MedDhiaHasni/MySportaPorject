@@ -4,21 +4,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Core/Constants/api_constants.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sporta/Core/Utils/app_logger.dart';
-
-// ─── Color Palette ────────────────────────────────────────────────────────────
-const _c900 = Color(0xFF001A1B);
-const _c800 = Color(0xFF002B2C);
-const _c600 = Color(0xFF006B6C);
-const _c400 = Color(0xFF009999);
-const _c200 = Color(0xFF4DD9D9);
-const _cAccent = Color(0xFF00F0F0);
-const _cSurface = Color(0xFFF0F7F7);
-const _cCard = Color(0xFFFFFFFF);
 
 class AiAssistant extends StatefulWidget {
   final String? playerToken;
@@ -45,10 +35,8 @@ class _AiAssistantState extends State<AiAssistant>
 
   late AnimationController _pulseController;
   late AnimationController _shimmerController;
-  late AnimationController _fabController;
   late Animation<double> _pulseAnimation;
   late Animation<double> _shimmerAnimation;
-  late Animation<double> _fabAnimation;
 
   final List<SuggestionChip> _suggestions = [
     SuggestionChip(
@@ -102,20 +90,34 @@ class _AiAssistantState extends State<AiAssistant>
   }
 
   void _initAnimations() {
+    final disableAnimations = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .accessibilityFeatures
+        .disableAnimations;
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
+      duration: disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 2200),
+    );
+    if (disableAnimations) {
+      _pulseController.value = 1;
+    } else {
+      _pulseController.repeat(reverse: true);
+    }
 
     _shimmerController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
-
-    _fabController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 1500),
     );
+    if (disableAnimations) {
+      _shimmerController.value = 0.5;
+    } else {
+      _shimmerController.repeat();
+    }
 
     _pulseAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
@@ -125,18 +127,6 @@ class _AiAssistantState extends State<AiAssistant>
       CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut),
     );
 
-    _fabAnimation = CurvedAnimation(
-      parent: _fabController,
-      curve: Curves.elasticOut,
-    );
-
-    _messageController.addListener(() {
-      if (_messageController.text.isNotEmpty) {
-        _fabController.forward();
-      } else {
-        _fabController.reverse();
-      }
-    });
   }
 
   Future<void> _initSession() async {
@@ -371,34 +361,26 @@ class _AiAssistantState extends State<AiAssistant>
               Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF00C853), Color(0xFF69F0AE)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: Theme.of(ctx).colorScheme.tertiaryContainer,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_rounded,
-                  color: Colors.white,
+                  color: Theme.of(ctx).colorScheme.onTertiaryContainer,
                   size: 32,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Booking Created!',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _c900,
-                ),
+                style: Theme.of(ctx).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -455,15 +437,20 @@ class _AiAssistantState extends State<AiAssistant>
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(ctx),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _c400,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: Theme.of(ctx).colorScheme.primary,
+                        foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          vertical: AppSpacing.xs,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'View My Bookings',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.onPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -491,35 +478,34 @@ class _AiAssistantState extends State<AiAssistant>
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.red.shade50,
+                  color: Theme.of(ctx).colorScheme.errorContainer,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle_outline_rounded,
-                  color: Colors.red,
+                  color: Theme.of(ctx).colorScheme.onErrorContainer,
                   size: 32,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Booking Cancelled',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _c900,
-                ),
+                style: Theme.of(ctx).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
               Text(
                 'Your booking ${booking['reference'] ?? ''} has been cancelled.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _c400,
-                  padding: const EdgeInsets.symmetric(
+                  backgroundColor: Theme.of(ctx).colorScheme.primary,
+                  foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
+                  padding: const EdgeInsetsDirectional.symmetric(
                     horizontal: 40,
                     vertical: 12,
                   ),
@@ -527,7 +513,10 @@ class _AiAssistantState extends State<AiAssistant>
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('OK', style: TextStyle(color: Colors.white)),
+                child: Text(
+                  'OK',
+                  style: TextStyle(color: Theme.of(ctx).colorScheme.onPrimary),
+                ),
               ),
             ],
           ),
@@ -551,28 +540,23 @@ class _AiAssistantState extends State<AiAssistant>
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.amber.shade50,
+                  color: Theme.of(ctx).colorScheme.secondaryContainer,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.lock_outline_rounded,
-                  color: Colors.amber,
+                  color: Theme.of(ctx).colorScheme.onSecondaryContainer,
                   size: 32,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Login Required',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _c900,
-                ),
-              ),
+              Text('Login Required', style: Theme.of(ctx).textTheme.titleLarge),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Please log in to make a booking.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 20),
               Row(
@@ -587,15 +571,20 @@ class _AiAssistantState extends State<AiAssistant>
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(ctx),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _c400,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: Theme.of(ctx).colorScheme.primary,
+                        foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          vertical: AppSpacing.xs,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Login',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.onPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -657,14 +646,13 @@ class _AiAssistantState extends State<AiAssistant>
     _focusNode.dispose();
     _pulseController.dispose();
     _shimmerController.dispose();
-    _fabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _cSurface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           _buildHeader(),
@@ -677,20 +665,21 @@ class _AiAssistantState extends State<AiAssistant>
   }
 
   Widget _buildHeader() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_c900, _c800, _c600],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      color: scheme.surface,
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsetsDirectional.fromSTEB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                0,
+              ),
               child: Row(
                 children: [
                   AnimatedBuilder(
@@ -704,21 +693,21 @@ class _AiAssistantState extends State<AiAssistant>
                       height: 52,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [_c400, _cAccent],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: scheme.primaryContainer,
                         boxShadow: [
                           BoxShadow(
-                            color: _cAccent.withOpacity(0.35),
+                            color: scheme.primary.withValues(alpha: 0.18),
                             blurRadius: 18,
                             spreadRadius: 2,
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Text('🤖', style: TextStyle(fontSize: 26)),
+                      child: Center(
+                        child: Icon(
+                          Icons.smart_toy_rounded,
+                          size: 28,
+                          color: scheme.onPrimaryContainer,
+                        ),
                       ),
                     ),
                   ),
@@ -728,16 +717,14 @@ class _AiAssistantState extends State<AiAssistant>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ShaderMask(
-                          shaderCallback: (bounds) => const LinearGradient(
-                            colors: [Colors.white, _c200],
+                          shaderCallback: (bounds) => LinearGradient(
+                            colors: [scheme.onSurface, scheme.onSurfaceVariant],
                           ).createShader(bounds),
-                          child: const Text(
+                          child: Text(
                             'Sporta AI',
-                            style: TextStyle(
-                              fontSize: 22,
+                            style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -0.8,
+                              letterSpacing: -0.4,
                             ),
                           ),
                         ),
@@ -748,10 +735,8 @@ class _AiAssistantState extends State<AiAssistant>
                             const SizedBox(width: 6),
                             Text(
                               'Online · Ready to help',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white.withOpacity(0.65),
-                                letterSpacing: 0.2,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -759,24 +744,10 @@ class _AiAssistantState extends State<AiAssistant>
                       ],
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _clearChat,
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.15),
-                        ),
-                        color: Colors.white.withOpacity(0.07),
-                      ),
-                      child: const Icon(
-                        Icons.autorenew_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
+                  IconButton(
+                    tooltip: 'Clear conversation',
+                    onPressed: _clearChat,
+                    icon: const Icon(Icons.delete_sweep_outlined),
                   ),
                 ],
               ),
@@ -784,7 +755,7 @@ class _AiAssistantState extends State<AiAssistant>
             const SizedBox(height: 18),
             CustomPaint(
               size: Size(MediaQuery.of(context).size.width, 20),
-              painter: _WavePainter(color: _cSurface),
+              painter: _WavePainter(color: theme.scaffoldBackgroundColor),
             ),
           ],
         ),
@@ -808,26 +779,31 @@ class _AiAssistantState extends State<AiAssistant>
   }
 
   Widget _buildTypingIndicator() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           _AIAvatar(size: 32),
           const SizedBox(width: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
             decoration: BoxDecoration(
-              color: _cCard,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-                bottomLeft: Radius.circular(4),
+              color: scheme.surfaceContainerHighest,
+              borderRadius: const BorderRadiusDirectional.only(
+                topStart: Radius.circular(AppRadius.input),
+                topEnd: Radius.circular(AppRadius.input),
+                bottomEnd: Radius.circular(AppRadius.input),
+                bottomStart: Radius.circular(AppRadius.xs),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _c800.withOpacity(0.07),
+                  color: scheme.shadow.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -846,7 +822,9 @@ class _AiAssistantState extends State<AiAssistant>
                       width: 8 * scale,
                       height: 8 * scale,
                       decoration: BoxDecoration(
-                        color: _c400.withOpacity(0.5 + 0.5 * scale),
+                        color: scheme.onSurfaceVariant.withValues(
+                          alpha: 0.4 + 0.4 * scale,
+                        ),
                         shape: BoxShape.circle,
                       ),
                     );
@@ -863,12 +841,16 @@ class _AiAssistantState extends State<AiAssistant>
   Widget _buildSuggestions() {
     final show = _messages.isNotEmpty && !_isLoading && !_messages.last.isUser;
     if (!show) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return SizedBox(
-      height: 46,
+      height: 52,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: AppSpacing.md,
+        ),
         itemCount: _suggestions.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, idx) {
@@ -879,14 +861,17 @@ class _AiAssistantState extends State<AiAssistant>
               _sendMessage(s.query);
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs,
+              ),
               decoration: BoxDecoration(
-                color: _cCard,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: _c400.withOpacity(0.3), width: 1),
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(color: scheme.outlineVariant),
                 boxShadow: [
                   BoxShadow(
-                    color: _c800.withOpacity(0.06),
+                    color: scheme.shadow.withValues(alpha: 0.06),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -895,14 +880,13 @@ class _AiAssistantState extends State<AiAssistant>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(s.icon, style: const TextStyle(fontSize: 13)),
+                  Text(s.icon, style: theme.textTheme.labelLarge),
                   const SizedBox(width: 6),
                   Text(
                     s.label,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: theme.textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: _c600,
+                      color: scheme.onSurface,
                     ),
                   ),
                 ],
@@ -915,42 +899,53 @@ class _AiAssistantState extends State<AiAssistant>
   }
 
   Widget _buildInputBar() {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final bottomPad = MediaQuery.of(context).padding.bottom;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 220),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        color: _cCard,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
+        color: scheme.surface,
+        borderRadius: const BorderRadiusDirectional.only(
+          topStart: Radius.circular(AppRadius.card),
+          topEnd: Radius.circular(AppRadius.card),
         ),
         boxShadow: [
           BoxShadow(
-            color: _c800.withOpacity(_inputFocused ? 0.12 : 0.06),
+            color: scheme.shadow.withValues(alpha: _inputFocused ? 0.12 : 0.06),
             blurRadius: _inputFocused ? 24 : 12,
             offset: const Offset(0, -4),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 14, 16, bottomPad + 14),
+        padding: EdgeInsetsDirectional.fromSTEB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          bottomPad + AppSpacing.sm,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
                 decoration: BoxDecoration(
                   color: _inputFocused
-                      ? _c900.withOpacity(0.04)
-                      : Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(24),
+                      ? scheme.surfaceContainerHighest
+                      : scheme.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                   border: Border.all(
                     color: _inputFocused
-                        ? _c400.withOpacity(0.5)
-                        : Colors.grey.shade200,
-                    width: 1.5,
+                        ? scheme.primary
+                        : scheme.outlineVariant,
+                    width: _inputFocused ? 2 : 1,
                   ),
                 ),
                 child: TextField(
@@ -958,21 +953,21 @@ class _AiAssistantState extends State<AiAssistant>
                   focusNode: _focusNode,
                   minLines: 1,
                   maxLines: 5,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: _c900,
-                    height: 1.4,
-                  ),
+                  style: theme.textTheme.bodyLarge?.copyWith(height: 1.4),
                   textCapitalization: TextCapitalization.sentences,
                   onSubmitted: (_) => _sendMessage(_messageController.text),
                   decoration: InputDecoration(
                     hintText: 'Ask Sporta AI anything…',
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      fontSize: 14,
+                    hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.fromLTRB(18, 12, 10, 12),
+                    contentPadding: const EdgeInsetsDirectional.fromSTEB(
+                      AppSpacing.md,
+                      AppSpacing.sm,
+                      AppSpacing.xs,
+                      AppSpacing.sm,
+                    ),
                   ),
                 ),
               ),
@@ -983,38 +978,36 @@ class _AiAssistantState extends State<AiAssistant>
                   ? null
                   : () => _sendMessage(_messageController.text),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: _isLoading
-                      ? const LinearGradient(colors: [Colors.grey, Colors.grey])
-                      : const LinearGradient(
-                          colors: [_c800, _c400],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                  color: _isLoading
+                      ? scheme.surfaceContainerHighest
+                      : scheme.primary,
                   boxShadow: [
                     if (!_isLoading)
                       BoxShadow(
-                        color: _c400.withOpacity(0.4),
+                        color: scheme.primary.withValues(alpha: 0.2),
                         blurRadius: 14,
                         offset: const Offset(0, 4),
                       ),
                   ],
                 ),
                 child: _isLoading
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
+                    ? Padding(
+                        padding: const EdgeInsets.all(14),
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: scheme.onSurfaceVariant,
                         ),
                       )
-                    : const Icon(
+                    : Icon(
                         Icons.arrow_upward_rounded,
-                        color: Colors.white,
+                        color: scheme.onPrimary,
                         size: 22,
                       ),
               ),
@@ -1040,23 +1033,23 @@ class _BookingDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
+          style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: Colors.grey,
+            color: scheme.onSurfaceVariant,
           ),
         ),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 13,
+          style: theme.textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w700,
-            color: isPrice ? _c400 : _c900,
+            color: scheme.onSurface,
           ),
         ),
       ],
@@ -1073,11 +1066,13 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final isUser = message.isUser;
     final isError = message.isError == true;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
       child: Row(
         mainAxisAlignment: isUser
             ? MainAxisAlignment.end
@@ -1096,35 +1091,32 @@ class _MessageBubble extends StatelessWidget {
                   const SizedBox(height: 4),
                 ],
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                  padding: const EdgeInsetsDirectional.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
                   ),
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * 0.74,
                   ),
                   decoration: BoxDecoration(
-                    gradient: isUser
-                        ? const LinearGradient(
-                            colors: [_c800, _c400],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: isUser
-                        ? null
-                        : (isError ? const Color(0xFFFFF1F1) : _cCard),
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(20),
-                      topRight: const Radius.circular(20),
-                      bottomLeft: Radius.circular(isUser ? 20 : 4),
-                      bottomRight: Radius.circular(isUser ? 4 : 20),
+                    color: isError
+                        ? scheme.errorContainer
+                        : isUser
+                        ? scheme.secondaryContainer
+                        : scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadiusDirectional.only(
+                      topStart: const Radius.circular(AppRadius.input),
+                      topEnd: const Radius.circular(AppRadius.input),
+                      bottomStart: Radius.circular(
+                        isUser ? AppRadius.input : AppRadius.xs,
+                      ),
+                      bottomEnd: Radius.circular(
+                        isUser ? AppRadius.xs : AppRadius.input,
+                      ),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (isUser ? _c800 : Colors.black).withOpacity(
-                          0.08,
-                        ),
+                        color: scheme.shadow.withValues(alpha: 0.08),
                         blurRadius: 10,
                         offset: const Offset(0, 3),
                       ),
@@ -1133,33 +1125,32 @@ class _MessageBubble extends StatelessWidget {
                         ? null
                         : Border.all(
                             color: isError
-                                ? Colors.red.withOpacity(0.15)
-                                : Colors.grey.shade100,
+                                ? scheme.error.withValues(alpha: 0.2)
+                                : scheme.outlineVariant,
                             width: 1,
                           ),
                   ),
                   child: SelectableText(
                     message.content,
-                    style: TextStyle(
-                      fontSize: 14.5,
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       height: 1.55,
-                      color: isUser
-                          ? Colors.white
-                          : (isError
-                                ? Colors.red.shade700
-                                : const Color(0xFF1A2A2A)),
+                      color: isError
+                          ? scheme.onErrorContainer
+                          : isUser
+                          ? scheme.onSecondaryContainer
+                          : scheme.onSurface,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  padding: const EdgeInsetsDirectional.symmetric(
+                    horizontal: AppSpacing.xxs,
+                  ),
                   child: Text(
                     _fmtTime(message.timestamp),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade400,
-                      letterSpacing: 0.3,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -1173,12 +1164,14 @@ class _MessageBubble extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [_c400.withOpacity(0.2), _c200.withOpacity(0.3)],
-                ),
-                border: Border.all(color: _c400.withOpacity(0.3)),
+                color: scheme.surfaceContainerHighest,
+                border: Border.all(color: scheme.outlineVariant),
               ),
-              child: const Icon(Icons.person_rounded, color: _c600, size: 18),
+              child: Icon(
+                Icons.person_rounded,
+                color: scheme.onSurfaceVariant,
+                size: 18,
+              ),
             ),
           ],
         ],
@@ -1207,27 +1200,29 @@ class _ContextTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final entry = _map[type] ?? ('ℹ️', 'Info');
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.xxs,
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_c400.withOpacity(0.12), _c200.withOpacity(0.08)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _c400.withOpacity(0.2)),
+        color: scheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(entry.$1, style: const TextStyle(fontSize: 10)),
-          const SizedBox(width: 4),
+          Text(entry.$1, style: theme.textTheme.labelSmall),
+          const SizedBox(width: AppSpacing.xxs),
           Text(
             entry.$2,
-            style: const TextStyle(
-              fontSize: 10,
+            style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              color: _c600,
+              color: scheme.onTertiaryContainer,
             ),
           ),
         ],
@@ -1243,19 +1238,20 @@ class _AIAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [_c800, _c400],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: scheme.surfaceContainerHighest,
       ),
       child: Center(
-        child: Text('🤖', style: TextStyle(fontSize: size * 0.5)),
+        child: Icon(
+          Icons.smart_toy_rounded,
+          size: size * 0.52,
+          color: scheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -1278,7 +1274,16 @@ class _LiveDotState extends State<_LiveDot>
     _c = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
+    );
+    if (WidgetsBinding
+        .instance
+        .platformDispatcher
+        .accessibilityFeatures
+        .disableAnimations) {
+      _c.value = 1;
+    } else {
+      _c.repeat(reverse: true);
+    }
     _a = Tween<double>(
       begin: 0.4,
       end: 1.0,
@@ -1293,6 +1298,7 @@ class _LiveDotState extends State<_LiveDot>
 
   @override
   Widget build(BuildContext context) {
+    final success = NightMatchColors.success;
     return AnimatedBuilder(
       animation: _a,
       builder: (_, _) => Container(
@@ -1300,10 +1306,10 @@ class _LiveDotState extends State<_LiveDot>
         height: 7,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.greenAccent.shade400.withOpacity(_a.value),
+          color: success.withValues(alpha: _a.value),
           boxShadow: [
             BoxShadow(
-              color: Colors.greenAccent.withOpacity(0.4 * _a.value),
+              color: success.withValues(alpha: 0.3 * _a.value),
               blurRadius: 5,
             ),
           ],
@@ -1352,17 +1358,25 @@ class _ClearConfirmSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsetsDirectional.fromSTEB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.xl,
+      ),
+      padding: const EdgeInsetsDirectional.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: scheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: _c800.withOpacity(0.15),
-            blurRadius: 30,
-            offset: const Offset(0, -4),
+            color: scheme.shadow.withValues(alpha: 0.12),
+            blurRadius: AppSpacing.lg,
+            offset: const Offset(0, -AppSpacing.xs),
           ),
         ],
       ),
@@ -1370,102 +1384,55 @@ class _ClearConfirmSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 48,
-            height: 5,
-            margin: const EdgeInsets.only(bottom: 24),
+            width: 40,
+            height: AppSpacing.xxs,
+            margin: const EdgeInsetsDirectional.only(bottom: AppSpacing.lg),
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(10),
+              color: scheme.outlineVariant,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
           ),
           Container(
-            width: 64,
-            height: 64,
+            width: AppSpacing.xxl,
+            height: AppSpacing.xxl,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.red.shade50,
+              color: scheme.errorContainer,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.delete_sweep_rounded,
-              color: Colors.red,
-              size: 32,
+              color: scheme.onErrorContainer,
+              size: AppSpacing.lg,
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Clear conversation?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: _c900,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
+          Text('Clear conversation?', style: theme.textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             'All messages will be permanently deleted.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13.5,
-              color: Colors.grey.shade500,
-              height: 1.5,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
               Expanded(
-                child: GestureDetector(
-                  onTap: onCancel,
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: Colors.grey.shade100,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ),
+                child: OutlinedButton(
+                  onPressed: onCancel,
+                  child: const Text('Cancel'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: GestureDetector(
-                  onTap: onConfirm,
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: const LinearGradient(
-                        colors: [Colors.red, Color(0xFFFF6B6B)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Clear',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+                child: FilledButton(
+                  onPressed: onConfirm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: scheme.error,
+                    foregroundColor: scheme.onError,
                   ),
+                  child: const Text('Clear'),
                 ),
               ),
             ],

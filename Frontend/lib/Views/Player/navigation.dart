@@ -5,7 +5,7 @@
 // firebaseUid is fetched once from the player profile on init.
 
 import 'package:flutter/material.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
+import 'package:flutter/services.dart';
 import 'package:sporta/Views/Player/ai_assistant.dart';
 import 'package:sporta/Views/Player/chat.dart';
 import 'package:sporta/Views/Player/explore.dart';
@@ -105,8 +105,11 @@ class _NavigationState extends State<Navigation>
         SnackBar(
           content: Text(
             data['notification']?['body'] ?? 'Your booking has been updated',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onInverseSurface,
+            ),
           ),
-          backgroundColor: kPrimary,
+          backgroundColor: Theme.of(context).colorScheme.inverseSurface,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 3),
         ),
@@ -140,6 +143,7 @@ class _NavigationState extends State<Navigation>
   void _onTap(int index) {
     if (index == _selectedIndex) return;
     final goingRight = index > _selectedIndex;
+    HapticFeedback.selectionClick();
     _slideAnim =
         CurvedAnimation(parent: _pageController!, curve: Curves.easeOut).drive(
           Tween<Offset>(
@@ -147,20 +151,20 @@ class _NavigationState extends State<Navigation>
             end: Offset.zero,
           ),
         );
-        setState(() => _selectedIndex = index);
-        if (MediaQuery.of(context).disableAnimations) {
+    setState(() => _selectedIndex = index);
+    if (MediaQuery.disableAnimationsOf(context)) {
           _pageController!.value = 1;
-        } else {
-          _pageController!.forward(from: 0.0);
-        }
+    } else {
+      _pageController!.forward(from: 0.0);
+    }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        extendBody: true,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: _buildBody(),
-        bottomNavigationBar: FloatingBottomNav(
+    extendBody: true,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    body: _buildBody(),
+    bottomNavigationBar: FloatingBottomNav(
           destinations: List.generate(
             _icons.length,
             (index) => PlayerNavDestination(
@@ -170,7 +174,7 @@ class _NavigationState extends State<Navigation>
           ),
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onTap,
-        ),
+    ),
   );
 
   Widget _buildBody() {

@@ -9,6 +9,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
+import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Services/announcement_service.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
 import 'package:sporta/Services/booking_store.dart';
@@ -147,7 +148,8 @@ class _HomeSettingsState extends State<HomeSettings>
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const LoginPage()),
             (route) => false,
-          );
+            );
+          }
         }
       } catch (e) {
         _showError('Failed to logout: $e');
@@ -303,35 +305,32 @@ class _HomeSettingsState extends State<HomeSettings>
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: kBg,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Scaffold(
+    backgroundColor: theme.scaffoldBackgroundColor,
     appBar: AppBar(
       title: const Text(
         'Profile Settings',
         style: TextStyle(fontWeight: FontWeight.w800),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: scheme.surface,
       elevation: 0,
-      foregroundColor: kTextDark,
+      foregroundColor: scheme.onSurface,
       centerTitle: true,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_rounded),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
-        TextButton(
+        FilledButton(
           onPressed: _isSaving ? null : _saveProfile,
-          child: Text(
-            'Save',
-            style: TextStyle(
-              color: _isSaving ? kTextLight : kPrimary,
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-            ),
-          ),
+          child: Text(_isSaving ? 'Saving' : 'Save'),
         ),
         IconButton(
-          icon: const Icon(Icons.logout_rounded, color: Colors.red),
+          tooltip: 'Log out',
+          icon: Icon(Icons.logout_rounded, color: scheme.error),
           onPressed: _logout,
         ),
       ],
@@ -340,7 +339,7 @@ class _HomeSettingsState extends State<HomeSettings>
       children: [
         // Profile Header Section (like Manager Profile)
         Container(
-          color: Colors.white,
+          color: scheme.surface,
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -354,15 +353,14 @@ class _HomeSettingsState extends State<HomeSettings>
                         height: 100,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [kPrimary, Color(0xFF007B7D)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                          color: scheme.secondaryContainer,
+                          border: Border.all(
+                            color: scheme.outlineVariant,
+                            width: 2,
                           ),
-                          border: Border.all(color: Colors.white, width: 3),
                           boxShadow: [
                             BoxShadow(
-                              color: kPrimary.withOpacity(0.3),
+                              color: scheme.shadow.withValues(alpha: 0.12),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -376,7 +374,7 @@ class _HomeSettingsState extends State<HomeSettings>
                                     height: 30,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: scheme.onSecondaryContainer,
                                     ),
                                   ),
                                 )
@@ -389,10 +387,10 @@ class _HomeSettingsState extends State<HomeSettings>
                                         errorBuilder: (_, _, _) => Center(
                                           child: Text(
                                             _getInitials(),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 36,
                                               fontWeight: FontWeight.w800,
-                                              color: Colors.white,
+                                              color: scheme.onSecondaryContainer,
                                             ),
                                           ),
                                         ),
@@ -406,10 +404,10 @@ class _HomeSettingsState extends State<HomeSettings>
                                               errorBuilder: (_, _, _) => Center(
                                                 child: Text(
                                                   _getInitials(),
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 36,
                                                     fontWeight: FontWeight.w800,
-                                                    color: Colors.white,
+                                                    color: scheme.onSecondaryContainer,
                                                   ),
                                                 ),
                                               ),
@@ -417,10 +415,10 @@ class _HomeSettingsState extends State<HomeSettings>
                                           : Center(
                                               child: Text(
                                                 _getInitials(),
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 36,
                                                   fontWeight: FontWeight.w800,
-                                                  color: Colors.white,
+                                                  color: scheme.onSecondaryContainer,
                                                 ),
                                               ),
                                             ))),
@@ -432,14 +430,14 @@ class _HomeSettingsState extends State<HomeSettings>
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: kPrimary,
+                            color: NightMatchColors.actionLime,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                            border: Border.all(color: scheme.surface, width: 2),
                           ),
                           child: const Icon(
                             Icons.camera_alt_rounded,
                             size: 16,
-                            color: Colors.white,
+                            color: NightMatchColors.onAction,
                           ),
                         ),
                       ),
@@ -450,13 +448,13 @@ class _HomeSettingsState extends State<HomeSettings>
                 GestureDetector(
                   onTap: _updateProfilePhoto,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
+                    padding: const EdgeInsetsDirectional.symmetric(
                       horizontal: 16,
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: kPrimary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: scheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -464,15 +462,14 @@ class _HomeSettingsState extends State<HomeSettings>
                         Icon(
                           Icons.camera_alt_rounded,
                           size: 16,
-                          color: kPrimary,
+                          color: scheme.onSecondaryContainer,
                         ),
                         SizedBox(width: 6),
                         Text(
                           'Change Photo',
                           style: TextStyle(
-                            fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: kPrimary,
+                            color: scheme.onSecondaryContainer,
                           ),
                         ),
                       ],
@@ -486,11 +483,11 @@ class _HomeSettingsState extends State<HomeSettings>
 
         // Tab Bar - with icon above text like Profile tab
         Container(
-          color: Colors.white,
+          color: scheme.surface,
           child: TabBar(
             controller: _tabCtrl,
-            labelColor: kPrimary,
-            unselectedLabelColor: kTextMid,
+            labelColor: scheme.onSurface,
+            unselectedLabelColor: scheme.onSurfaceVariant,
             labelStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -499,7 +496,7 @@ class _HomeSettingsState extends State<HomeSettings>
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
-            indicatorColor: kPrimary,
+            indicatorColor: scheme.primary,
             indicatorWeight: 3,
             indicatorSize: TabBarIndicatorSize.label,
             tabs: [
@@ -544,7 +541,8 @@ class _HomeSettingsState extends State<HomeSettings>
         ),
       ],
     ),
-  );
+    );
+  }
 }
 
 //
