@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Views/Auth/login_page.dart';
@@ -40,6 +41,7 @@ class _OnboardingState extends State<Onboarding> {
   }
 
   void _goToLogin() {
+    HapticFeedback.selectionClick();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
@@ -47,8 +49,11 @@ class _OnboardingState extends State<Onboarding> {
 
   void _nextPage() {
     if (_currentPage < _pages.length - 1) {
+      HapticFeedback.selectionClick();
       controlleronboard.nextPage(
-        duration: const Duration(milliseconds: 250),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
       );
     } else {
