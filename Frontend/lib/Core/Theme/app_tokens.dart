@@ -15,12 +15,15 @@ abstract final class NightMatchColors {
   static const success = Color(0xFF74D3A3);
   static const heroScrimTop = Color(0x140A1F1E);
   static const heroScrimBottom = Color(0xE60A1F1E);
+  static const shadow = Color(0x330A1F1E);
+  static const locationDot = Color(0xFF1A73E8);
 
   static const lightBackground = Color(0xFFF4F7F6);
   static const lightSurface = Color(0xFFFFFFFF);
   static const lightElevatedSurface = Color(0xFFEBF1EF);
   static const lightText = Color(0xFF0A1F1E);
   static const lightMutedText = Color(0xFF49615E);
+  static const lightOutline = Color(0xFFB7C7C4);
 
   static const pendingBackground = Color(0xFFFFF1CC);
   static const pendingForeground = Color(0xFF704900);
