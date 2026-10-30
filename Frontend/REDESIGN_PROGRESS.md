@@ -11,10 +11,10 @@ Checklist of every Dart file currently under `Frontend/lib/Views`. Check an item
 - [x] `lib/Views/Admin/admin_login.dart`
 
 ## B. Player discovery and booking
-- [ ] `lib/Views/Player/home.dart`
-- [ ] `lib/Views/Player/explore.dart`
-- [ ] `lib/Views/Player/court_detail.dart`
-- [ ] `lib/Views/Player/court_booking_page.dart`
+- [x] `lib/Views/Player/home.dart`
+- [x] `lib/Views/Player/explore.dart`
+- [x] `lib/Views/Player/court_detail.dart`
+- [x] `lib/Views/Player/court_booking_page.dart`
 
 ## C. Player social and account
 - [ ] `lib/Views/Player/matches_page.dart`
@@ -50,4 +50,5 @@ Checklist of every Dart file currently under `Frontend/lib/Views`. Check an item
 - [ ] Debug/design preview updated
 
 ## Follow-up surfaces not currently represented by a dedicated Views file
-- [ ] Notifications screen (locate existing screen/entry point or record as unavailable)
+- [ ] Notifications sheet (embedded as `_NotificationSheet` in `lib/Views/Player/matches_page.dart`; include in Group C)
+- [ ] Booking hold countdown is not supported by the current reservation service; TODO is recorded beside the booking bar.
