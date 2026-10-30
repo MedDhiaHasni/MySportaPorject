@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sporta/Core/Utils/validators.dart';
 import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Views/Auth/login_page.dart';
@@ -49,6 +50,7 @@ class _SignUpPageState extends State<SignUpPage> {
     }
 
     if (_formKey.currentState!.validate()) {
+      HapticFeedback.lightImpact();
       setState(() {
         _isLoading = true;
         _errorMessage = null;
