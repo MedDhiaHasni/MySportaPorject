@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sporta/Core/Utils/validators.dart';
 import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Views/Auth/forgot_password_page.dart';
@@ -41,6 +42,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _submit() async {
     setState(() => _errorMessage = null);
     if (_formKey.currentState!.validate()) {
+      HapticFeedback.lightImpact();
       setState(() => _isLoading = true);
 
       try {
