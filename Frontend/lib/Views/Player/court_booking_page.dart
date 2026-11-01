@@ -964,38 +964,50 @@ class _RatingCard extends StatelessWidget {
                 const SizedBox(height: 16),
                 Divider(color: scheme.outlineVariant),
                 const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       userRating != null ? 'Your rating' : 'Rate this venue',
                       style: theme.textTheme.titleSmall,
                     ),
+                    const SizedBox(height: AppSpacing.xs),
                     Row(
                       children: [
-                        if (userRating != null) ...[
-                          StarRating(
-                            rating: userRating!,
-                            size: 18,
-                            interactive: false,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            userRating!.toStringAsFixed(1),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: scheme.secondary,
+                        if (userRating != null)
+                          Expanded(
+                            child: Row(
+                              children: [
+                                StarRating(
+                                  rating: userRating!,
+                                  size: 18,
+                                  interactive: false,
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Text(
+                                  userRating!.toStringAsFixed(1),
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: scheme.secondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          if (onDeleteTap != null) ...[
-                            const SizedBox(width: 8),
-                            IconButton(
-                              tooltip: 'Delete your rating',
-                              onPressed: isSubmitting ? null : onDeleteTap,
-                              icon: const Icon(Icons.delete_outline_rounded),
+                          )
+                        else
+                          const Spacer(),
+                        if (userRating != null && onDeleteTap != null)
+                          IconButton(
+                            tooltip: 'Delete your rating',
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
                             ),
-                          ],
-                        ],
-                        const SizedBox(width: 8),
+                            padding: EdgeInsets.zero,
+                            onPressed: isSubmitting ? null : onDeleteTap,
+                            icon: const Icon(Icons.delete_outline_rounded),
+                          ),
+                        if (userRating != null && onDeleteTap != null)
+                          const SizedBox(width: AppSpacing.xxs),
                         FilledButton(
                           onPressed: isSubmitting ? null : onRateTap,
                           style: FilledButton.styleFrom(

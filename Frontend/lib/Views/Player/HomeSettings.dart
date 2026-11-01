@@ -178,7 +178,13 @@ class _HomeSettingsState extends State<HomeSettings>
   Future<void> _updateProfilePhoto() async {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadiusDirectional.vertical(
+          top: Radius.circular(AppRadius.card),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       builder: (context) => SafeArea(
         child: Builder(
           builder: (sheetContext) {
@@ -391,7 +397,7 @@ class _HomeSettingsState extends State<HomeSettings>
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Profile settings', style: theme.textTheme.titleLarge),
-        backgroundColor: scheme.surface,
+        backgroundColor: theme.scaffoldBackgroundColor,
         foregroundColor: scheme.onSurface,
         leading: IconButton(
           tooltip: 'Back',
@@ -399,16 +405,6 @@ class _HomeSettingsState extends State<HomeSettings>
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          IconButton.filled(
-            tooltip: 'Save profile',
-            onPressed: _isSaving ? null : _saveProfile,
-            icon: _isSaving
-                ? const SizedBox.square(
-                    dimension: AppSpacing.md,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check_rounded),
-          ),
           IconButton(
             tooltip: 'Log out',
             icon: Icon(Icons.logout_rounded, color: scheme.error),
@@ -422,127 +418,161 @@ class _HomeSettingsState extends State<HomeSettings>
           position: _entrySlide,
           child: Column(
             children: [
-              Container(
-                width: double.infinity,
-                color: scheme.surface,
-                padding: const EdgeInsetsDirectional.all(AppSpacing.md),
-                child: Column(
-                  children: [
-                    Semantics(
-                      button: true,
-                      label: 'Change profile photo',
-                      child: InkWell(
-                        onTap: _updateProfilePhoto,
-                        customBorder: const CircleBorder(),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Container(
-                              width: AppSpacing.xxl * 2,
-                              height: AppSpacing.xxl * 2,
-                              decoration: BoxDecoration(
-                                color: scheme.secondaryContainer,
-                                shape: BoxShape.circle,
-                              ),
-                              child: ClipOval(
-                                child: _isUploadingPhoto
-                                    ? Center(
-                                        child: SizedBox.square(
-                                          dimension: AppSpacing.lg,
-                                          child: CircularProgressIndicator(
-                                            color: scheme.onSecondaryContainer,
-                                          ),
-                                        ),
-                                      )
-                                    : _photoUrl?.isNotEmpty == true
-                                    ? Image.network(
-                                        _photoUrl!,
-                                        fit: BoxFit.cover,
-                                        semanticLabel: 'Profile photo',
-                                        loadingBuilder: (_, child, progress) =>
-                                            progress == null
-                                            ? child
-                                            : _avatarPlaceholder(context),
-                                        errorBuilder: (_, _, _) =>
-                                            _avatarPlaceholder(context),
-                                      )
-                                    : _avatarPlaceholder(context),
-                              ),
-                            ),
-                            PositionedDirectional(
-                              bottom: 0,
-                              end: 0,
-                              child: Container(
-                                width: 48,
-                                height: 48,
+              Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                  AppSpacing.md,
+                  AppSpacing.xs,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                ),
+                child: Container(
+                  padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    border: Border.all(color: scheme.outlineVariant),
+                  ),
+                  child: Row(
+                    children: [
+                      Semantics(
+                        button: true,
+                        label: 'Change profile photo',
+                        child: InkWell(
+                          onTap: _updateProfilePhoto,
+                          customBorder: const CircleBorder(),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                width: 72,
+                                height: 72,
                                 decoration: BoxDecoration(
-                                  color: NightMatchColors.actionLime,
+                                  color: scheme.secondaryContainer,
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: scheme.surface,
-                                    width: 2,
+                                ),
+                                child: ClipOval(
+                                  child: _isUploadingPhoto
+                                      ? Center(
+                                          child: SizedBox.square(
+                                            dimension: AppSpacing.lg,
+                                            child: CircularProgressIndicator(
+                                              color:
+                                                  scheme.onSecondaryContainer,
+                                            ),
+                                          ),
+                                        )
+                                      : _photoUrl?.isNotEmpty == true
+                                      ? Image.network(
+                                          _photoUrl!,
+                                          fit: BoxFit.cover,
+                                          semanticLabel: 'Profile photo',
+                                          loadingBuilder:
+                                              (_, child, progress) =>
+                                                  progress == null
+                                                  ? child
+                                                  : _avatarPlaceholder(context),
+                                          errorBuilder: (_, _, _) =>
+                                              _avatarPlaceholder(context),
+                                        )
+                                      : _avatarPlaceholder(context),
+                                ),
+                              ),
+                              PositionedDirectional(
+                                bottom: 0,
+                                end: 0,
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: NightMatchColors.actionLime,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: scheme.surface,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt_rounded,
+                                    color: NightMatchColors.onAction,
+                                    size: 15,
                                   ),
                                 ),
-                                child: const Icon(
-                                  Icons.camera_alt_rounded,
-                                  color: NightMatchColors.onAction,
-                                ),
                               ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _titleCaseDisplayName(_usernameCtrl.text),
+                              style: theme.textTheme.titleMedium,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: AppSpacing.xxs),
+                            Text(
+                              _emailCtrl.text,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      _titleCaseDisplayName(_usernameCtrl.text),
-                      style: theme.textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      _emailCtrl.text,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                      IconButton(
+                        tooltip: 'Change profile photo',
+                        onPressed: _updateProfilePhoto,
+                        icon: const Icon(Icons.edit_outlined),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    FilledButton.tonalIcon(
-                      onPressed: _updateProfilePhoto,
-                      icon: const Icon(Icons.photo_camera_outlined),
-                      label: const Text('Change photo'),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
-              Container(
-                color: scheme.surface,
-                child: TabBar(
-                  controller: _tabCtrl,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  labelColor: scheme.onSurface,
-                  unselectedLabelColor: scheme.onSurfaceVariant,
-                  labelStyle: theme.textTheme.labelLarge,
-                  unselectedLabelStyle: theme.textTheme.labelLarge?.copyWith(
-                    color: scheme.onSurfaceVariant,
+              Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                ),
+                child: Container(
+                  padding: const EdgeInsetsDirectional.all(AppSpacing.xxs),
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(color: scheme.outlineVariant),
                   ),
-                  indicatorColor: scheme.primary,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  tabs: const [
-                    Tab(
-                      icon: Icon(Icons.person_outline_rounded),
-                      text: 'Profile',
+                  child: TabBar(
+                    controller: _tabCtrl,
+                    labelColor: scheme.onPrimary,
+                    unselectedLabelColor: scheme.onSurfaceVariant,
+                    labelStyle: theme.textTheme.labelMedium,
+                    unselectedLabelStyle: theme.textTheme.labelMedium,
+                    labelPadding: const EdgeInsetsDirectional.symmetric(
+                      horizontal: AppSpacing.xxs,
                     ),
-                    Tab(
-                      icon: Icon(Icons.calendar_month_outlined),
-                      text: 'Bookings',
+                    indicator: BoxDecoration(
+                      color: scheme.primary,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
-                    Tab(
-                      icon: Icon(Icons.campaign_outlined),
-                      text: 'Announcements',
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    overlayColor: const WidgetStatePropertyAll(
+                      Colors.transparent,
                     ),
-                  ],
+                    tabs: const [
+                      Tab(text: 'Profile'),
+                      Tab(text: 'Bookings'),
+                      Tab(text: 'Announcements'),
+                    ],
+                  ),
                 ),
               ),
 
@@ -593,15 +623,13 @@ class _ProfileTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final navH =
-        kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
 
     return SingleChildScrollView(
       padding: EdgeInsetsDirectional.fromSTEB(
         AppSpacing.md,
         AppSpacing.md,
         AppSpacing.md,
-        navH + AppSpacing.md,
+        AppSpacing.lg + MediaQuery.of(context).padding.bottom,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -612,9 +640,13 @@ class _ProfileTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text('Personal details', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    'Personal information',
-                    style: theme.textTheme.titleLarge,
+                    'Manage the contact details on your account.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   _buildTextField(
@@ -649,13 +681,35 @@ class _ProfileTab extends StatelessWidget {
           ),
 
           const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: isSaving ? null : onSave,
+              icon: isSaving
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check_rounded),
+              label: Text(isSaving ? 'Saving profile' : 'Save changes'),
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
           Card(
             child: Padding(
               padding: const EdgeInsetsDirectional.all(AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Account', style: theme.textTheme.titleLarge),
+                  Text('Account security', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'Keep your account protected.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.xs),
                   Semantics(
                     button: true,
@@ -700,21 +754,6 @@ class _ProfileTab extends StatelessWidget {
               ),
             ),
           ),
-
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: isSaving ? null : onSave,
-              icon: isSaving
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.check_rounded),
-              label: Text(isSaving ? 'Saving profile' : 'Save changes'),
-            ),
-          ),
         ],
       ),
     );
@@ -752,7 +791,6 @@ class _ProfileTab extends StatelessWidget {
               ? TextCapitalization.words
               : TextCapitalization.none,
           decoration: InputDecoration(
-            labelText: label,
             hintText: hint,
             prefixIcon: Icon(
               icon,
@@ -953,8 +991,6 @@ class _BookingsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final navH =
-        kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
     if (bookings.isEmpty) {
       return _refreshableEmptyState(
         context,
@@ -974,7 +1010,7 @@ class _BookingsTab extends StatelessWidget {
           AppSpacing.md,
           AppSpacing.md,
           AppSpacing.md,
-          navH + AppSpacing.md,
+          AppSpacing.md + MediaQuery.of(context).padding.bottom,
         ),
         itemCount: bookings.length,
         separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
@@ -1120,8 +1156,6 @@ class _AnnouncementsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final navH =
-        kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
     if (announcements.isEmpty) {
       return _refreshableEmptyState(
         context,
@@ -1141,7 +1175,7 @@ class _AnnouncementsTab extends StatelessWidget {
           AppSpacing.md,
           AppSpacing.md,
           AppSpacing.md,
-          navH + AppSpacing.md,
+          AppSpacing.lg,
         ),
         itemCount: announcements.length,
         separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_palette.dart';
 import 'app_tokens.dart';
 
 class AppTheme {
@@ -10,113 +11,81 @@ class AppTheme {
 
   static ThemeData _buildTheme(Brightness brightness) {
     final isLight = brightness == Brightness.light;
-    final background = isLight
-        ? NightMatchColors.lightBackground
-        : NightMatchColors.background;
-    final surface = isLight
-        ? NightMatchColors.lightSurface
-        : NightMatchColors.surface;
-    final elevatedSurface = isLight
-        ? NightMatchColors.lightElevatedSurface
-        : NightMatchColors.elevatedSurface;
-    final text = isLight ? NightMatchColors.lightText : NightMatchColors.text;
-    final muted = isLight
-        ? NightMatchColors.lightMutedText
-        : NightMatchColors.mutedText;
-    final accentText = isLight
-        ? NightMatchColors.brandTeal
-        : NightMatchColors.actionLime;
-    final scheme = ColorScheme.fromSeed(
-      seedColor: NightMatchColors.actionLime,
+    final p = isLight ? AppPalette.light : AppPalette.dark;
+
+    // Start from a neutral baseline so no old teal leaks in.
+    final scheme = ColorScheme(
       brightness: brightness,
-    ).copyWith(
-      primary: NightMatchColors.actionLime,
-      onPrimary: NightMatchColors.onAction,
-      secondary: accentText,
-      onSecondary: isLight
-          ? NightMatchColors.lightSurface
-          : NightMatchColors.onAction,
-      tertiary: NightMatchColors.brandTeal,
-      onTertiary: NightMatchColors.text,
-      error: isLight
-          ? NightMatchColors.lightError
-          : NightMatchColors.error,
-      onError: NightMatchColors.onAction,
-      surface: surface,
-      onSurface: text,
-      surfaceContainerLow: surface,
-      surfaceContainer: elevatedSurface,
-      surfaceContainerHighest: elevatedSurface,
-      onSurfaceVariant: muted,
-      outline: isLight
-          ? const Color(0xFFB7C7C4)
-          : const Color(0xFF41615D),
-      outlineVariant: isLight
-          ? const Color(0xFFD8E1DF)
-          : const Color(0xFF294542),
-      primaryContainer: isLight
-          ? const Color(0xFFE9F7B8)
-          : const Color(0xFF354712),
-      onPrimaryContainer: NightMatchColors.onAction,
-      secondaryContainer: isLight
-          ? const Color(0xFFDDEBE8)
-          : const Color(0xFF1D4541),
-      onSecondaryContainer: isLight
-          ? NightMatchColors.brandTeal
-          : NightMatchColors.text,
-      errorContainer: isLight
-          ? const Color(0xFFFFE2DE)
-          : const Color(0xFF5C211E),
-      onErrorContainer: isLight
-          ? const Color(0xFF601A15)
-          : const Color(0xFFFFDAD5),
-      inverseSurface: isLight
-          ? NightMatchColors.surface
-          : NightMatchColors.lightSurface,
-      onInverseSurface: isLight
-          ? NightMatchColors.text
-          : NightMatchColors.lightText,
-      inversePrimary: NightMatchColors.brandTeal,
+      primary: AppPalette.lime,
+      onPrimary: AppPalette.onLime,
+      primaryContainer: p.elevated,
+      onPrimaryContainer: p.text,
+      secondary: p.text,
+      onSecondary: p.background,
+      secondaryContainer: p.elevated,
+      onSecondaryContainer: p.text,
+      tertiary: p.text,
+      onTertiary: p.background,
+      tertiaryContainer: p.elevated,
+      onTertiaryContainer: p.text,
+      error: p.error,
+      onError: isLight ? p.surface : p.text,
+      errorContainer: p.elevated,
+      onErrorContainer: p.error,
+      surface: p.surface,
+      onSurface: p.text,
+      surfaceContainerLowest: p.background,
+      surfaceContainerLow: p.background,
+      surfaceContainer: p.surface,
+      surfaceContainerHigh: p.elevated,
+      surfaceContainerHighest: p.elevated,
+      onSurfaceVariant: p.muted,
+      outline: p.border,
+      outlineVariant: p.border,
+      inverseSurface: p.text,
+      onInverseSurface: p.background,
+      inversePrimary: AppPalette.lime,
     );
+
     final baseTextTheme = isLight
         ? ThemeData.light().textTheme
         : ThemeData.dark().textTheme;
-    final textTheme = _textTheme(baseTextTheme, text, muted);
+    final textTheme = _textTheme(baseTextTheme, p.text, p.muted);
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
-      scaffoldBackgroundColor: background,
-      canvasColor: surface,
-      dividerColor: scheme.outlineVariant,
+      scaffoldBackgroundColor: p.background,
+      canvasColor: p.surface,
+      dividerColor: p.border,
       textTheme: textTheme,
-      iconTheme: IconThemeData(color: accentText),
+      iconTheme: IconThemeData(color: p.text),
       appBarTheme: AppBarTheme(
-        backgroundColor: background,
-        foregroundColor: text,
+        backgroundColor: p.background,
+        foregroundColor: p.text,
         elevation: AppElevation.none,
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: _buttonStyle(isLight),
+        style: _buttonStyle(),
       ),
-      filledButtonTheme: FilledButtonThemeData(style: _buttonStyle(isLight)),
+      filledButtonTheme: FilledButtonThemeData(style: _buttonStyle()),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: accentText,
+          foregroundColor: p.text,
           minimumSize: const Size(48, 48),
           padding: const EdgeInsetsDirectional.symmetric(
             horizontal: AppSpacing.md,
           ),
-          side: BorderSide(color: accentText),
+          side: BorderSide(color: p.border),
           shape: const StadiumBorder(),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: accentText,
+          foregroundColor: p.text,
           minimumSize: const Size(48, 48),
           padding: const EdgeInsetsDirectional.symmetric(
             horizontal: AppSpacing.sm,
@@ -126,16 +95,16 @@ class AppTheme {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          foregroundColor: accentText,
+          foregroundColor: p.text,
           minimumSize: const Size(48, 48),
           tapTargetSize: MaterialTapTargetSize.padded,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
-        labelStyle: TextStyle(color: muted),
-        hintStyle: TextStyle(color: muted),
+        fillColor: p.surface,
+        labelStyle: TextStyle(color: p.muted),
+        hintStyle: TextStyle(color: p.muted),
         contentPadding: const EdgeInsetsDirectional.fromSTEB(
           AppSpacing.md,
           AppSpacing.md,
@@ -144,28 +113,32 @@ class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.input),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderSide: BorderSide(color: p.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.input),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderSide: BorderSide(color: p.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.input),
-          borderSide: BorderSide(color: accentText, width: 2),
+          borderSide: BorderSide(color: p.focus, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.input),
-          borderSide: BorderSide(color: scheme.error),
+          borderSide: BorderSide(color: p.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          borderSide: BorderSide(color: p.error, width: 2),
         ),
       ),
       cardTheme: CardThemeData(
-        color: surface,
+        color: p.surface,
         elevation: AppElevation.none,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.card),
-          side: BorderSide(color: scheme.outlineVariant),
+          side: BorderSide(color: p.border),
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
@@ -180,37 +153,43 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surface,
-        indicatorColor: scheme.primaryContainer,
+        backgroundColor: p.surface,
+        indicatorColor: p.elevated,
         elevation: AppElevation.medium,
         labelTextStyle: WidgetStatePropertyAll(
-          textTheme.labelSmall?.copyWith(color: muted),
+          textTheme.labelSmall?.copyWith(color: p.muted),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isLight
-            ? NightMatchColors.surface
-            : NightMatchColors.lightSurface,
+        backgroundColor: p.elevated,
         contentTextStyle: TextStyle(
-          color: isLight ? NightMatchColors.text : NightMatchColors.lightText,
+          color: p.text,
           fontFamily: AppFonts.body,
         ),
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.input),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: p.elevated,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: textTheme.titleLarge,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(color: p.muted),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
       ),
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
     );
   }
 
-  static ButtonStyle _buttonStyle(bool isLight) => ElevatedButton.styleFrom(
-    backgroundColor: NightMatchColors.actionLime,
-    foregroundColor: NightMatchColors.onAction,
-    disabledBackgroundColor: isLight
-        ? const Color(0xFFDCE4D0)
-        : const Color(0xFF35412B),
-    disabledForegroundColor: isLight
-        ? NightMatchColors.lightMutedText
-        : NightMatchColors.mutedText,
+  static ButtonStyle _buttonStyle() => ElevatedButton.styleFrom(
+    backgroundColor: AppPalette.lime,
+    foregroundColor: AppPalette.onLime,
+    disabledBackgroundColor: AppPalette.lime.withValues(alpha: 0.4),
+    disabledForegroundColor: AppPalette.onLime.withValues(alpha: 0.5),
     minimumSize: const Size(48, 52),
     padding: const EdgeInsetsDirectional.symmetric(
       horizontal: AppSpacing.lg,
