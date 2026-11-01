@@ -20,7 +20,7 @@ Checklist of every Dart file currently under `Frontend/lib/Views`. Check an item
 - [ ] `lib/Views/Player/matches_page.dart`
 - [ ] `lib/Views/Player/chat.dart`
 - [ ] `lib/Views/Player/ai_assistant.dart`
-- [ ] `lib/Views/Player/HomeSettings.dart`
+- [x] `lib/Views/Player/HomeSettings.dart`
 - [ ] `lib/Views/Player/navigation.dart`
 
 ## D. Manager
