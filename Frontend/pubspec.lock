@@ -1021,6 +1021,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.10"
+<<<<<<< Updated upstream
   turf:
     dependency: transitive
     description:
@@ -1045,6 +1046,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.2"
+=======
+>>>>>>> Stashed changes
   typed_data:
     dependency: transitive
     description:
