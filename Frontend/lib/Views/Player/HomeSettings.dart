@@ -450,8 +450,7 @@ class _HomeSettingsState extends State<HomeSettings>
                                         child: SizedBox.square(
                                           dimension: AppSpacing.lg,
                                           child: CircularProgressIndicator(
-                                            color:
-                                                scheme.onSecondaryContainer,
+                                            color: scheme.onSecondaryContainer,
                                           ),
                                         ),
                                       )
@@ -662,39 +661,39 @@ class _ProfileTab extends StatelessWidget {
                     button: true,
                     label: 'Change password. Update your account password.',
                     child: ListTile(
-                    minLeadingWidth: AppSpacing.xxl,
-                    contentPadding: EdgeInsets.zero,
-                    minVerticalPadding: AppSpacing.xs,
-                    onTap: () {
-                      _showPasswordDialog(context);
-                    },
-                    leading: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: scheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(AppRadius.input),
+                      minLeadingWidth: AppSpacing.xxl,
+                      contentPadding: EdgeInsets.zero,
+                      minVerticalPadding: AppSpacing.xs,
+                      onTap: () {
+                        _showPasswordDialog(context);
+                      },
+                      leading: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: scheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(AppRadius.input),
+                        ),
+                        child: Icon(
+                          Icons.lock_outline,
+                          color: scheme.onSecondaryContainer,
+                          size: 24,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.lock_outline,
-                        color: scheme.onSecondaryContainer,
-                        size: 24,
+                      title: Text(
+                        'Change password',
+                        style: theme.textTheme.titleMedium,
                       ),
-                    ),
-                    title: Text(
-                      'Change password',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    subtitle: Text(
-                      'Update your account password',
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      subtitle: Text(
+                        'Update your account password',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
                         color: scheme.onSurfaceVariant,
                       ),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: scheme.onSurfaceVariant,
-                    ),
                     ),
                   ),
                 ],
@@ -944,6 +943,8 @@ class _ProfileTab extends StatelessWidget {
 //
 // BOOKINGS TAB — wired to BookingStore
 //
+// TODO(night-match): expose the store's loading/error state so both lists can
+// show skeletons and retryable errors without changing their fetch flow.
 class _BookingsTab extends StatelessWidget {
   final List<LocalBooking> bookings;
   const _BookingsTab({required this.bookings});
@@ -955,136 +956,140 @@ class _BookingsTab extends StatelessWidget {
     final navH =
         kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
     if (bookings.isEmpty) {
-      return const _EmptyState(
-        Icons.calendar_month_outlined,
-        'No bookings yet',
-        'Your reservation history will appear here',
+      return _refreshableEmptyState(
+        context,
+        onRefresh: BookingStore.instance.refresh,
+        child: const _EmptyState(
+          Icons.calendar_month_outlined,
+          'No bookings yet',
+          'Your reservation history will appear here',
+        ),
       );
     }
     return RefreshIndicator(
       color: scheme.onSurfaceVariant,
       onRefresh: BookingStore.instance.refresh,
       child: ListView.separated(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        AppSpacing.md,
-        AppSpacing.md,
-        AppSpacing.md,
-        navH + AppSpacing.md,
-      ),
-      itemCount: bookings.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (_, i) {
-        final b = bookings[i];
-        final isPaid = b.status == 'confirmed';
-        final statusBackground = isPaid
-            ? scheme.tertiaryContainer
-            : scheme.secondaryContainer;
-        final statusForeground = isPaid
-            ? scheme.onTertiaryContainer
-            : scheme.onSecondaryContainer;
-        return Card(
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadiusDirectional.horizontal(
-                  start: Radius.circular(AppRadius.card),
+        padding: EdgeInsetsDirectional.fromSTEB(
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+          navH + AppSpacing.md,
+        ),
+        itemCount: bookings.length,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (_, i) {
+          final b = bookings[i];
+          final isPaid = b.status == 'confirmed';
+          final statusBackground = isPaid
+              ? scheme.tertiaryContainer
+              : scheme.secondaryContainer;
+          final statusForeground = isPaid
+              ? scheme.onTertiaryContainer
+              : scheme.onSecondaryContainer;
+          return Card(
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadiusDirectional.horizontal(
+                    start: Radius.circular(AppRadius.card),
+                  ),
+                  child: SizedBox(
+                    width: 80,
+                    height: 112,
+                    child: b.courtImageUrl.isNotEmpty
+                        ? Image.network(
+                            b.courtImageUrl,
+                            fit: BoxFit.cover,
+                            semanticLabel:
+                                'Court image: ${_titleCaseDisplayName(b.courtName)}',
+                            errorBuilder: (_, _, _) =>
+                                _bookingImageFallback(context),
+                          )
+                        : _bookingImageFallback(context),
+                  ),
                 ),
-                child: SizedBox(
-                  width: 80,
-                  height: 112,
-                  child: b.courtImageUrl.isNotEmpty
-                      ? Image.network(
-                          b.courtImageUrl,
-                          fit: BoxFit.cover,
-                          semanticLabel:
-                              'Court image: ${_titleCaseDisplayName(b.courtName)}',
-                          errorBuilder: (_, _, _) =>
-                              _bookingImageFallback(context),
-                        )
-                      : _bookingImageFallback(context),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _titleCaseDisplayName(b.courtName),
-                        style: theme.textTheme.titleMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        _titleCaseDisplayName(b.venueName),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.all(AppSpacing.sm),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _titleCaseDisplayName(b.courtName),
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        '${b.date}  ·  ${b.time}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          _titleCaseDisplayName(b.venueName),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              '${b.price} DT',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: scheme.onSurface,
-                              ),
-                            ),
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          '${b.date}  ·  ${b.time}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
                           ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Expanded(
-                            child: Text(
-                              b.reference,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            constraints: const BoxConstraints(minHeight: 40),
-                            padding: const EdgeInsetsDirectional.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: AppSpacing.xxs,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusBackground,
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.pill,
-                              ),
-                            ),
-                            child: Center(
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Row(
+                          children: [
+                            Flexible(
                               child: Text(
-                                isPaid ? 'Confirmed' : 'Pending',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: statusForeground,
+                                '${b.price} DT',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: scheme.onSurface,
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const SizedBox(width: AppSpacing.xs),
+                            Expanded(
+                              child: Text(
+                                b.reference,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              constraints: const BoxConstraints(minHeight: 40),
+                              padding: const EdgeInsetsDirectional.symmetric(
+                                horizontal: AppSpacing.sm,
+                                vertical: AppSpacing.xxs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusBackground,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.pill,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  isPaid ? 'Confirmed' : 'Pending',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: statusForeground,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -1118,183 +1123,187 @@ class _AnnouncementsTab extends StatelessWidget {
     final navH =
         kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
     if (announcements.isEmpty) {
-      return const _EmptyState(
-        Icons.campaign_outlined,
-        'No announcements yet',
-        'Announcements you post will appear here',
+      return _refreshableEmptyState(
+        context,
+        onRefresh: BookingStore.instance.refresh,
+        child: const _EmptyState(
+          Icons.campaign_outlined,
+          'No announcements yet',
+          'Announcements you post will appear here',
+        ),
       );
     }
     return RefreshIndicator(
       color: scheme.onSurfaceVariant,
       onRefresh: BookingStore.instance.refresh,
       child: ListView.separated(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        AppSpacing.md,
-        AppSpacing.md,
-        AppSpacing.md,
-        navH + AppSpacing.md,
-      ),
-      itemCount: announcements.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-      itemBuilder: (_, i) {
-        final a = announcements[i];
-        final spotsLeft = a.spotsLeft;
-        return Container(
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            border: Border.all(color: scheme.outlineVariant),
-            boxShadow: theme.brightness == Brightness.dark
-                ? AppElevation.nightGlow
-                : const [],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header - shows court name
-              Container(
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  AppSpacing.sm,
-                  AppSpacing.sm,
-                  AppSpacing.sm,
-                  AppSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest,
-                  borderRadius: const BorderRadiusDirectional.vertical(
-                    top: Radius.circular(AppRadius.card),
+        padding: EdgeInsetsDirectional.fromSTEB(
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+          navH + AppSpacing.md,
+        ),
+        itemCount: announcements.length,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (_, i) {
+          final a = announcements[i];
+          final spotsLeft = a.spotsLeft;
+          return Container(
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(color: scheme.outlineVariant),
+              boxShadow: theme.brightness == Brightness.dark
+                  ? AppElevation.nightGlow
+                  : const [],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header - shows court name
+                Container(
+                  padding: const EdgeInsetsDirectional.fromSTEB(
+                    AppSpacing.sm,
+                    AppSpacing.sm,
+                    AppSpacing.sm,
+                    AppSpacing.xs,
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: AppSpacing.xxl,
-                          height: AppSpacing.xxl,
-                          decoration: BoxDecoration(
-                            color: scheme.secondaryContainer,
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.input,
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: const BorderRadiusDirectional.vertical(
+                      top: Radius.circular(AppRadius.card),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: AppSpacing.xxl,
+                            height: AppSpacing.xxl,
+                            decoration: BoxDecoration(
+                              color: scheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.input,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.sports_soccer_rounded,
+                              color: scheme.onSecondaryContainer,
+                              size: AppSpacing.lg,
                             ),
                           ),
-                          child: Icon(
-                            Icons.sports_soccer_rounded,
-                            color: scheme.onSecondaryContainer,
-                            size: AppSpacing.lg,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _titleCaseDisplayName(a.courtName),
-                                style: theme.textTheme.titleMedium,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: AppSpacing.xxs),
-                              Text(
-                                '${a.date}  ·  ${a.startTime} – ${a.endTime}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _titleCaseDisplayName(a.courtName),
+                                  style: theme.textTheme.titleMedium,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: AppSpacing.xxs),
+                                Text(
+                                  '${a.date}  ·  ${a.startTime} – ${a.endTime}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: 40),
-                        padding: const EdgeInsetsDirectional.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: spotsLeft > 0
-                              ? scheme.tertiaryContainer
-                              : scheme.errorContainer,
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Text(
-                          spotsLeft > 0 ? '$spotsLeft spots left' : 'Full',
-                          style: theme.textTheme.labelMedium?.copyWith(
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 40),
+                          padding: const EdgeInsetsDirectional.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.xxs,
+                          ),
+                          decoration: BoxDecoration(
                             color: spotsLeft > 0
-                                ? scheme.onTertiaryContainer
-                                : scheme.onErrorContainer,
+                                ? scheme.tertiaryContainer
+                                : scheme.errorContainer,
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: Text(
+                            spotsLeft > 0 ? '$spotsLeft spots left' : 'Full',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: spotsLeft > 0
+                                  ? scheme.onTertiaryContainer
+                                  : scheme.onErrorContainer,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              // Body
-              Padding(
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  AppSpacing.sm,
-                  AppSpacing.xs,
-                  AppSpacing.sm,
-                  AppSpacing.sm,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      a.description,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                // Body
+                Padding(
+                  padding: const EdgeInsetsDirectional.fromSTEB(
+                    AppSpacing.sm,
+                    AppSpacing.xs,
+                    AppSpacing.sm,
+                    AppSpacing.sm,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        a.description,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Wrap(
-                      spacing: AppSpacing.xs,
-                      runSpacing: AppSpacing.xs,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        _Stat(
-                          Icons.people_rounded,
-                          '${a.playersNeeded}',
-                          'Needed',
-                        ),
-                        _Stat(
-                          Icons.check_circle_outline_rounded,
-                          '${a.acceptedCount}',
-                          'Joined',
-                        ),
-                        _Stat(
-                          Icons.hourglass_top_rounded,
-                          '$spotsLeft',
-                          'Left',
-                        ),
-                        IconButton(
-                          tooltip: 'Delete announcement',
-                          constraints: const BoxConstraints(
-                            minWidth: 48,
-                            minHeight: 48,
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _Stat(
+                            Icons.people_rounded,
+                            '${a.playersNeeded}',
+                            'Needed',
                           ),
-                          onPressed: () => _deleteAnnouncement(context, a.id),
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            color: scheme.error,
+                          _Stat(
+                            Icons.check_circle_outline_rounded,
+                            '${a.acceptedCount}',
+                            'Joined',
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          _Stat(
+                            Icons.hourglass_top_rounded,
+                            '$spotsLeft',
+                            'Left',
+                          ),
+                          IconButton(
+                            tooltip: 'Delete announcement',
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
+                            ),
+                            onPressed: () => _deleteAnnouncement(context, a.id),
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: scheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -1407,6 +1416,26 @@ class _Stat extends StatelessWidget {
     );
   }
 }
+
+Widget _refreshableEmptyState(
+  BuildContext context, {
+  required Future<void> Function() onRefresh,
+  required Widget child,
+}) => LayoutBuilder(
+  builder: (context, constraints) => RefreshIndicator(
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
+    onRefresh: onRefresh,
+    child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: child,
+        ),
+      ],
+    ),
+  ),
+);
 
 class _EmptyState extends StatelessWidget {
   final IconData icon;
