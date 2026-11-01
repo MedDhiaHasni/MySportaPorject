@@ -6,6 +6,7 @@ module.exports = {
       handler: 'message.create',
       config: {
         auth: false,
+        policies: ['global::authMiddleware'],
       },
     },
     {
@@ -14,6 +15,7 @@ module.exports = {
       handler: 'message.findByConversation',
       config: {
         auth: false,
+        policies: ['global::authMiddleware'],
       },
     },
     {
@@ -22,6 +24,7 @@ module.exports = {
       handler: 'message.findOne',
       config: {
         auth: false,
+        policies: ['global::authMiddleware'],
       },
     },
     {
@@ -30,6 +33,7 @@ module.exports = {
       handler: 'message.delete',
       config: {
         auth: false,
+        policies: ['global::authMiddleware'],
       },
     },
   ],

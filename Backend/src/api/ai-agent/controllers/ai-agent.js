@@ -51,6 +51,9 @@ module.exports = {
   },
 
   async history(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized('Authentication required');
+
     const { sessionId } = ctx.params;
 
     if (!sessionId) return ctx.badRequest('sessionId required.');
@@ -58,7 +61,7 @@ module.exports = {
     const conversations = await strapi.entityService.findMany(
       'api::ai-conversation.ai-conversation',
       {
-        filters: { sessionId },
+        filters: { sessionId, user: { id: user.id } },
         fields: ['question', 'answer', 'contextType', 'createdAt'],
         sort: { createdAt: 'asc' },
         limit: 50,
@@ -69,15 +72,17 @@ module.exports = {
   },
 
   async clearHistory(ctx) {
+    const user = ctx.state.user;
+    if (!user) return ctx.unauthorized('Authentication required');
+
     const { sessionId } = ctx.params;
 
     if (!sessionId) return ctx.badRequest('sessionId required.');
 
     await strapi.db.query('api::ai-conversation.ai-conversation').deleteMany({
-      where: { sessionId },
+      where: { sessionId, user: { id: user.id } },
     });
 
     ctx.body = { message: 'Conversation history cleared successfully.' };
   },
 };
-

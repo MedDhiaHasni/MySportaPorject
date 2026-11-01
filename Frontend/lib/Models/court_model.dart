@@ -39,15 +39,19 @@ class CourtModel {
     // Get court_img_url from various possible formats
     String? courtImgUrl;
     if (json['court_img_url'] != null) {
-      courtImgUrl = ApiConstants.getFullImageUrl(json['court_img_url'].toString());
+      courtImgUrl = ApiConstants.getFullImageUrl(
+        json['court_img_url'].toString(),
+      );
     } else if (json['court_img'] != null) {
       if (json['court_img'] is Map && json['court_img']['url'] != null) {
-        courtImgUrl = ApiConstants.getFullImageUrl(json['court_img']['url'].toString());
+        courtImgUrl = ApiConstants.getFullImageUrl(
+          json['court_img']['url'].toString(),
+        );
       } else if (json['court_img'] is String) {
         courtImgUrl = ApiConstants.getFullImageUrl(json['court_img']);
       }
     }
-    
+
     // Get photos_urls from various possible formats
     List<String> photosUrls = [];
     if (json['photos_urls'] != null && json['photos_urls'] is List) {
@@ -65,17 +69,19 @@ class CourtModel {
           .where((url) => url.isNotEmpty)
           .toList();
     }
-    
+
     // Get amenities
     List<String> amenities = [];
     if (json['amenities'] != null) {
       if (json['amenities'] is List) {
-        amenities = (json['amenities'] as List).map((e) => e.toString()).toList();
+        amenities = (json['amenities'] as List)
+            .map((e) => e.toString())
+            .toList();
       } else if (json['amenities'] is String) {
         amenities = [json['amenities']];
       }
     }
-    
+
     // Get venueId
     int venueId = 0;
     if (json['venue'] != null) {
@@ -87,7 +93,7 @@ class CourtModel {
     } else if (json['venueId'] != null) {
       venueId = json['venueId'];
     }
-    
+
     // Get managerId
     int? managerId;
     if (json['manager'] != null && json['manager'] is Map) {
@@ -95,7 +101,7 @@ class CourtModel {
     } else if (json['managerId'] != null) {
       managerId = json['managerId'];
     }
-    
+
     return CourtModel(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
@@ -109,8 +115,12 @@ class CourtModel {
       isActive: json['isActive'] ?? true,
       venueId: venueId,
       managerId: managerId,
-      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
-      updatedAt: json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'])
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'])
+          : null,
     );
   }
 
@@ -132,10 +142,10 @@ class CourtModel {
       'updatedAt': updatedAt?.toIso8601String(),
     };
   }
-  
+
   // Helper to check if court is bookable
   bool get isBookable => isActive;
-  
+
   // Helper to get main image URL (fallback to first photo if no main image)
   String get displayImageUrl {
     if (courtImgUrl != null && courtImgUrl!.isNotEmpty) {
@@ -146,7 +156,7 @@ class CourtModel {
     }
     return '';
   }
-  
+
   // Helper to get all images for gallery
   List<String> get allImageUrls {
     final List<String> urls = [];

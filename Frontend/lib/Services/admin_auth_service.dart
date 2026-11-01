@@ -10,14 +10,18 @@ class AdminAuthService {
   };
 
   static Map<String, dynamic>? _decodeError(http.Response r) {
-    try { return json.decode(r.body) as Map<String, dynamic>; } catch (_) { return null; }
+    try {
+      return json.decode(r.body) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
   }
 
   static String _msg(http.Response r, String fallback) {
     final e = _decodeError(r);
-    return e?['error']?['message']?.toString()
-        ?? e?['message']?.toString()
-        ?? fallback;
+    return e?['error']?['message']?.toString() ??
+        e?['message']?.toString() ??
+        fallback;
   }
 
   // ── AUTH ──────────────────────────────────────────────────────────────────
@@ -26,9 +30,14 @@ class AdminAuthService {
     required String email,
     required String password,
   }) async {
-    final r = await http.post(Uri.parse(ApiConstants.login),
+    final r = await http.post(
+      Uri.parse(ApiConstants.login),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'email': email, 'password': password}));
+      body: json.encode({'email': email, 'password': password}),
+    );
+    if (r.statusCode == 429) {
+      throw Exception('Too many attempts, try again later');
+    }
     if (r.statusCode == 200) {
       final d = json.decode(r.body) as Map<String, dynamic>;
       return {'success': true, 'token': d['token'], 'user': d['user']};
@@ -79,7 +88,10 @@ class AdminAuthService {
     final r = await http.post(
       Uri.parse(ApiConstants.change),
       headers: _headers(token),
-      body: json.encode({'oldPassword': oldPassword, 'newPassword': newPassword}),
+      body: json.encode({
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      }),
     );
     if (r.statusCode != 200) {
       throw Exception(_msg(r, 'Failed to change password'));
@@ -87,11 +99,19 @@ class AdminAuthService {
   }
 
   static Future<bool> validateToken(String token) async {
-    try { await getMe(token); return true; } catch (_) { return false; }
+    try {
+      await getMe(token);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   static Future<Map<String, dynamic>> getMe(String token) async {
-    final r = await http.get(Uri.parse(ApiConstants.me), headers: _headers(token));
+    final r = await http.get(
+      Uri.parse(ApiConstants.me),
+      headers: _headers(token),
+    );
     if (r.statusCode == 200) return json.decode(r.body) as Map<String, dynamic>;
     throw Exception(_msg(r, 'Failed to get user info'));
   }
@@ -101,7 +121,8 @@ class AdminAuthService {
   static Future<Map<String, dynamic>> getAdminProfile(String token) async {
     final r = await http.get(
       Uri.parse('${ApiConstants.baseUrl}/admin/profile'),
-      headers: _headers(token));
+      headers: _headers(token),
+    );
     if (r.statusCode == 200) return json.decode(r.body) as Map<String, dynamic>;
     throw Exception(_msg(r, 'Failed to get admin profile'));
   }
@@ -113,14 +134,17 @@ class AdminAuthService {
     String? password,
   }) async {
     final body = <String, dynamic>{};
-    if (username != null && username.trim().isNotEmpty) body['username'] = username.trim();
-    if (email    != null && email.trim().isNotEmpty)    body['email']    = email.trim();
-    if (password != null && password.trim().isNotEmpty) body['password'] = password.trim();
+    if (username != null && username.trim().isNotEmpty)
+      body['username'] = username.trim();
+    if (email != null && email.trim().isNotEmpty) body['email'] = email.trim();
+    if (password != null && password.trim().isNotEmpty)
+      body['password'] = password.trim();
 
     final r = await http.put(
       Uri.parse('${ApiConstants.baseUrl}/admin/profile'),
       headers: _headers(token),
-      body: json.encode(body));
+      body: json.encode(body),
+    );
     if (r.statusCode == 200) return json.decode(r.body) as Map<String, dynamic>;
     throw Exception(_msg(r, 'Failed to update profile'));
   }
@@ -130,7 +154,8 @@ class AdminAuthService {
   static Future<Map<String, dynamic>> getPlatformStats(String token) async {
     final r = await http.get(
       Uri.parse('${ApiConstants.baseUrl}/admin/stats'),
-      headers: _headers(token));
+      headers: _headers(token),
+    );
     if (r.statusCode == 200) return json.decode(r.body) as Map<String, dynamic>;
     throw Exception(_msg(r, 'Failed to get stats'));
   }
@@ -143,7 +168,8 @@ class AdminAuthService {
   }) async {
     final r = await http.put(
       Uri.parse('${ApiConstants.baseUrl}/admin/users/$userId/toggle-status'),
-      headers: _headers(token));
+      headers: _headers(token),
+    );
     if (r.statusCode == 200) return json.decode(r.body) as Map<String, dynamic>;
     throw Exception(_msg(r, 'Failed to toggle status'));
   }
@@ -151,7 +177,10 @@ class AdminAuthService {
   // ── MANAGERS ─────────────────────────────────────────────────────────────
 
   static Future<List<dynamic>> getManagers(String token) async {
-    final r = await http.get(Uri.parse(ApiConstants.adminManagers), headers: _headers(token));
+    final r = await http.get(
+      Uri.parse(ApiConstants.adminManagers),
+      headers: _headers(token),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body);
       if (d is List) return d;
@@ -171,7 +200,13 @@ class AdminAuthService {
     final r = await http.post(
       Uri.parse(ApiConstants.adminManagers),
       headers: _headers(adminToken),
-      body: json.encode({'username': username, 'email': email, 'password': password, 'phone': phone}));
+      body: json.encode({
+        'username': username,
+        'email': email,
+        'password': password,
+        'phone': phone,
+      }),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body) as Map<String, dynamic>;
       return d['user'] ?? d;
@@ -187,7 +222,8 @@ class AdminAuthService {
     final r = await http.put(
       Uri.parse('${ApiConstants.adminManagers}/$managerId'),
       headers: _headers(adminToken),
-      body: json.encode(data));
+      body: json.encode(data),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body) as Map<String, dynamic>;
       return d['result'] ?? d;
@@ -201,14 +237,19 @@ class AdminAuthService {
   }) async {
     final r = await http.delete(
       Uri.parse('${ApiConstants.adminManagers}/$managerId'),
-      headers: _headers(adminToken));
-    if (r.statusCode != 200) throw Exception(_msg(r, 'Failed to delete manager'));
+      headers: _headers(adminToken),
+    );
+    if (r.statusCode != 200)
+      throw Exception(_msg(r, 'Failed to delete manager'));
   }
 
   // ── PLAYERS ───────────────────────────────────────────────────────────────
 
   static Future<List<dynamic>> getPlayers(String token) async {
-    final r = await http.get(Uri.parse(ApiConstants.adminPlayers), headers: _headers(token));
+    final r = await http.get(
+      Uri.parse(ApiConstants.adminPlayers),
+      headers: _headers(token),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body);
       if (d is List) return d;
@@ -228,7 +269,13 @@ class AdminAuthService {
     final r = await http.post(
       Uri.parse(ApiConstants.adminPlayers),
       headers: _headers(adminToken),
-      body: json.encode({'username': username, 'email': email, 'password': password, 'phone': phone}));
+      body: json.encode({
+        'username': username,
+        'email': email,
+        'password': password,
+        'phone': phone,
+      }),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body) as Map<String, dynamic>;
       return d['result'] ?? d['user'] ?? d;
@@ -244,7 +291,8 @@ class AdminAuthService {
     final r = await http.put(
       Uri.parse('${ApiConstants.adminPlayers}/$playerId'),
       headers: _headers(adminToken),
-      body: json.encode(data));
+      body: json.encode(data),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body) as Map<String, dynamic>;
       return d['result'] ?? d;
@@ -258,14 +306,19 @@ class AdminAuthService {
   }) async {
     final r = await http.delete(
       Uri.parse('${ApiConstants.adminPlayers}/$playerId'),
-      headers: _headers(adminToken));
-    if (r.statusCode != 200) throw Exception(_msg(r, 'Failed to delete player'));
+      headers: _headers(adminToken),
+    );
+    if (r.statusCode != 200)
+      throw Exception(_msg(r, 'Failed to delete player'));
   }
 
   // ── WORKERS ───────────────────────────────────────────────────────────────
 
   static Future<List<dynamic>> getWorkers(String token) async {
-    final r = await http.get(Uri.parse(ApiConstants.adminWorkers), headers: _headers(token));
+    final r = await http.get(
+      Uri.parse(ApiConstants.adminWorkers),
+      headers: _headers(token),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body);
       if (d is List) return d;
@@ -288,9 +341,14 @@ class AdminAuthService {
       Uri.parse(ApiConstants.adminWorkers),
       headers: _headers(adminToken),
       body: json.encode({
-        'username': username, 'email': email, 'password': password,
-        'phone': phone, 'nom': nom, 'managerId': managerId,
-      }));
+        'username': username,
+        'email': email,
+        'password': password,
+        'phone': phone,
+        'nom': nom,
+        'managerId': managerId,
+      }),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body) as Map<String, dynamic>;
       return d['result'] ?? d;
@@ -306,7 +364,8 @@ class AdminAuthService {
     final r = await http.put(
       Uri.parse('${ApiConstants.adminWorkers}/$workerId'),
       headers: _headers(adminToken),
-      body: json.encode(data));
+      body: json.encode(data),
+    );
     if (r.statusCode == 200) {
       final d = json.decode(r.body) as Map<String, dynamic>;
       return d['result'] ?? d;
@@ -320,28 +379,12 @@ class AdminAuthService {
   }) async {
     final r = await http.delete(
       Uri.parse('${ApiConstants.adminWorkers}/$workerId'),
-      headers: _headers(adminToken));
-    if (r.statusCode != 200) throw Exception(_msg(r, 'Failed to delete worker'));
+      headers: _headers(adminToken),
+    );
+    if (r.statusCode != 200)
+      throw Exception(_msg(r, 'Failed to delete worker'));
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Core/Services/admin_auth_service.dart
 
@@ -367,8 +410,6 @@ class AdminAuthService {
         }),
       );
 
-      print('Login response status: ${response.statusCode}');
-      print('Login response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -382,7 +423,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? 'Login failed');
       }
     } catch (e) {
-      print('Login error: $e');
+      AppLogger.error('Login error: $e');
       throw Exception(e.toString());
     }
   }
@@ -400,7 +441,6 @@ class AdminAuthService {
         }),
       );
 
-      print('Forgot password response status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         final error = json.decode(response.body);
@@ -532,8 +572,6 @@ class AdminAuthService {
         },
       );
 
-      print('Get players response status: ${response.statusCode}');
-      print('Get players response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -551,7 +589,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get players');
       }
     } catch (e) {
-      print('Error in getPlayers: $e');
+      AppLogger.error('Error in getPlayers: $e');
       throw Exception(e.toString());
     }
   }
@@ -581,8 +619,6 @@ class AdminAuthService {
         }),
       );
 
-      print('Create manager response status: ${response.statusCode}');
-      print('Create manager response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -592,7 +628,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to create manager');
       }
     } catch (e) {
-      print('Error in createManager: $e');
+      AppLogger.error('Error in createManager: $e');
       throw Exception(e.toString());
     }
   }
@@ -610,8 +646,6 @@ class AdminAuthService {
         },
       );
 
-      print('Get managers response status: ${response.statusCode}');
-      print('Get managers response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -627,7 +661,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get managers');
       }
     } catch (e) {
-      print('Error in getManagers: $e');
+      AppLogger.error('Error in getManagers: $e');
       throw Exception(e.toString());
     }
   }
@@ -650,8 +684,6 @@ class AdminAuthService {
         body: json.encode(data),
       );
 
-      print('Update manager response status: ${response.statusCode}');
-      print('Update manager response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final result = json.decode(response.body);
@@ -661,7 +693,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update manager');
       }
     } catch (e) {
-      print('Error in updateManager: $e');
+      AppLogger.error('Error in updateManager: $e');
       throw Exception(e.toString());
     }
   }
@@ -682,8 +714,6 @@ class AdminAuthService {
         },
       );
 
-      print('Delete manager response status: ${response.statusCode}');
-      print('Delete manager response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -692,7 +722,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to delete manager');
       }
     } catch (e) {
-      print('Error in deleteManager: $e');
+      AppLogger.error('Error in deleteManager: $e');
       throw Exception(e.toString());
     }
   }
@@ -713,8 +743,6 @@ class AdminAuthService {
         },
       );
 
-      print('Get manager response status: ${response.statusCode}');
-      print('Get manager response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -723,7 +751,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? 'Failed to get manager');
       }
     } catch (e) {
-      print('Error in getManager: $e');
+      AppLogger.error('Error in getManager: $e');
       throw Exception(e.toString());
     }
   }
@@ -771,8 +799,6 @@ class AdminAuthService {
         }),
       );
 
-      print('Create worker response status: ${response.statusCode}');
-      print('Create worker response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -782,7 +808,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to create worker');
       }
     } catch (e) {
-      print('Error in createWorker: $e');
+      AppLogger.error('Error in createWorker: $e');
       throw Exception(e.toString());
     }
   }
@@ -798,8 +824,6 @@ class AdminAuthService {
         },
       );
 
-      print('Get workers response status: ${response.statusCode}');
-      print('Get workers response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -815,7 +839,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get workers');
       }
     } catch (e) {
-      print('Error in getWorkers: $e');
+      AppLogger.error('Error in getWorkers: $e');
       throw Exception(e.toString());
     }
   }
@@ -834,8 +858,6 @@ class AdminAuthService {
         },
       );
 
-      print('Delete worker response status: ${response.statusCode}');
-      print('Delete worker response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -844,7 +866,7 @@ class AdminAuthService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to delete worker');
       }
     } catch (e) {
-      print('Error in deleteWorker: $e');
+      AppLogger.error('Error in deleteWorker: $e');
       throw Exception(e.toString());
     }
   }

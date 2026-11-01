@@ -23,13 +23,14 @@ class AvailabilitySlot {
 
   bool get isAvailable => isActive && !isBooked;
 
-  factory AvailabilitySlot.fromJson(Map<String, dynamic> json) => AvailabilitySlot(
-    id:        json['id'] as int,
-    startTime: json['startTime']?.toString() ?? '',
-    endTime:   json['endTime']?.toString() ?? '',
-    isActive:  json['isActive'] == true,
-    isBooked:  json['isBooked'] == true,
-  );
+  factory AvailabilitySlot.fromJson(Map<String, dynamic> json) =>
+      AvailabilitySlot(
+        id: json['id'] as int,
+        startTime: json['startTime']?.toString() ?? '',
+        endTime: json['endTime']?.toString() ?? '',
+        isActive: json['isActive'] == true,
+        isBooked: json['isBooked'] == true,
+      );
 }
 
 class DayAvailability {
@@ -48,9 +49,11 @@ class DayAvailability {
   factory DayAvailability.fromJson(Map<String, dynamic> json) {
     final rawSlots = json['slots'] as List<dynamic>? ?? [];
     return DayAvailability(
-      date:    json['date']?.toString() ?? '',
+      date: json['date']?.toString() ?? '',
       dayType: json['dayType']?.toString() ?? 'normal',
-      slots:   rawSlots.map((s) => AvailabilitySlot.fromJson(s as Map<String, dynamic>)).toList(),
+      slots: rawSlots
+          .map((s) => AvailabilitySlot.fromJson(s as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -69,15 +72,15 @@ class DayPlanSummary {
   });
 
   factory DayPlanSummary.fromJson(Map<String, dynamic> json) => DayPlanSummary(
-    id:        (json['id'] as num).toInt(),
-    date:      json['date']?.toString() ?? '',
+    id: (json['id'] as num).toInt(),
+    date: json['date']?.toString() ?? '',
     dayOfWeek: json['dayOfWeek']?.toString() ?? '',
-    dayType:   json['dayType']?.toString() ?? 'normal',
+    dayType: json['dayType']?.toString() ?? 'normal',
   );
 }
 
 class BookingResult {
-  final int    reservationId;
+  final int reservationId;
   final String bookingReference;
   final String status;
   final String startTime;
@@ -96,16 +99,16 @@ class BookingResult {
   });
 
   factory BookingResult.fromJson(Map<String, dynamic> json) {
-    final raw   = json['data'] ?? json;
+    final raw = json['data'] ?? json;
     final attrs = raw['attributes'] ?? raw;
     return BookingResult(
-      reservationId:    (raw['id'] as num?)?.toInt() ?? 0,
+      reservationId: (raw['id'] as num?)?.toInt() ?? 0,
       bookingReference: attrs['booking_reference']?.toString() ?? '',
-      status:           attrs['booking_status']?.toString() ?? 'pending',
-      startTime:        attrs['start_time']?.toString() ?? '',
-      endTime:          attrs['end_time']?.toString() ?? '',
-      totalPrice:       (attrs['total_price'] as num?)?.toDouble() ?? 0,
-      paymentMethod:    attrs['payment_method']?.toString() ?? '',
+      status: attrs['booking_status']?.toString() ?? 'pending',
+      startTime: attrs['start_time']?.toString() ?? '',
+      endTime: attrs['end_time']?.toString() ?? '',
+      totalPrice: (attrs['total_price'] as num?)?.toDouble() ?? 0,
+      paymentMethod: attrs['payment_method']?.toString() ?? '',
     );
   }
 }
@@ -119,7 +122,7 @@ class ReservationService {
   ReservationService({required String token}) : _token = token;
 
   Map<String, String> get _headers => {
-    'Content-Type':  'application/json',
+    'Content-Type': 'application/json',
     'Authorization': 'Bearer $_token',
   };
 
@@ -134,7 +137,9 @@ class ReservationService {
     }
     final body = json.decode(res.body) as Map<String, dynamic>;
     final list = body['dayPlans'] as List<dynamic>? ?? [];
-    return list.map((d) => DayPlanSummary.fromJson(d as Map<String, dynamic>)).toList();
+    return list
+        .map((d) => DayPlanSummary.fromJson(d as Map<String, dynamic>))
+        .toList();
   }
 
   // ── Fetch availability for a specific day plan ────────────────────────────
@@ -146,13 +151,15 @@ class ReservationService {
     if (res.statusCode != 200) {
       throw Exception('Failed to load slots: ${res.statusCode}');
     }
-    return DayAvailability.fromJson(json.decode(res.body) as Map<String, dynamic>);
+    return DayAvailability.fromJson(
+      json.decode(res.body) as Map<String, dynamic>,
+    );
   }
 
   // ── Create a reservation ──────────────────────────────────────────────────
   Future<BookingResult> createReservation({
-    required int    timeSlotId,
-    required int    courtId,
+    required int timeSlotId,
+    required int courtId,
     required String bookingDatePlay,
     required String startTime,
     required String endTime,
@@ -189,19 +196,16 @@ class ReservationService {
       requestBody['special_requests'] = specialRequests;
     }
 
-    print('📡 Creating reservation with body: ${json.encode(requestBody)}');
-
     final res = await http.post(
       Uri.parse(ApiConstants.reservations),
       headers: _headers,
       body: json.encode({'data': requestBody}),
     );
 
-    print('📡 Response status: ${res.statusCode}');
-    print('📡 Response body: ${res.body}');
-
     if (res.statusCode == 200 || res.statusCode == 201) {
-      return BookingResult.fromJson(json.decode(res.body) as Map<String, dynamic>);
+      return BookingResult.fromJson(
+        json.decode(res.body) as Map<String, dynamic>,
+      );
     }
 
     String msg = 'Booking failed (${res.statusCode})';
@@ -260,17 +264,6 @@ class ReservationService {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Services/reservation_service.dart
 // Uses separate announcement system (no announcements stored on reservations)
@@ -514,13 +507,13 @@ class ReservationService {
       );
       
       if (response.statusCode != 200) {
-        print('Failed to get reservations: ${response.statusCode}');
+        AppLogger.error('Failed to get reservations: ${response.statusCode}');
         return null;
       }
       
       return json.decode(response.body) as Map<String, dynamic>;
     } catch (e) {
-      print('Error getting reservations: $e');
+      AppLogger.error('Error getting reservations: $e');
       return null;
     }
   }
@@ -532,20 +525,6 @@ class ReservationService {
   }
 }
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Services/reservation_service.dart
 // Fixed: uses GET /week-agendas/court/:courtId (player-accessible, no isManager)
@@ -790,20 +769,18 @@ class ReservationService {
       );
       
       if (response.statusCode != 200) {
-        print('Failed to add announcement: ${response.statusCode}');
-        print('Response: ${response.body}');
+        AppLogger.error('Failed to add announcement: ${response.statusCode}');
         throw Exception('Failed to add announcement');
       }
       
       final responseData = json.decode(response.body);
-      print('Announcement added successfully: $responseData');
       
       return {
         'success': true,
         'announcement': responseData['announcement'],
       };
     } catch (e) {
-      print('Error adding announcement: $e');
+      AppLogger.error('Error adding announcement: $e');
       throw Exception(e.toString());
     }
   }
@@ -820,7 +797,7 @@ class ReservationService {
       );
       
       if (response.statusCode != 200) {
-        print('Failed to get reservations: ${response.statusCode}');
+        AppLogger.error('Failed to get reservations: ${response.statusCode}');
         return [];
       }
       
@@ -924,10 +901,9 @@ class ReservationService {
         return bDate.compareTo(aDate);
       });
       
-      print('Found ${allAnnouncements.length} announcements');
       return allAnnouncements;
     } catch (e) {
-      print('Error getting announcements: $e');
+      AppLogger.error('Error getting announcements: $e');
       return [];
     }
   }
@@ -952,13 +928,12 @@ class ReservationService {
       );
       
       if (response.statusCode != 200) {
-        print('Failed to delete announcement: ${response.statusCode}');
+        AppLogger.error('Failed to delete announcement: ${response.statusCode}');
         throw Exception('Failed to delete announcement');
       }
       
-      print('Announcement deleted successfully');
     } catch (e) {
-      print('Error deleting announcement: $e');
+      AppLogger.error('Error deleting announcement: $e');
       throw Exception(e.toString());
     }
   }

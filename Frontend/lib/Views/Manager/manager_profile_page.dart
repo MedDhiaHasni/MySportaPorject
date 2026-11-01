@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Services/player_manager_auth_service.dart';
+import 'package:sporta/Services/firebase_identity_service.dart';
 import 'package:sporta/Views/Auth/login_page.dart';
 
 class ManagerProfilePage extends StatefulWidget {
@@ -33,7 +34,7 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
 
   final _storage = const FlutterSecureStorage();
   final ImagePicker _imagePicker = ImagePicker();
-  
+
   bool _isLoading = false;
   bool _isChangingPassword = false;
   bool _isUploadingPhoto = false;
@@ -43,9 +44,15 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.currentUser?['username'] ?? '');
-    _emailController = TextEditingController(text: widget.currentUser?['email'] ?? '');
-    _phoneController = TextEditingController(text: widget.currentUser?['phone'] ?? '');
+    _nameController = TextEditingController(
+      text: widget.currentUser?['username'] ?? '',
+    );
+    _emailController = TextEditingController(
+      text: widget.currentUser?['email'] ?? '',
+    );
+    _phoneController = TextEditingController(
+      text: widget.currentUser?['phone'] ?? '',
+    );
     _oldPasswordController = TextEditingController();
     _newPasswordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
@@ -71,50 +78,59 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
   }
 
   Future<void> _logout() async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-      content: const Text('Are you sure you want to logout?', style: TextStyle(fontSize: 14)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel', style: TextStyle(color: kTextMid)),
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kRed,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: const Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: kTextMid)),
           ),
-          child: const Text('Logout'),
-        ),
-      ],
-    ),
-  );
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kRed,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
 
-  if (confirm == true) {
-    try {
-      // Clear all stored data
-      await _storage.delete(key: 'jwt_token');
-      await _storage.delete(key: 'user_role');
-      await _storage.delete(key: 'user_id');
-      await _storage.delete(key: 'user_name');
-      
-      if (mounted) {
-        // Navigate to admin login page
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
-        );
+    if (confirm == true) {
+      try {
+        await FirebaseIdentityService.instance.signOut();
+        // Clear all stored data
+        await _storage.delete(key: 'jwt_token');
+        await _storage.delete(key: 'user_role');
+        await _storage.delete(key: 'user_id');
+        await _storage.delete(key: 'user_name');
+
+        if (mounted) {
+          // Navigate to admin login page
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        _showError('Failed to logout: $e');
       }
-    } catch (e) {
-      _showError('Failed to logout: $e');
     }
   }
-}
 
   Future<void> _updateProfile() async {
     if (_nameController.text.trim().isEmpty) {
@@ -159,8 +175,11 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
           widget.onProfileUpdated!(updatedUser);
         }
 
-        await _storage.write(key: 'user_name', value: _nameController.text.trim());
-        
+        await _storage.write(
+          key: 'user_name',
+          value: _nameController.text.trim(),
+        );
+
         Navigator.pop(context);
       }
     } catch (e) {
@@ -273,13 +292,13 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
         maxHeight: 500,
         imageQuality: 80,
       );
-      
+
       if (pickedFile != null) {
         setState(() {
           _selectedImage = File(pickedFile.path);
           _isUploadingPhoto = true;
         });
-        
+
         await _uploadPhoto();
       }
     } catch (e) {
@@ -306,10 +325,7 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
         });
 
         if (widget.onProfileUpdated != null) {
-          final updatedUser = {
-            ...widget.currentUser!,
-            'photoUrl': _photoUrl,
-          };
+          final updatedUser = {...widget.currentUser!, 'photoUrl': _photoUrl};
           widget.onProfileUpdated!(updatedUser);
         }
 
@@ -341,7 +357,7 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
     _oldPasswordController.clear();
     _newPasswordController.clear();
     _confirmPasswordController.clear();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -495,10 +511,7 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
-                              border: Border.all(
-                                color: Colors.white,
-                                width: 3,
-                              ),
+                              border: Border.all(color: Colors.white, width: 3),
                               boxShadow: [
                                 BoxShadow(
                                   color: kPrimary.withOpacity(0.3),
@@ -520,39 +533,46 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
                                       ),
                                     )
                                   : (_selectedImage != null
-                                      ? Image.file(
-                                          _selectedImage!,
-                                          fit: BoxFit.cover,
-                                          width: 100,
-                                          height: 100,
-                                        )
-                                      : (_photoUrl != null && _photoUrl!.isNotEmpty
-                                          ? Image.network(
-                                              _photoUrl!,
-                                              fit: BoxFit.cover,
-                                              width: 100,
-                                              height: 100,
-                                              errorBuilder: (_, __, ___) => Center(
-                                                child: Text(
-                                                  initials,
-                                                  style: const TextStyle(
-                                                    fontSize: 36,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: Colors.white,
+                                        ? Image.file(
+                                            _selectedImage!,
+                                            fit: BoxFit.cover,
+                                            width: 100,
+                                            height: 100,
+                                          )
+                                        : (_photoUrl != null &&
+                                                  _photoUrl!.isNotEmpty
+                                              ? Image.network(
+                                                  _photoUrl!,
+                                                  fit: BoxFit.cover,
+                                                  width: 100,
+                                                  height: 100,
+                                                  errorBuilder: (_, _, _) =>
+                                                      Center(
+                                                        child: Text(
+                                                          initials,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 36,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w800,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                )
+                                              : Center(
+                                                  child: Text(
+                                                    initials,
+                                                    style: const TextStyle(
+                                                      fontSize: 36,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
-                                                ),
-                                              ),
-                                            )
-                                          : Center(
-                                              child: Text(
-                                                initials,
-                                                style: const TextStyle(
-                                                  fontSize: 36,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                            ))),
+                                                ))),
                             ),
                           ),
                           Positioned(
@@ -774,24 +794,6 @@ class _ManagerProfilePageState extends State<ManagerProfilePage> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// manager_profile_page.dart — Views/Manager/manager_profile_page.dart
 import 'dart:io';

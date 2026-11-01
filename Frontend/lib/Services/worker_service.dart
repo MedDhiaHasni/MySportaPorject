@@ -19,27 +19,25 @@ class WorkerService {
     required String email,
     required String password,
   }) async {
-    try {
-      final response = await http.post(
+    final response = await http.post(
         Uri.parse(ApiConstants.login),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': email, 'password': password}),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        final user = data['user'] as Map<String, dynamic>;
-        if (user['user_role'] != 'worker') {
-          throw Exception('This account is not a worker account');
-        }
-        return {'success': true, 'token': data['token'], 'user': user};
-      } else {
-        final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? 'Login failed');
-      }
-    } catch (e) {
-      throw Exception(e.toString());
+    if (response.statusCode == 429) {
+      throw Exception('Too many attempts, try again later');
     }
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final user = data['user'] as Map<String, dynamic>;
+      if (user['user_role'] != 'worker') {
+        throw Exception('This account is not a worker account');
+      }
+      return {'success': true, 'token': data['token'], 'user': user};
+    }
+    final error = json.decode(response.body) as Map<String, dynamic>;
+    throw Exception(error['error']?['message'] ?? 'Login failed');
   }
 
   static Future<void> forgotPassword(String email) async {
@@ -50,7 +48,9 @@ class WorkerService {
     );
     if (response.statusCode != 200) {
       final error = json.decode(response.body) as Map<String, dynamic>;
-      throw Exception(error['error']?['message'] ?? 'Failed to send reset link');
+      throw Exception(
+        error['error']?['message'] ?? 'Failed to send reset link',
+      );
     }
   }
 
@@ -80,11 +80,16 @@ class WorkerService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: json.encode({'oldPassword': oldPassword, 'newPassword': newPassword}),
+      body: json.encode({
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      }),
     );
     if (response.statusCode != 200) {
       final error = json.decode(response.body) as Map<String, dynamic>;
-      throw Exception(error['error']?['message'] ?? 'Failed to change password');
+      throw Exception(
+        error['error']?['message'] ?? 'Failed to change password',
+      );
     }
   }
 
@@ -120,7 +125,11 @@ class WorkerService {
         return worker;
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get worker profile');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get worker profile',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -139,7 +148,8 @@ class WorkerService {
       final body = <String, dynamic>{
         'nom': nom.trim(),
         'phone': phone.trim(),
-        if (username != null && username.trim().isNotEmpty) 'username': username.trim(),
+        if (username != null && username.trim().isNotEmpty)
+          'username': username.trim(),
       };
 
       final response = await http.patch(
@@ -156,7 +166,9 @@ class WorkerService {
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
         throw Exception(
-          error['error']?['message'] ?? error['message'] ?? 'Failed to update profile',
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to update profile',
         );
       }
     } catch (e) {
@@ -203,10 +215,7 @@ class WorkerService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'firebaseUid': firebaseUid,
-          if (fcmToken != null) 'fcmToken': fcmToken,
-        }),
+        body: json.encode({'firebaseUid': firebaseUid, 'fcmToken': ?fcmToken}),
       );
 
       if (response.statusCode == 200) {
@@ -214,7 +223,11 @@ class WorkerService {
         return data['data'] ?? data;
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update Firebase');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to update Firebase',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -243,13 +256,19 @@ class WorkerService {
           final court = Map<String, dynamic>.from(courtItem as Map);
 
           String imageUrl = '';
-          if (court['court_img_url'] != null && court['court_img_url'].toString().isNotEmpty) {
+          if (court['court_img_url'] != null &&
+              court['court_img_url'].toString().isNotEmpty) {
             imageUrl = _getFullImageUrl(court['court_img_url'].toString());
-          } else if (court['court_img'] != null && court['court_img']['url'] != null) {
+          } else if (court['court_img'] != null &&
+              court['court_img']['url'] != null) {
             imageUrl = _getFullImageUrl(court['court_img']['url'].toString());
-          } else if (court['photos_urls'] is List && (court['photos_urls'] as List).isNotEmpty) {
-            imageUrl = _getFullImageUrl((court['photos_urls'] as List)[0].toString());
-          } else if (court['photos'] is List && (court['photos'] as List).isNotEmpty) {
+          } else if (court['photos_urls'] is List &&
+              (court['photos_urls'] as List).isNotEmpty) {
+            imageUrl = _getFullImageUrl(
+              (court['photos_urls'] as List)[0].toString(),
+            );
+          } else if (court['photos'] is List &&
+              (court['photos'] as List).isNotEmpty) {
             final first = (court['photos'] as List)[0];
             if (first is Map && first['url'] != null) {
               imageUrl = _getFullImageUrl(first['url'].toString());
@@ -258,7 +277,9 @@ class WorkerService {
 
           List<String> photosUrls = [];
           if (court['photos_urls'] is List) {
-            photosUrls = (court['photos_urls'] as List).map((u) => _getFullImageUrl(u.toString())).toList();
+            photosUrls = (court['photos_urls'] as List)
+                .map((u) => _getFullImageUrl(u.toString()))
+                .toList();
           } else if (court['photos'] is List) {
             photosUrls = (court['photos'] as List)
                 .where((p) => p is Map && p['url'] != null)
@@ -266,11 +287,19 @@ class WorkerService {
                 .toList();
           }
 
-          return {...court, 'court_img_url': imageUrl, 'photos_urls': photosUrls};
+          return {
+            ...court,
+            'court_img_url': imageUrl,
+            'photos_urls': photosUrls,
+          };
         }).toList();
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get assigned courts');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get assigned courts',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -291,18 +320,24 @@ class WorkerService {
       );
 
       if (response.statusCode == 200) {
-        final court = Map<String, dynamic>.from(json.decode(response.body) as Map);
+        final court = Map<String, dynamic>.from(
+          json.decode(response.body) as Map,
+        );
 
         String imageUrl = '';
-        if (court['court_img_url'] != null && court['court_img_url'].toString().isNotEmpty) {
+        if (court['court_img_url'] != null &&
+            court['court_img_url'].toString().isNotEmpty) {
           imageUrl = _getFullImageUrl(court['court_img_url'].toString());
-        } else if (court['court_img'] != null && court['court_img']['url'] != null) {
+        } else if (court['court_img'] != null &&
+            court['court_img']['url'] != null) {
           imageUrl = _getFullImageUrl(court['court_img']['url'].toString());
         }
 
         List<String> photosUrls = [];
         if (court['photos_urls'] is List) {
-          photosUrls = (court['photos_urls'] as List).map((u) => _getFullImageUrl(u.toString())).toList();
+          photosUrls = (court['photos_urls'] as List)
+              .map((u) => _getFullImageUrl(u.toString()))
+              .toList();
         } else if (court['photos'] is List) {
           photosUrls = (court['photos'] as List)
               .where((p) => p is Map && p['url'] != null)
@@ -313,7 +348,11 @@ class WorkerService {
         return {...court, 'court_img_url': imageUrl, 'photos_urls': photosUrls};
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get court details');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get court details',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -336,10 +375,16 @@ class WorkerService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
-        return _transformReservations(data['reservations'] as List<dynamic>? ?? []);
+        return _transformReservations(
+          data['reservations'] as List<dynamic>? ?? [],
+        );
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get reservations');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get reservations',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -358,10 +403,16 @@ class WorkerService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
-        return _transformReservations(data['reservations'] as List<dynamic>? ?? []);
+        return _transformReservations(
+          data['reservations'] as List<dynamic>? ?? [],
+        );
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get upcoming reservations');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get upcoming reservations',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -374,20 +425,29 @@ class WorkerService {
       final court = Map<String, dynamic>.from(res['court'] as Map? ?? {});
 
       String courtImageUrl = '';
-      if (court['court_img_url'] != null && court['court_img_url'].toString().isNotEmpty) {
+      if (court['court_img_url'] != null &&
+          court['court_img_url'].toString().isNotEmpty) {
         courtImageUrl = _getFullImageUrl(court['court_img_url'].toString());
-      } else if (court['court_img'] != null && court['court_img']['url'] != null) {
+      } else if (court['court_img'] != null &&
+          court['court_img']['url'] != null) {
         courtImageUrl = _getFullImageUrl(court['court_img']['url'].toString());
-      } else if (court['photos_urls'] is List && (court['photos_urls'] as List).isNotEmpty) {
-        courtImageUrl = _getFullImageUrl((court['photos_urls'] as List)[0].toString());
-      } else if (court['photos'] is List && (court['photos'] as List).isNotEmpty) {
+      } else if (court['photos_urls'] is List &&
+          (court['photos_urls'] as List).isNotEmpty) {
+        courtImageUrl = _getFullImageUrl(
+          (court['photos_urls'] as List)[0].toString(),
+        );
+      } else if (court['photos'] is List &&
+          (court['photos'] as List).isNotEmpty) {
         final first = (court['photos'] as List)[0];
         if (first is Map && first['url'] != null) {
           courtImageUrl = _getFullImageUrl(first['url'].toString());
         }
       }
 
-      return {...res, 'court': {...court, 'court_img_url': courtImageUrl}};
+      return {
+        ...res,
+        'court': {...court, 'court_img_url': courtImageUrl},
+      };
     }).toList();
   }
 
@@ -405,20 +465,35 @@ class WorkerService {
       );
 
       if (response.statusCode == 200) {
-        final reservation = Map<String, dynamic>.from(json.decode(response.body) as Map);
-        final court = Map<String, dynamic>.from(reservation['court'] as Map? ?? {});
+        final reservation = Map<String, dynamic>.from(
+          json.decode(response.body) as Map,
+        );
+        final court = Map<String, dynamic>.from(
+          reservation['court'] as Map? ?? {},
+        );
 
         String courtImageUrl = '';
-        if (court['court_img_url'] != null && court['court_img_url'].toString().isNotEmpty) {
+        if (court['court_img_url'] != null &&
+            court['court_img_url'].toString().isNotEmpty) {
           courtImageUrl = _getFullImageUrl(court['court_img_url'].toString());
-        } else if (court['court_img'] != null && court['court_img']['url'] != null) {
-          courtImageUrl = _getFullImageUrl(court['court_img']['url'].toString());
+        } else if (court['court_img'] != null &&
+            court['court_img']['url'] != null) {
+          courtImageUrl = _getFullImageUrl(
+            court['court_img']['url'].toString(),
+          );
         }
 
-        return {...reservation, 'court': {...court, 'court_img_url': courtImageUrl}};
+        return {
+          ...reservation,
+          'court': {...court, 'court_img_url': courtImageUrl},
+        };
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get reservation');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get reservation',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -443,7 +518,11 @@ class WorkerService {
         return data['reservation'] ?? data;
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to confirm reservation');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to confirm reservation',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -468,7 +547,11 @@ class WorkerService {
         return data['reservation'] ?? data;
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to cancel reservation');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to cancel reservation',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -490,9 +573,9 @@ class WorkerService {
         if (dayPlanId != null && dayPlanId.isNotEmpty) 'dayPlanId': dayPlanId,
       };
 
-      final uri = Uri.parse(ApiConstants.workerMyTimeSlots).replace(
-        queryParameters: queryParams.isEmpty ? null : queryParams,
-      );
+      final uri = Uri.parse(
+        ApiConstants.workerMyTimeSlots,
+      ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
       final response = await http.get(
         uri,
@@ -507,7 +590,11 @@ class WorkerService {
         return data['timeSlots'] as List<dynamic>? ?? [];
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get time slots');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to get time slots',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -534,26 +621,17 @@ class WorkerService {
         return data['timeSlot'] ?? data;
       } else {
         final error = json.decode(response.body) as Map<String, dynamic>;
-        throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update time slot');
+        throw Exception(
+          error['error']?['message'] ??
+              error['message'] ??
+              'Failed to update time slot',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Core/Services/worker_service.dart
 
@@ -590,8 +668,6 @@ class WorkerService {
         }),
       );
 
-      print('Worker login response status: ${response.statusCode}');
-      print('Worker login response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -612,7 +688,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? 'Login failed');
       }
     } catch (e) {
-      print('Worker login error: $e');
+      AppLogger.error('Worker login error: $e');
       throw Exception(e.toString());
     }
   }
@@ -628,7 +704,6 @@ class WorkerService {
         }),
       );
 
-      print('Worker forgot password response status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         final Map<String, dynamic> error = json.decode(response.body);
@@ -716,8 +791,6 @@ class WorkerService {
         },
       );
 
-      print('Get worker me response status: ${response.statusCode}');
-      print('Get worker me response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -734,7 +807,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get worker profile');
       }
     } catch (e) {
-      print('Error in getMe: $e');
+      AppLogger.error('Error in getMe: $e');
       throw Exception(e.toString());
     }
   }
@@ -754,8 +827,6 @@ class WorkerService {
         body: json.encode(data),
       );
 
-      print('Update worker profile response status: ${response.statusCode}');
-      print('Update worker profile response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -764,7 +835,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update profile');
       }
     } catch (e) {
-      print('Error in updateProfile: $e');
+      AppLogger.error('Error in updateProfile: $e');
       throw Exception(e.toString());
     }
   }
@@ -786,8 +857,6 @@ class WorkerService {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       
-      print('Upload photo response status: ${response.statusCode}');
-      print('Upload photo response body: $responseBody');
       
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(responseBody);
@@ -797,7 +866,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? 'Failed to upload photo');
       }
     } catch (e) {
-      print('Error in uploadPhoto: $e');
+      AppLogger.error('Error in uploadPhoto: $e');
       throw Exception(e.toString());
     }
   }
@@ -821,8 +890,6 @@ class WorkerService {
         }),
       );
 
-      print('Update worker firebase response status: ${response.statusCode}');
-      print('Update worker firebase response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -832,7 +899,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update Firebase');
       }
     } catch (e) {
-      print('Error in updateFirebase: $e');
+      AppLogger.error('Error in updateFirebase: $e');
       throw Exception(e.toString());
     }
   }
@@ -852,7 +919,6 @@ class WorkerService {
         },
       );
 
-      print('Get my courts response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -904,7 +970,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get assigned courts');
       }
     } catch (e) {
-      print('Error in getMyCourts: $e');
+      AppLogger.error('Error in getMyCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -923,7 +989,6 @@ class WorkerService {
         },
       );
 
-      print('Get court response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> court = json.decode(response.body);
@@ -958,7 +1023,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get court details');
       }
     } catch (e) {
-      print('Error in getCourt: $e');
+      AppLogger.error('Error in getCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -978,7 +1043,6 @@ class WorkerService {
         },
       );
 
-      print('Get my reservations response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -1020,7 +1084,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get reservations');
       }
     } catch (e) {
-      print('Error in getMyReservations: $e');
+      AppLogger.error('Error in getMyReservations: $e');
       throw Exception(e.toString());
     }
   }
@@ -1036,7 +1100,6 @@ class WorkerService {
         },
       );
 
-      print('Get upcoming reservations response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -1078,7 +1141,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get upcoming reservations');
       }
     } catch (e) {
-      print('Error in getUpcomingReservations: $e');
+      AppLogger.error('Error in getUpcomingReservations: $e');
       throw Exception(e.toString());
     }
   }
@@ -1097,7 +1160,6 @@ class WorkerService {
         },
       );
 
-      print('Get reservation response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> reservation = json.decode(response.body);
@@ -1124,7 +1186,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get reservation');
       }
     } catch (e) {
-      print('Error in getReservation: $e');
+      AppLogger.error('Error in getReservation: $e');
       throw Exception(e.toString());
     }
   }
@@ -1143,8 +1205,6 @@ class WorkerService {
         },
       );
 
-      print('Confirm reservation response status: ${response.statusCode}');
-      print('Confirm reservation response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -1154,7 +1214,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to confirm reservation');
       }
     } catch (e) {
-      print('Error in confirmReservation: $e');
+      AppLogger.error('Error in confirmReservation: $e');
       throw Exception(e.toString());
     }
   }
@@ -1173,8 +1233,6 @@ class WorkerService {
         },
       );
 
-      print('Cancel reservation response status: ${response.statusCode}');
-      print('Cancel reservation response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -1184,7 +1242,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to cancel reservation');
       }
     } catch (e) {
-      print('Error in cancelReservation: $e');
+      AppLogger.error('Error in cancelReservation: $e');
       throw Exception(e.toString());
     }
   }
@@ -1223,7 +1281,6 @@ class WorkerService {
         },
       );
 
-      print('Get my time slots response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -1233,7 +1290,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get time slots');
       }
     } catch (e) {
-      print('Error in getMyTimeSlots: $e');
+      AppLogger.error('Error in getMyTimeSlots: $e');
       throw Exception(e.toString());
     }
   }
@@ -1256,8 +1313,6 @@ class WorkerService {
         }),
       );
 
-      print('Update time slot response status: ${response.statusCode}');
-      print('Update time slot response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -1267,22 +1322,14 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update time slot');
       }
     } catch (e) {
-      print('Error in updateTimeSlot: $e');
+      AppLogger.error('Error in updateTimeSlot: $e');
       throw Exception(e.toString());
     }
   }
 }
 */
 
-
-
 //******************************************** */
-
-
-
-
-
-
 
 /*// lib/Core/Services/worker_service.dart
 
@@ -1310,8 +1357,6 @@ class WorkerService {
         }),
       );
 
-      print('Worker login response status: ${response.statusCode}');
-      print('Worker login response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1332,7 +1377,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? 'Login failed');
       }
     } catch (e) {
-      print('Worker login error: $e');
+      AppLogger.error('Worker login error: $e');
       throw Exception(e.toString());
     }
   }
@@ -1348,7 +1393,6 @@ class WorkerService {
         }),
       );
 
-      print('Worker forgot password response status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         final error = json.decode(response.body);
@@ -1436,8 +1480,6 @@ class WorkerService {
         },
       );
 
-      print('Get worker me response status: ${response.statusCode}');
-      print('Get worker me response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1452,7 +1494,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get worker profile');
       }
     } catch (e) {
-      print('Error in getMe: $e');
+      AppLogger.error('Error in getMe: $e');
       throw Exception(e.toString());
     }
   }
@@ -1472,8 +1514,6 @@ class WorkerService {
         body: json.encode(data),
       );
 
-      print('Update worker profile response status: ${response.statusCode}');
-      print('Update worker profile response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -1482,7 +1522,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update profile');
       }
     } catch (e) {
-      print('Error in updateProfile: $e');
+      AppLogger.error('Error in updateProfile: $e');
       throw Exception(e.toString());
     }
   }
@@ -1504,8 +1544,6 @@ class WorkerService {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       
-      print('Upload photo response status: ${response.statusCode}');
-      print('Upload photo response body: $responseBody');
       
       if (response.statusCode == 200) {
         final data = json.decode(responseBody);
@@ -1515,7 +1553,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? 'Failed to upload photo');
       }
     } catch (e) {
-      print('Error in uploadPhoto: $e');
+      AppLogger.error('Error in uploadPhoto: $e');
       throw Exception(e.toString());
     }
   }
@@ -1539,8 +1577,6 @@ class WorkerService {
         }),
       );
 
-      print('Update worker firebase response status: ${response.statusCode}');
-      print('Update worker firebase response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1550,7 +1586,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update Firebase');
       }
     } catch (e) {
-      print('Error in updateFirebase: $e');
+      AppLogger.error('Error in updateFirebase: $e');
       throw Exception(e.toString());
     }
   }
@@ -1570,7 +1606,6 @@ class WorkerService {
         },
       );
 
-      print('Get my courts response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1580,7 +1615,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get assigned courts');
       }
     } catch (e) {
-      print('Error in getMyCourts: $e');
+      AppLogger.error('Error in getMyCourts: $e');
       throw Exception(e.toString());
     }
   }
@@ -1599,7 +1634,6 @@ class WorkerService {
         },
       );
 
-      print('Get court response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -1608,7 +1642,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get court details');
       }
     } catch (e) {
-      print('Error in getCourt: $e');
+      AppLogger.error('Error in getCourt: $e');
       throw Exception(e.toString());
     }
   }
@@ -1628,7 +1662,6 @@ class WorkerService {
         },
       );
 
-      print('Get my reservations response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1638,7 +1671,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get reservations');
       }
     } catch (e) {
-      print('Error in getMyReservations: $e');
+      AppLogger.error('Error in getMyReservations: $e');
       throw Exception(e.toString());
     }
   }
@@ -1654,7 +1687,6 @@ class WorkerService {
         },
       );
 
-      print('Get upcoming reservations response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1664,7 +1696,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get upcoming reservations');
       }
     } catch (e) {
-      print('Error in getUpcomingReservations: $e');
+      AppLogger.error('Error in getUpcomingReservations: $e');
       throw Exception(e.toString());
     }
   }
@@ -1683,7 +1715,6 @@ class WorkerService {
         },
       );
 
-      print('Get reservation response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -1692,7 +1723,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get reservation');
       }
     } catch (e) {
-      print('Error in getReservation: $e');
+      AppLogger.error('Error in getReservation: $e');
       throw Exception(e.toString());
     }
   }
@@ -1711,8 +1742,6 @@ class WorkerService {
         },
       );
 
-      print('Confirm reservation response status: ${response.statusCode}');
-      print('Confirm reservation response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1722,7 +1751,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to confirm reservation');
       }
     } catch (e) {
-      print('Error in confirmReservation: $e');
+      AppLogger.error('Error in confirmReservation: $e');
       throw Exception(e.toString());
     }
   }
@@ -1741,8 +1770,6 @@ class WorkerService {
         },
       );
 
-      print('Cancel reservation response status: ${response.statusCode}');
-      print('Cancel reservation response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1752,7 +1779,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to cancel reservation');
       }
     } catch (e) {
-      print('Error in cancelReservation: $e');
+      AppLogger.error('Error in cancelReservation: $e');
       throw Exception(e.toString());
     }
   }
@@ -1791,7 +1818,6 @@ class WorkerService {
         },
       );
 
-      print('Get my time slots response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1801,7 +1827,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to get time slots');
       }
     } catch (e) {
-      print('Error in getMyTimeSlots: $e');
+      AppLogger.error('Error in getMyTimeSlots: $e');
       throw Exception(e.toString());
     }
   }
@@ -1824,8 +1850,6 @@ class WorkerService {
         }),
       );
 
-      print('Update time slot response status: ${response.statusCode}');
-      print('Update time slot response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -1835,7 +1859,7 @@ class WorkerService {
         throw Exception(error['error']?['message'] ?? error['message'] ?? 'Failed to update time slot');
       }
     } catch (e) {
-      print('Error in updateTimeSlot: $e');
+      AppLogger.error('Error in updateTimeSlot: $e');
       throw Exception(e.toString());
     }
   }

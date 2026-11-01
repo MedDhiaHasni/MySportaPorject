@@ -11,6 +11,8 @@
     "develop": "strapi develop",
     "start": "strapi start",
     "strapi": "strapi",
+    "check:chat-uids": "node scripts/check-chat-uids.js",
+    "test:firestore:rules": "npx --yes firebase-tools@15.34.2 --config ../firebase.json emulators:exec --project demo-sporta --only firestore \"node --test tests/firestore.rules.test.mjs\"",
     "upgrade": "npx @strapi/upgrade latest",
     "upgrade:dry": "npx @strapi/upgrade latest --dry"
   },
@@ -18,6 +20,7 @@
     "@strapi/plugin-cloud": "5.39.0",
     "@strapi/plugin-users-permissions": "5.39.0",
     "@strapi/strapi": "5.39.0",
+    "dotenv": "16.4.5",
     "firebase-admin": "^13.8.0",
     "mysql2": "3.9.8",
     "nodemailer": "^8.0.4",
@@ -25,7 +28,8 @@
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
     "stripe": "^22.1.1",
-    "styled-components": "^6.0.0"
+    "styled-components": "^6.0.0",
+    "uuid": "^14.0.3"
   },
   "engines": {
     "node": ">=20.0.0 <=24.x.x",
@@ -34,5 +38,9 @@
   "strapi": {
     "uuid": "4cc41277-5173-4ce3-841e-babbd31295b6",
     "installId": "1f358617463564efbca7a5550145514db52964d66262469f109803e0d0789cc8"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.1.0"
   }
 }

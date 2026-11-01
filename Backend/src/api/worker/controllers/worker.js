@@ -218,7 +218,7 @@ module.exports = createCoreController('api::worker.worker', ({ strapi }) => ({
           const playerUser = await strapi.entityService.findOne('plugin::users-permissions.user', playerProfile?.player?.id || reservation.player.id, {});
 
           const pUid = playerProfile?.firebaseUid || `sporta_player_${reservation.player.id}`;
-          const wUid = worker.firebaseUid || `sporta_worker_${worker.id}`;
+          const wUid = worker.firebaseUid?.trim() || `sporta_worker_${user.id}`;
 
           await ref.set({
             reservationId: Number(id),
@@ -280,15 +280,9 @@ module.exports = createCoreController('api::worker.worker', ({ strapi }) => ({
         return ctx.badRequest(`Reservation is already ${reservation.booking_status}`);
       }
 
-      if (reservation.time_slot?.id) {
-        await strapi.entityService.update('api::time-slot.time-slot', reservation.time_slot.id, {
-          data: { isActive: true },
-        });
-      }
-
-      const updated = await strapi.entityService.update('api::reservation.reservation', id, {
-        data: { booking_status: 'cancelled' },
-      });
+      const updated = await strapi
+        .service('api::reservation.reservation')
+        .releaseReservationSlot(id, { booking_status: 'cancelled' });
 
       try {
         const firebaseService = require('../../../firebase/firebase.service');

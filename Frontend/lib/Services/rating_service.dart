@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sporta/Core/Constants/api_constants.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class RatingService {
   final String _token;
@@ -25,14 +26,8 @@ class RatingService {
       final response = await http.post(
         Uri.parse(ApiConstants.submitRating),
         headers: _headers,
-        body: json.encode({
-          'rating_value': ratingValue,
-          'venue_id': venueId,
-        }),
+        body: json.encode({'rating_value': ratingValue, 'venue_id': venueId}),
       );
-
-      print('Submit rating response: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -43,7 +38,9 @@ class RatingService {
         };
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? 'Failed to submit rating');
+        throw Exception(
+          error['error']?['message'] ?? 'Failed to submit rating',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -68,7 +65,9 @@ class RatingService {
         };
       } else {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? 'Failed to delete rating');
+        throw Exception(
+          error['error']?['message'] ?? 'Failed to delete rating',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -91,7 +90,7 @@ class RatingService {
       }
       return null;
     } catch (e) {
-      print('Error getting user rating: $e');
+      AppLogger.error('Error getting user rating: $e');
       return null;
     }
   }

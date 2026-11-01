@@ -1,16 +1,34 @@
-# sporta
+# Sporta
 
-A new Flutter project.
+## Night Match design system
 
-## Getting Started
+The app uses a dark-first Night Match theme with a system-following light mode.
+It bundles Sora for headlines and prices, Inter for body text, and Noto Sans
+Arabic as a fallback for Arabic. Shared tokens and components live in
+`lib/Core/Theme/` and `lib/Widgets/`.
 
-This project is a starting point for a Flutter application.
+### Mapbox configuration
 
-A few resources to get you started if this is your first Flutter project:
+Explore includes the app's Mapbox public access token as a client-side fallback.
+To override it for local development or a different environment, provide a
+Mapbox public access token at build or run time:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```shell
+flutter run --dart-define=MAPBOX_ACCESS_TOKEN=YOUR_MAPBOX_PUBLIC_TOKEN
+flutter build apk --dart-define=MAPBOX_ACCESS_TOKEN=YOUR_MAPBOX_PUBLIC_TOKEN
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Replace `YOUR_MAPBOX_PUBLIC_TOKEN` locally with your own token. Mapbox public
+tokens are included in client apps; restrict allowed URLs and scopes in the
+Mapbox account. Without a configured token, the app shows a notice with a way
+back to the venue list instead of opening a nonfunctional map.
+
+### Design-system preview
+
+In a debug build, launch the component preview with:
+
+```shell
+flutter run --dart-define=SPORTA_DESIGN_SYSTEM_PREVIEW=true
+```
+
+The preview flag is ignored in release builds.

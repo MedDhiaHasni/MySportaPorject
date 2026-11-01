@@ -1,11 +1,9 @@
 // Views/Player/court_booking_page.dart
 
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Constants/api_constants.dart';
+import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Models/app_enums.dart';
 import 'package:sporta/Models/app_models.dart' as AppModels;
 import 'package:sporta/Models/venue_model.dart';
@@ -14,19 +12,14 @@ import 'package:sporta/Views/Player/court_detail.dart';
 import 'package:sporta/Services/rating_service.dart';
 import 'package:sporta/Widgets/rating_dialog.dart';
 import 'package:sporta/Widgets/star_rating.dart';
+import 'package:sporta/Core/Utils/app_logger.dart';
+import 'package:sporta/Widgets/feedback_components.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PALETTE
 // ─────────────────────────────────────────────────────────────────────────────
-const _bg        = Color(0xFFF2F4F7);
-const _white     = Colors.white;
-const _ink       = Color(0xFF0A0E1A);
-const _textMid   = Color(0xFF64748B);
-const _textLight = Color(0xFFB0B7C3);
-const _border    = Color(0xFFE8EDF3);
-const _kGreen    = Color(0xFF16A34A);
-const _kRed      = Color(0xFFDC2626);
-const _cardShadow = Color(0x14000000);
+const _kGreen = NightMatchColors.success;
+const _kRed = NightMatchColors.lightError;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPER: Build absolute URL from any Strapi media value
@@ -51,6 +44,17 @@ String _absUrl(dynamic raw) {
   // Use ApiConstants.mediaBaseUrl to stay consistent with the rest of the app
   return '${ApiConstants.mediaBaseUrl}$path';
 }
+
+String _titleCaseDisplayName(String value) => value
+    .trim()
+    .split(RegExp(r'\s+'))
+    .where((word) => word.isNotEmpty)
+    .map(
+      (word) => word.length == 1
+          ? word.toUpperCase()
+          : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}',
+    )
+    .join(' ');
 
 /// Extract the best single image URL from a raw court Map.
 /// Priority: court_img_url → court_img → photos_urls[0] → photos[0]
@@ -103,13 +107,16 @@ class _CourtBookingPageState extends State<CourtBookingPage>
   late final Animation<double> _heroFade;
 
   double? _userRating;
-  bool _isLoadingRating  = false;
+  bool _isLoadingRating = false;
   bool _isSubmittingRating = false;
 
   @override
   void initState() {
     super.initState();
-    _heroCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _heroCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
     _heroFade = CurvedAnimation(parent: _heroCtrl, curve: Curves.easeOut);
     _heroCtrl.forward();
     _loadUserRating();
@@ -121,30 +128,47 @@ class _CourtBookingPageState extends State<CourtBookingPage>
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context) && _heroCtrl.value != 1) {
+      _heroCtrl.value = 1;
+    }
+  }
+
   // ── Rating helpers ──────────────────────────────────────────────────────────
 
   Future<void> _loadUserRating() async {
     if (widget.playerToken == null) return;
     setState(() => _isLoadingRating = true);
     try {
-      final svc    = RatingService(token: widget.playerToken!);
+      final svc = RatingService(token: widget.playerToken!);
       final result = await svc.getUserRating(widget.venue.id);
       if (result != null && result['rating'] != null) {
-        setState(() => _userRating = (result['rating']['rating_value'] as num?)?.toDouble());
+        setState(
+          () => _userRating = (result['rating']['rating_value'] as num?)
+              ?.toDouble(),
+        );
       }
     } catch (e) {
-      debugPrint('_loadUserRating: $e');
+      AppLogger.error('_loadUserRating: $e');
     } finally {
       if (mounted) setState(() => _isLoadingRating = false);
     }
   }
 
   Future<void> _submitRating(double value) async {
-    if (widget.playerToken == null) { _snack('Please login to rate this venue', _kRed); return; }
+    if (widget.playerToken == null) {
+      _snack('Please login to rate this venue', _kRed);
+      return;
+    }
     setState(() => _isSubmittingRating = true);
     try {
-      final svc    = RatingService(token: widget.playerToken!);
-      final result = await svc.submitRating(venueId: int.parse(widget.venue.id), ratingValue: value);
+      final svc = RatingService(token: widget.playerToken!);
+      final result = await svc.submitRating(
+        venueId: int.parse(widget.venue.id),
+        ratingValue: value,
+      );
       if (result['success'] == true) {
         setState(() => _userRating = value);
         _snack(result['message']?.toString() ?? 'Rating submitted', _kGreen);
@@ -165,10 +189,16 @@ class _CourtBookingPageState extends State<CourtBookingPage>
         title: const Text('Delete Rating'),
         content: const Text('Are you sure you want to delete your rating?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: _kRed, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kRed,
+              foregroundColor: NightMatchColors.lightSurface,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -177,7 +207,7 @@ class _CourtBookingPageState extends State<CourtBookingPage>
     if (ok != true) return;
     setState(() => _isSubmittingRating = true);
     try {
-      final svc    = RatingService(token: widget.playerToken!);
+      final svc = RatingService(token: widget.playerToken!);
       final result = await svc.getUserRating(widget.venue.id);
       if (result != null && result['rating'] != null) {
         await svc.deleteRating(result['rating']['id'].toString());
@@ -200,35 +230,48 @@ class _CourtBookingPageState extends State<CourtBookingPage>
         isLoading: _isSubmittingRating,
       ),
     ).then((result) {
-      if (result != null && result['rating'] != null) _submitRating(result['rating'] as double);
+      if (result != null && result['rating'] != null)
+        _submitRating(result['rating'] as double);
     });
   }
 
   void _snack(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg), backgroundColor: color, behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      margin: const EdgeInsets.all(16),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   // ── Sport helpers ────────────────────────────────────────────────────────────
 
   SportType _mapSport(String s) {
     switch (s.toLowerCase()) {
-      case 'padel':      return SportType.padel;
-      case 'tennis':     return SportType.tennis;
-      case 'basketball': return SportType.basketball;
-      default:           return SportType.football;
+      case 'padel':
+        return SportType.padel;
+      case 'tennis':
+        return SportType.tennis;
+      case 'basketball':
+        return SportType.basketball;
+      default:
+        return SportType.football;
     }
   }
 
   IconData _sportIcon(String s) {
     switch (s.toLowerCase()) {
-      case 'padel':      return Icons.sports_tennis_rounded;
-      case 'tennis':     return Icons.sports_tennis;
-      case 'basketball': return Icons.sports_basketball_rounded;
-      default:           return Icons.sports_soccer_rounded;
+      case 'padel':
+        return Icons.sports_tennis_rounded;
+      case 'tennis':
+        return Icons.sports_tennis;
+      case 'basketball':
+        return Icons.sports_basketball_rounded;
+      default:
+        return Icons.sports_soccer_rounded;
     }
   }
 
@@ -242,7 +285,7 @@ class _CourtBookingPageState extends State<CourtBookingPage>
   }
 
   List<Map<String, dynamic>> get _filtered {
-    final all  = widget.venue.courts;
+    final all = widget.venue.courts;
     final list = _filterSport == null
         ? all
         : all.where((c) {
@@ -259,125 +302,216 @@ class _CourtBookingPageState extends State<CourtBookingPage>
 
   @override
   Widget build(BuildContext context) {
-    final navH = kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final navH =
+        kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: _bg,
-        body: Column(children: [
-          _VenueHero(venue: widget.venue, fadeAnim: _heroFade),
-          Expanded(child: ListView(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, navH + 40),
-            children: [
-              // ── About ───────────────────────────────────────────────────────
-              if (widget.venue.description.isNotEmpty) ...[
-                const _SectionHeader('About this venue', Icons.info_outline_rounded),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _white, borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _border),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Column(
+          children: [
+            _VenueHero(venue: widget.venue, fadeAnim: _heroFade),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsetsDirectional.fromSTEB(
+                  AppSpacing.md,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                  navH + AppSpacing.xl,
+                ),
+                children: [
+                  // ── About ───────────────────────────────────────────────────────
+                  if (widget.venue.description.isNotEmpty) ...[
+                    const _SectionHeader(
+                      'About this venue',
+                      Icons.info_outline_rounded,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Container(
+                      padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: scheme.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(color: scheme.outlineVariant),
+                        boxShadow: theme.brightness == Brightness.dark
+                            ? AppElevation.nightGlow
+                            : const [],
+                      ),
+                      child: Text(
+                        widget.venue.description,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
+
+                  // ── Rating ──────────────────────────────────────────────────────
+                  const _SectionHeader(
+                    'Rating & Reviews',
+                    Icons.star_rate_rounded,
                   ),
-                  child: Text(widget.venue.description, style: const TextStyle(fontSize: 14, color: _textMid, height: 1.5)),
-                ),
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 10),
+                  _RatingCard(
+                    avgRating: widget.venue.avgRating,
+                    totalRatings: widget.venue.totalRatings,
+                    userRating: _userRating,
+                    isLoading: _isLoadingRating,
+                    isSubmitting: _isSubmittingRating,
+                    onRateTap: _showRatingDialog,
+                    onDeleteTap: _userRating != null ? _deleteRating : null,
+                  ),
+                  const SizedBox(height: 24),
 
-              // ── Rating ──────────────────────────────────────────────────────
-              const _SectionHeader('Rating & Reviews', Icons.star_rate_rounded),
-              const SizedBox(height: 10),
-              _RatingCard(
-                avgRating: widget.venue.avgRating,
-                totalRatings: widget.venue.totalRatings,
-                userRating: _userRating,
-                isLoading: _isLoadingRating,
-                isSubmitting: _isSubmittingRating,
-                onRateTap: _showRatingDialog,
-                onDeleteTap: _userRating != null ? _deleteRating : null,
-              ),
-              const SizedBox(height: 24),
-
-              // ── Manager ─────────────────────────────────────────────────────
-              const _SectionHeader('Venue Manager', Icons.person_outline_rounded),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _white, borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _border),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-                ),
-                child: Row(children: [
+                  // ── Manager ─────────────────────────────────────────────────────
+                  const _SectionHeader(
+                    'Venue Manager',
+                    Icons.person_outline_rounded,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
                   Container(
-                    width: 50, height: 50,
-                    decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(25)),
-                    child: Center(child: Text(widget.venue.managerAvatar,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kPrimary))),
+                    padding: const EdgeInsetsDirectional.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      border: Border.all(color: scheme.outlineVariant),
+                      boxShadow: theme.brightness == Brightness.dark
+                          ? AppElevation.nightGlow
+                          : const [],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: scheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: Center(
+                            child: Text(
+                              widget.venue.managerAvatar,
+                              style: TextStyle(
+                                fontSize: AppTypeScale.titleMedium,
+                                fontWeight: FontWeight.w800,
+                                color: scheme.onSecondaryContainer,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _titleCaseDisplayName(widget.venue.managerName),
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.phone_rounded,
+                                    size: 18,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    widget.venue.managerPhone,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(widget.venue.managerName,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink)),
-                    const SizedBox(height: 4),
-                    Row(children: [
-                      const Icon(Icons.phone_rounded, size: 14, color: _textMid),
-                      const SizedBox(width: 6),
-                      Text(widget.venue.managerPhone, style: const TextStyle(fontSize: 13, color: _textMid)),
-                    ]),
-                  ])),
-                ]),
+                  const SizedBox(height: 28),
+
+                  // ── Courts header ───────────────────────────────────────────────
+                  _buildCourtsHeader(context),
+                  const SizedBox(height: 14),
+
+                  // ── Sport filter ────────────────────────────────────────────────
+                  if (_sports.length > 1) ...[
+                    _SportFilterRow(
+                      sports: _sports,
+                      selected: _filterSport,
+                      sportIcon: _sportIcon,
+                      onSelect: (s) => setState(() => _filterSport = s),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // ── Court cards ─────────────────────────────────────────────────
+                  ..._buildCourtCards(context),
+                ],
               ),
-              const SizedBox(height: 28),
-
-              // ── Courts header ───────────────────────────────────────────────
-              _buildCourtsHeader(),
-              const SizedBox(height: 14),
-
-              // ── Sport filter ────────────────────────────────────────────────
-              if (_sports.length > 1) ...[
-                _SportFilterRow(
-                  sports: _sports, selected: _filterSport,
-                  sportIcon: _sportIcon,
-                  onSelect: (s) => setState(() => _filterSport = s),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // ── Court cards ─────────────────────────────────────────────────
-              ..._buildCourtCards(),
-            ],
-          )),
-        ]),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCourtsHeader() => Row(children: [
-    Container(width: 4, height: 22, decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2))),
-    const SizedBox(width: 10),
-    const Text('Available Courts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.3)),
-    const Spacer(),
-    Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: kPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-      child: Text(
-        '${_filtered.where((c) => c['available'] == true || c['isActive'] == true).length} open',
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kPrimary),
-      ),
-    ),
-  ]);
+  Widget _buildCourtsHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 22,
+          decoration: BoxDecoration(
+            color: scheme.secondary,
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text('Available Courts', style: theme.textTheme.titleLarge),
+        const Spacer(),
+        Container(
+          constraints: const BoxConstraints(minHeight: 40),
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xxs,
+          ),
+          decoration: BoxDecoration(
+            color: scheme.secondaryContainer,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Center(
+            child: Text(
+              '${_filtered.where((c) => c['available'] == true || c['isActive'] == true).length} open',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-  List<Widget> _buildCourtCards() {
+  List<Widget> _buildCourtCards(BuildContext context) {
     final courts = _filtered;
     if (courts.isEmpty) return [_EmptyState(sport: _filterSport)];
+    final sportColor = Theme.of(context).colorScheme.secondary;
 
     return courts.map((c) {
       // ── Sport ────────────────────────────────────────────────────────────────
-      final sportStr  = (c['sport'] ?? c['sports'] ?? 'football').toString();
+      final sportStr = (c['sport'] ?? c['sports'] ?? 'football').toString();
       final sportType = _mapSport(sportStr);
-      final sportColor = sportType.color;
 
       // ── Availability ─────────────────────────────────────────────────────────
       final available = c['available'] == true || c['isActive'] == true;
@@ -387,43 +521,43 @@ class _CourtBookingPageState extends State<CourtBookingPage>
       final imageUrl = _courtImageUrl(c);
 
       // ── Price / capacity ─────────────────────────────────────────────────────
-      final price    = (c['pricePerHour'] ?? c['price'] ?? 0 as num).toDouble();
+      final price = (c['pricePerHour'] ?? c['price'] ?? 0 as num).toDouble();
       final capacity = (c['capacity'] ?? 0) as int;
 
       // ── CourtModel for navigation ────────────────────────────────────────────
       final courtModel = CourtModel(
-        id:           int.tryParse(c['id']?.toString() ?? '0') ?? 0,
-        name:         (c['name'] ?? c['courtName'] ?? '').toString(),
-        sport:        sportStr,
+        id: int.tryParse(c['id']?.toString() ?? '0') ?? 0,
+        name: (c['name'] ?? c['courtName'] ?? '').toString(),
+        sport: sportStr,
         pricePerHour: price,
-        capacity:     capacity,
-        isActive:     available,
-        venueId:      int.tryParse(widget.venue.id) ?? 0,
-        courtImgUrl:  imageUrl.isNotEmpty ? imageUrl : null,
+        capacity: capacity,
+        isActive: available,
+        venueId: int.tryParse(widget.venue.id) ?? 0,
+        courtImgUrl: imageUrl.isNotEmpty ? imageUrl : null,
       );
 
       // ── Old model for CourtDetailPage ─────────────────────────────────────────
       final oldModel = AppModels.CourtModel(
-        id:           courtModel.id.toString(),
-        name:         courtModel.name,
-        sport:        sportType,
+        id: courtModel.id.toString(),
+        name: courtModel.name,
+        sport: sportType,
         pricePerHour: price,
-        color:        sportColor,
-        imageUrl:     imageUrl,
-        isActive:     available,
+        color: sportColor,
+        imageUrl: imageUrl,
+        isActive: available,
       );
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: _CourtCard(
-          court:       courtModel,
-          courtRaw:    c,
-          venue:       widget.venue,
+          court: courtModel,
+          courtRaw: c,
+          venue: widget.venue,
           playerToken: widget.playerToken,
-          oldModel:    oldModel,
-          imageUrl:    imageUrl,
-          sportType:   sportType,
-          available:   available,
+          oldModel: oldModel,
+          imageUrl: imageUrl,
+          sportType: sportType,
+          available: available,
         ),
       );
     }).toList();
@@ -456,809 +590,274 @@ class _CourtCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sportColor = sportType.color;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final sportColor = scheme.secondary;
+    final statusBackground = available
+        ? scheme.secondaryContainer
+        : scheme.errorContainer;
+    final statusForeground = available
+        ? scheme.onSecondaryContainer
+        : scheme.onErrorContainer;
 
     return GestureDetector(
       onTap: available
-          ? () => Navigator.push(context, _slideUp(CourtDetailPage(
-                court:       oldModel,
-                venue:       venue,
-                courtRaw:    courtRaw,
-                playerToken: playerToken,
-              )))
+          ? () {
+              HapticFeedback.selectionClick();
+              Navigator.push(
+                context,
+                _slideUp(
+                  CourtDetailPage(
+                    court: oldModel,
+                    venue: venue,
+                    courtRaw: courtRaw,
+                    playerToken: playerToken,
+                  ),
+                ),
+              );
+            }
           : null,
       child: Container(
         decoration: BoxDecoration(
-          color: _white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: _cardShadow, blurRadius: 10, offset: const Offset(0, 3))],
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: scheme.outlineVariant),
+          boxShadow: theme.brightness == Brightness.dark
+              ? AppElevation.nightGlow
+              : const [],
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-          // ── Court image ────────────────────────────────────────────────────
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: SizedBox(
-              width: double.infinity,
-              height: 150,
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      // Show sport-colored shimmer while loading
-                      loadingBuilder: (_, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: sportColor.withOpacity(0.06),
-                          child: Center(child: SizedBox(
-                            width: 26, height: 26,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2, color: sportColor,
-                              value: progress.expectedTotalBytes != null
-                                  ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          )),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => _imgFallback(sportType, sportColor),
-                    )
-                  : _imgFallback(sportType, sportColor),
-            ),
-          ),
-
-          // ── Card body ──────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-              // Name + availability badge
-              Row(children: [
-                Expanded(child: Text(court.name,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink))),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: (available ? _kGreen : _kRed).withOpacity(0.09),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: (available ? _kGreen : _kRed).withOpacity(0.25)),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 5, height: 5,
-                        decoration: BoxDecoration(color: available ? _kGreen : _kRed, shape: BoxShape.circle)),
-                    const SizedBox(width: 4),
-                    Text(available ? 'Available' : 'Full',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800,
-                            color: available ? _kGreen : _kRed)),
-                  ]),
-                ),
-              ]),
-              const SizedBox(height: 5),
-
-              // Sport
-              Row(children: [
-                Icon(sportType.icon, size: 12, color: sportColor),
-                const SizedBox(width: 5),
-                Text(sportType.label, style: TextStyle(fontSize: 12, color: sportColor, fontWeight: FontWeight.w600)),
-                const SizedBox(width: 12),
-                if (court.capacity > 0) ...[
-                  const Icon(Icons.people_outline_rounded, size: 12, color: _textMid),
-                  const SizedBox(width: 4),
-                  Text('${court.capacity} players', style: const TextStyle(fontSize: 11, color: _textMid)),
-                ],
-              ]),
-
-              // Amenities chips
-              if (venue.amenities.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(spacing: 5, runSpacing: 4,
-                  children: venue.amenities.take(3).map((a) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(color: const Color(0xFFF0F2F5), borderRadius: BorderRadius.circular(6)),
-                    child: Text(a, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: _textMid)),
-                  )).toList(),
-                ),
-              ],
-              const SizedBox(height: 12),
-
-              // Price + action
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('From', style: TextStyle(fontSize: 10, color: _textMid)),
-                  Text('${court.pricePerHour.toInt()} DT/hr',
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: kPrimary)),
-                ]),
-                available
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                        decoration: BoxDecoration(
-                          color: kPrimary, borderRadius: BorderRadius.circular(13),
-                          boxShadow: [BoxShadow(color: kPrimary.withOpacity(0.28), blurRadius: 8, offset: const Offset(0, 3))],
-                        ),
-                        child: const Text('Book Now', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
-                      )
-                    : Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                        decoration: BoxDecoration(color: const Color(0xFFEEEFF2), borderRadius: BorderRadius.circular(13)),
-                        child: const Text('Unavailable', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _textMid)),
-                      ),
-              ]),
-            ]),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _imgFallback(SportType st, Color color) => Container(
-    color: color.withOpacity(0.07),
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(st.icon, size: 44, color: color.withOpacity(0.45)),
-      const SizedBox(height: 6),
-      Text(st.label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color.withOpacity(0.6))),
-    ]),
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Everything below is unchanged from original
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _RatingCard extends StatelessWidget {
-  final double avgRating;
-  final int totalRatings;
-  final double? userRating;
-  final bool isLoading;
-  final bool isSubmitting;
-  final VoidCallback onRateTap;
-  final VoidCallback? onDeleteTap;
-
-  const _RatingCard({
-    required this.avgRating, required this.totalRatings, required this.userRating,
-    required this.isLoading, required this.isSubmitting,
-    required this.onRateTap, this.onDeleteTap,
-  });
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: _white, borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: _border),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-    ),
-    child: isLoading
-        ? const Center(child: SizedBox(height: 40, width: 40, child: CircularProgressIndicator(strokeWidth: 2)))
-        : Column(children: [
-            Row(children: [
-              Container(
-                width: 60, height: 60,
-                decoration: BoxDecoration(color: kPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(30)),
-                child: Center(child: Text(avgRating.toStringAsFixed(1),
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimary))),
-              ),
-              const SizedBox(width: 16),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                StarRating(rating: avgRating, size: 16),
-                const SizedBox(height: 4),
-                Text('$totalRatings ${totalRatings == 1 ? 'rating' : 'ratings'}',
-                    style: const TextStyle(fontSize: 12, color: _textMid)),
-              ])),
-            ]),
-            const SizedBox(height: 16),
-            Divider(color: _border),
-            const SizedBox(height: 12),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(userRating != null ? 'Your rating' : 'Rate this venue',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _ink)),
-              Row(children: [
-                if (userRating != null) ...[
-                  StarRating(rating: userRating!, size: 18, interactive: false),
-                  const SizedBox(width: 8),
-                  Text(userRating!.toStringAsFixed(1),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kPrimary)),
-                  if (onDeleteTap != null) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: isSubmitting ? null : onDeleteTap,
-                      child: Icon(Icons.delete_outline_rounded, size: 18,
-                          color: isSubmitting ? _textLight : _kRed),
-                    ),
-                  ],
-                ],
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: isSubmitting ? null : onRateTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: userRating != null ? Colors.amber.shade600 : kPrimary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: Text(userRating != null ? 'Edit' : 'Rate',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                ),
-              ]),
-            ]),
-            if (isSubmitting)
-              const Padding(padding: EdgeInsets.only(top: 12),
-                  child: SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))),
-          ]),
-  );
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  const _SectionHeader(this.title, this.icon);
-
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    Container(
-      width: 32, height: 32,
-      decoration: BoxDecoration(color: kPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(9)),
-      child: Icon(icon, size: 14, color: kPrimary),
-    ),
-    const SizedBox(width: 10),
-    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.2)),
-  ]);
-}
-
-class _VenueHero extends StatelessWidget {
-  final VenueModel venue;
-  final Animation<double> fadeAnim;
-  const _VenueHero({required this.venue, required this.fadeAnim});
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 260, width: double.infinity,
-    child: Stack(fit: StackFit.expand, children: [
-      FadeTransition(
-        opacity: fadeAnim,
-        child: venue.image.isNotEmpty
-            ? Image.network(venue.image, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _fallback())
-            : _fallback(),
-      ),
-      Container(decoration: const BoxDecoration(gradient: LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0x22000000), Color(0xEE0A0E1A)], stops: [0.3, 1.0],
-      ))),
-      Positioned(top: 0, left: 0, right: 0,
-        child: SafeArea(bottom: false, child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Row(children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: 38, height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35), shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                ),
-                child: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 15),
-              ),
-            ),
-          ]),
-        )),
-      ),
-      Positioned(bottom: 18, left: 20, right: 20,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          if (venue.sports.isNotEmpty)
-            Wrap(spacing: 6, children: venue.sports.take(3).map((s) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: kPrimary.withOpacity(0.85), borderRadius: BorderRadius.circular(20)),
-              child: Text(s, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.5)),
-            )).toList()),
-          const SizedBox(height: 8),
-          Text(venue.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5, height: 1.1)),
-          const SizedBox(height: 4),
-          Row(children: [
-            const Icon(Icons.location_on_rounded, size: 12, color: Colors.white70),
-            const SizedBox(width: 4),
-            Expanded(child: Text(venue.location, style: const TextStyle(fontSize: 12, color: Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            const SizedBox(width: 8),
-            const Icon(Icons.schedule_rounded, size: 12, color: Colors.white70),
-            const SizedBox(width: 4),
-            Text('Until ${venue.openUntil}', style: const TextStyle(fontSize: 12, color: Colors.white70)),
-          ]),
-        ])),
-      Positioned(top: 80, right: 16, child: _VenueStatusBadge(venue.available)),
-    ]),
-  );
-
-  Widget _fallback() => Container(
-    decoration: BoxDecoration(gradient: LinearGradient(
-      colors: [kPrimary.withOpacity(0.6), kPrimary],
-      begin: Alignment.topLeft, end: Alignment.bottomRight,
-    )),
-    child: const Icon(Icons.stadium_rounded, size: 56, color: Colors.white24),
-  );
-}
-
-class _SportFilterRow extends StatelessWidget {
-  final List<String> sports;
-  final String? selected;
-  final IconData Function(String) sportIcon;
-  final ValueChanged<String?> onSelect;
-  const _SportFilterRow({required this.sports, required this.selected, required this.sportIcon, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 36,
-    child: ListView(scrollDirection: Axis.horizontal, children: [
-      _SportChip(label: 'All', icon: Icons.grid_view_rounded, selected: selected == null, onTap: () => onSelect(null)),
-      const SizedBox(width: 7),
-      ...sports.map((s) => Padding(
-        padding: const EdgeInsets.only(right: 7),
-        child: _SportChip(label: s, icon: sportIcon(s), selected: selected == s, onTap: () => onSelect(s)),
-      )),
-    ]),
-  );
-}
-
-class _SportChip extends StatelessWidget {
-  final String label; final IconData icon; final bool selected; final VoidCallback onTap;
-  const _SportChip({required this.label, required this.icon, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? kPrimary : _white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: selected ? kPrimary : _border),
-        boxShadow: selected
-            ? [BoxShadow(color: kPrimary.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 2))]
-            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: selected ? Colors.white : _textMid),
-        const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: selected ? Colors.white : _textMid)),
-      ]),
-    ),
-  );
-}
-
-class _VenueStatusBadge extends StatelessWidget {
-  final bool isOpen;
-  const _VenueStatusBadge(this.isOpen);
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: isOpen ? _kGreen : _kRed,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [BoxShadow(color: (isOpen ? _kGreen : _kRed).withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 3))],
-    ),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-      const SizedBox(width: 6),
-      Text(isOpen ? 'Open Now' : 'Closed', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
-    ]),
-  );
-}
-
-class _EmptyState extends StatelessWidget {
-  final String? sport;
-  const _EmptyState({this.sport});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 48),
-    child: Column(children: [
-      Container(
-        width: 64, height: 64,
-        decoration: BoxDecoration(color: _textLight.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-        child: Icon(Icons.sports_rounded, size: 28, color: _textLight.withOpacity(0.5)),
-      ),
-      const SizedBox(height: 14),
-      Text(sport != null ? 'No $sport courts available' : 'No courts listed',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _ink)),
-      const SizedBox(height: 4),
-      const Text('Try a different sport filter', style: TextStyle(fontSize: 12, color: _textMid)),
-    ]),
-  );
-}
-
-Route _slideUp(Widget page) => PageRouteBuilder(
-  pageBuilder: (_, __, ___) => page,
-  transitionsBuilder: (_, a, __, child) => SlideTransition(
-    position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
-    child: child,
-  ),
-  transitionDuration: const Duration(milliseconds: 340),
-);
-
-
-
-
-
-
-
-
-
-/*// Views/Player/court_booking_page.dart
-// Redesigned: Added venue description, simplified manager section,
-// Court cards redesigned to match screenshot (vertical layout)
-// NEW: Added rating functionality
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
-import 'package:sporta/Models/app_enums.dart';
-import 'package:sporta/Models/app_models.dart';
-import 'package:sporta/Models/venue_model.dart';
-import 'package:sporta/Views/Player/court_detail.dart';
-import 'package:sporta/Services/rating_service.dart';
-import 'package:sporta/Widgets/rating_dialog.dart';
-import 'package:sporta/Widgets/star_rating.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PALETTE
-// ─────────────────────────────────────────────────────────────────────────────
-const _bg        = Color(0xFFF2F4F7);
-const _white     = Colors.white;
-const _ink       = Color(0xFF0A0E1A);
-const _textMid   = Color(0xFF64748B);
-const _textLight = Color(0xFFB0B7C3);
-const _border    = Color(0xFFE8EDF3);
-const _kGreen    = Color(0xFF16A34A);
-const _kRed      = Color(0xFFDC2626);
-const _cardShadow = Color(0x14000000);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE
-// ─────────────────────────────────────────────────────────────────────────────
-class CourtBookingPage extends StatefulWidget {
-  final VenueModel venue;
-  final String? playerToken;
-  const CourtBookingPage({super.key, required this.venue, this.playerToken});
-
-  @override
-  State<CourtBookingPage> createState() => _CourtBookingPageState();
-}
-
-class _CourtBookingPageState extends State<CourtBookingPage>
-    with SingleTickerProviderStateMixin {
-  String? _filterSport;
-  late final AnimationController _heroCtrl;
-  late final Animation<double> _heroFade;
-  
-  // Rating state
-  double? _userRating;
-  bool _isLoadingRating = false;
-  bool _isSubmittingRating = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _heroCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _heroFade = CurvedAnimation(parent: _heroCtrl, curve: Curves.easeOut);
-    _heroCtrl.forward();
-    _loadUserRating();
-  }
-
-  @override
-  void dispose() {
-    _heroCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadUserRating() async {
-    if (widget.playerToken == null) return;
-    
-    setState(() {
-      _isLoadingRating = true;
-    });
-    
-    try {
-      final ratingService = RatingService(token: widget.playerToken!);
-      final result = await ratingService.getUserRating(widget.venue.id);
-      
-      if (result != null && result['rating'] != null) {
-        setState(() {
-          _userRating = (result['rating']['rating_value'] as num?)?.toDouble();
-        });
-      }
-    } catch (e) {
-      print('Error loading rating: $e');
-    } finally {
-      setState(() {
-        _isLoadingRating = false;
-      });
-    }
-  }
-
-  Future<void> _submitRating(double ratingValue) async {
-    if (widget.playerToken == null) {
-      _showSnackBar('Please login to rate this venue', _kRed);
-      return;
-    }
-    
-    setState(() {
-      _isSubmittingRating = true;
-    });
-    
-    try {
-      final ratingService = RatingService(token: widget.playerToken!);
-      final result = await ratingService.submitRating(
-        venueId: int.parse(widget.venue.id),
-        ratingValue: ratingValue,
-      );
-      
-      if (result['success']) {
-        setState(() {
-          _userRating = ratingValue;
-          // Also update the venue object's average rating
-          // This will be refreshed when the page is rebuilt
-        });
-        _showSnackBar(result['message'], _kGreen);
-        
-        // Refresh the page to show updated average
-        // You can also emit an event to update parent widgets
-      }
-    } catch (e) {
-      _showSnackBar(e.toString().replaceAll('Exception:', ''), _kRed);
-    } finally {
-      setState(() {
-        _isSubmittingRating = false;
-      });
-    }
-  }
-
-  Future<void> _deleteRating() async {
-    if (widget.playerToken == null || _userRating == null) return;
-    
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Rating'),
-        content: const Text('Are you sure you want to delete your rating?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _kRed,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirm != true) return;
-    
-    setState(() {
-      _isSubmittingRating = true;
-    });
-    
-    try {
-      // First get the rating ID
-      final ratingService = RatingService(token: widget.playerToken!);
-      final result = await ratingService.getUserRating(widget.venue.id);
-      
-      if (result != null && result['rating'] != null) {
-        final ratingId = result['rating']['id'].toString();
-        await ratingService.deleteRating(ratingId);
-        
-        setState(() {
-          _userRating = null;
-        });
-        _showSnackBar('Rating deleted successfully', _kGreen);
-      }
-    } catch (e) {
-      _showSnackBar(e.toString().replaceAll('Exception:', ''), _kRed);
-    } finally {
-      setState(() {
-        _isSubmittingRating = false;
-      });
-    }
-  }
-
-  void _showRatingDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => RatingDialog(
-        venueName: widget.venue.name,
-        existingRating: _userRating,
-        isLoading: _isSubmittingRating,
-      ),
-    ).then((result) {
-      if (result != null && result['rating'] != null) {
-        _submitRating(result['rating']);
-      }
-    });
-  }
-
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
-  SportType _mapSport(String s) {
-    switch (s.toLowerCase()) {
-      case 'padel':      return SportType.padel;
-      case 'tennis':     return SportType.tennis;
-      case 'basketball': return SportType.basketball;
-      default:           return SportType.football;
-    }
-  }
-
-  IconData _sportIcon(String s) {
-    switch (s.toLowerCase()) {
-      case 'padel':      return Icons.sports_tennis_rounded;
-      case 'tennis':     return Icons.sports_tennis;
-      case 'basketball': return Icons.sports_basketball_rounded;
-      case 'volleyball': return Icons.sports_volleyball_rounded;
-      default:           return Icons.sports_soccer_rounded;
-    }
-  }
-
-  List<String> get _sports {
-    final seen = <String>{};
-    for (final c in widget.venue.courts) {
-      final s = c['sport']?.toString() ?? '';
-      if (s.isNotEmpty) seen.add(s);
-    }
-    return seen.toList();
-  }
-
-  List<Map<String, dynamic>> get _filtered {
-    final all = widget.venue.courts;
-    final list = _filterSport == null
-        ? all
-        : all.where((c) => c['sport']?.toString() == _filterSport).toList();
-    return [
-      ...list.where((c) => c['available'] == true),
-      ...list.where((c) => c['available'] != true),
-    ];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final navH = kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: _bg,
-        body: Column(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fixed-height hero
-            _VenueHero(venue: widget.venue, fadeAnim: _heroFade),
-            // Scrollable body
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(20, 20, 20, navH + 40),
-                children: [
-                  // ── Venue Description ──────────────────────────────────────
-                  if (widget.venue.description.isNotEmpty) ...[
-                    _SectionHeader('About this venue', Icons.info_outline_rounded),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _border),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-                      ),
-                      child: Text(
-                        widget.venue.description,
-                        style: const TextStyle(fontSize: 14, color: _textMid, height: 1.5),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // ── Rating Section (NEW) ───────────────────────────────────
-                  _SectionHeader('Rating & Reviews', Icons.star_rate_rounded),
-                  const SizedBox(height: 10),
-                  _RatingCard(
-                    avgRating: widget.venue.avgRating,
-                    totalRatings: widget.venue.totalRatings,
-                    userRating: _userRating,
-                    isLoading: _isLoadingRating,
-                    isSubmitting: _isSubmittingRating,
-                    onRateTap: _showRatingDialog,
-                    onDeleteTap: _userRating != null ? _deleteRating : null,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // ── Venue Manager (simplified - only name and phone) ───────
-                  _SectionHeader('Venue Manager', Icons.person_outline_rounded),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: _border),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: kPrimary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          child: Center(
-                            child: Text(
-                              widget.venue.managerAvatar,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kPrimary),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.venue.managerName,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const Icon(Icons.phone_rounded, size: 14, color: _textMid),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    widget.venue.managerPhone,
-                                    style: const TextStyle(fontSize: 13, color: _textMid),
+            // ── Court image ────────────────────────────────────────────────────
+            ClipRRect(
+              borderRadius: const BorderRadiusDirectional.vertical(
+                top: Radius.circular(16),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 150,
+                child: Hero(
+                  tag: 'court-image-${oldModel.id}',
+                  child: imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (_, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              color: sportColor.withValues(alpha: 0.06),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 26,
+                                  height: 26,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: sportColor,
+                                    value: progress.expectedTotalBytes != null
+                                        ? progress.cumulativeBytesLoaded /
+                                              progress.expectedTotalBytes!
+                                        : null,
                                   ),
-                                ],
+                                ),
                               ),
-                            ],
+                            );
+                          },
+                          errorBuilder: (context, _, _) =>
+                              _imgFallback(context, sportType),
+                        )
+                      : _imgFallback(context, sportType),
+                ),
+              ),
+            ),
+
+            // ── Card body ──────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name + availability badge
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _titleCaseDisplayName(court.name),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Container(
+                        constraints: const BoxConstraints(minHeight: 36),
+                        padding: const EdgeInsetsDirectional.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: AppSpacing.xxs,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusBackground,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: statusForeground,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              available ? 'Available' : 'Full',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: statusForeground,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+
+                  // Sport
+                  Row(
+                    children: [
+                      Icon(sportType.icon, size: 12, color: sportColor),
+                      const SizedBox(width: 5),
+                      Text(
+                        sportType.label,
+                        style: TextStyle(
+                          fontSize: AppTypeScale.labelMedium,
+                          color: sportColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      if (court.capacity > 0) ...[
+                        Icon(
+                          Icons.people_outline_rounded,
+                          size: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${court.capacity} players',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 28),
 
-                  // ── Available Courts Header ────────────────────────────────
-                  _buildCourtsHeader(),
-                  const SizedBox(height: 14),
-                  
-                  // ── Sport Filter ───────────────────────────────────────────
-                  if (_sports.length > 1) ...[
-                    _SportFilterRow(
-                      sports: _sports,
-                      selected: _filterSport,
-                      sportIcon: _sportIcon,
-                      onSelect: (s) => setState(() => _filterSport = s),
+                  // Amenities chips
+                  if (venue.amenities.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 5,
+                      runSpacing: 4,
+                      children: venue.amenities
+                          .take(3)
+                          .map(
+                            (a) => Container(
+                              padding: const EdgeInsetsDirectional.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.xs,
+                                ),
+                              ),
+                              child: Text(
+                                a,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
                     ),
-                    const SizedBox(height: 16),
                   ],
-                  
-                  // ── Court Cards (Redesigned - vertical layout) ──────────────
-                  ..._buildCourtCards(),
+                  const SizedBox(height: 12),
+
+                  // Price + action
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'From',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            '${court.pricePerHour.toInt()} DT/hr',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: scheme.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      available
+                          ? Container(
+                              constraints: const BoxConstraints(minHeight: 48),
+                              padding: const EdgeInsetsDirectional.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: NightMatchColors.actionLime,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.input,
+                                ),
+                              ),
+                              child: const Text(
+                                'Book Now',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: NightMatchColors.onAction,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              constraints: const BoxConstraints(minHeight: 48),
+                              padding: const EdgeInsetsDirectional.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.input,
+                                ),
+                              ),
+                              child: Text(
+                                'Unavailable',
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1268,60 +867,21 @@ class _CourtBookingPageState extends State<CourtBookingPage>
     );
   }
 
-  Widget _buildCourtsHeader() => Row(children: [
-    Container(
-      width: 4, height: 22,
-      decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)),
-    ),
-    const SizedBox(width: 10),
-    const Text('Available Courts',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.3)),
-    const Spacer(),
-    Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: kPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-      child: Text(
-        '${_filtered.where((c) => c['available'] == true).length} open',
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kPrimary),
+  Widget _imgFallback(BuildContext context, SportType sport) {
+    final scheme = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: scheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(sport.icon, size: 44, color: scheme.onSurfaceVariant),
       ),
-    ),
-  ]);
-
-  List<Widget> _buildCourtCards() {
-    final courts = _filtered;
-    if (courts.isEmpty) return [_EmptyState(sport: _filterSport)];
-    
-    final List<Widget> cards = [];
-    for (final c in courts) {
-      final st = _mapSport(c['sport']?.toString() ?? '');
-      final model = CourtModel(
-        id: c['id']?.toString() ?? '${widget.venue.id}_${c['courtName']}',
-        name: c['courtName']?.toString() ?? '',
-        sport: st,
-        pricePerHour: (c['price'] as num?)?.toDouble() ?? 0,
-        color: st.color,
-        imageUrl: c['imageUrl']?.toString(),
-        isActive: c['available'] ?? true,
-      );
-      cards.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _CourtCard(
-            court: model,
-            courtRaw: c,
-            venue: widget.venue,
-            playerToken: widget.playerToken,
-          ),
-        ),
-      );
-    }
-    return cards;
+    );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RATING CARD (NEW)
+// Everything below is unchanged from original
 // ─────────────────────────────────────────────────────────────────────────────
+
 class _RatingCard extends StatelessWidget {
   final double avgRating;
   final int totalRatings;
@@ -1343,41 +903,42 @@ class _RatingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsetsDirectional.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: _white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: scheme.outlineVariant),
+        boxShadow: theme.brightness == Brightness.dark
+            ? AppElevation.nightGlow
+            : const [],
       ),
       child: isLoading
-          ? const Center(
-              child: SizedBox(
-                height: 40,
-                width: 40,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+          ? const Column(
+              children: [
+                LoadingSkeleton(width: 220, height: 22),
+                SizedBox(height: AppSpacing.md),
+                LoadingSkeleton(width: 140, height: 18),
+              ],
             )
           : Column(
               children: [
-                // Average rating display
                 Row(
                   children: [
                     Container(
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: kPrimary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(30),
+                        color: scheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
                       child: Center(
                         child: Text(
                           avgRating.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: kPrimary,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: scheme.onSecondaryContainer,
                           ),
                         ),
                       ),
@@ -1391,9 +952,8 @@ class _RatingCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             '$totalRatings ${totalRatings == 1 ? 'rating' : 'ratings'}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: _textMid,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -1402,64 +962,65 @@ class _RatingCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Divider(color: _border),
+                Divider(color: scheme.outlineVariant),
                 const SizedBox(height: 12),
-                
-                // User rating section
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       userRating != null ? 'Your rating' : 'Rate this venue',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: _ink,
-                      ),
+                      style: theme.textTheme.titleSmall,
                     ),
+                    const SizedBox(height: AppSpacing.xs),
                     Row(
                       children: [
-                        if (userRating != null) ...[
-                          StarRating(
-                            rating: userRating!,
-                            size: 18,
-                            interactive: false,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            userRating!.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: kPrimary,
+                        if (userRating != null)
+                          Expanded(
+                            child: Row(
+                              children: [
+                                StarRating(
+                                  rating: userRating!,
+                                  size: 18,
+                                  interactive: false,
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Text(
+                                  userRating!.toStringAsFixed(1),
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: scheme.secondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          if (onDeleteTap != null) ...[
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: isSubmitting ? null : onDeleteTap,
-                              child: Icon(
-                                Icons.delete_outline_rounded,
-                                size: 18,
-                                color: isSubmitting ? _textLight : _kRed,
-                              ),
+                          )
+                        else
+                          const Spacer(),
+                        if (userRating != null && onDeleteTap != null)
+                          IconButton(
+                            tooltip: 'Delete your rating',
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
                             ),
-                          ],
-                        ],
-                        const SizedBox(width: 8),
-                        ElevatedButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: isSubmitting ? null : onDeleteTap,
+                            icon: const Icon(Icons.delete_outline_rounded),
+                          ),
+                        if (userRating != null && onDeleteTap != null)
+                          const SizedBox(width: AppSpacing.xxs),
+                        FilledButton(
                           onPressed: isSubmitting ? null : onRateTap,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: userRating != null ? Colors.amber.shade600 : kPrimary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: NightMatchColors.actionLime,
+                            foregroundColor: NightMatchColors.onAction,
+                            minimumSize: const Size(48, 48),
                           ),
                           child: Text(
                             userRating != null ? 'Edit' : 'Rate',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              fontSize: AppTypeScale.labelMedium,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -1481,159 +1042,254 @@ class _RatingCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION HEADER
-// ─────────────────────────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title, this.icon);
+
   final String title;
   final IconData icon;
-  const _SectionHeader(this.title, this.icon);
-  
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    Container(
-      width: 32, height: 32,
-      decoration: BoxDecoration(color: kPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(9)),
-      child: Icon(icon, size: 14, color: kPrimary),
-    ),
-    const SizedBox(width: 10),
-    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.2)),
-  ]);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VENUE HERO
-// ─────────────────────────────────────────────────────────────────────────────
-class _VenueHero extends StatelessWidget {
-  final VenueModel venue;
-  final Animation<double> fadeAnim;
-  const _VenueHero({required this.venue, required this.fadeAnim});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 260,
-      width: double.infinity,
-      child: Stack(fit: StackFit.expand, children: [
-        FadeTransition(
-          opacity: fadeAnim,
-          child: venue.image.isNotEmpty
-              ? Image.network(venue.image, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallback())
-              : _fallback(),
-        ),
-        Container(decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0x22000000), Color(0xEE0A0E1A)],
-            stops: [0.3, 1.0],
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: scheme.secondaryContainer,
+            borderRadius: BorderRadius.circular(AppRadius.input),
           ),
-        )),
-        Positioned(
-          top: 0, left: 0, right: 0,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 38, height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                    ),
-                    child: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 15),
-                  ),
-                ),
-              ]),
+          child: Icon(icon, color: scheme.onSecondaryContainer),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(child: Text(title, style: theme.textTheme.titleLarge)),
+      ],
+    );
+  }
+}
+
+class _VenueHero extends StatelessWidget {
+  const _VenueHero({required this.venue, required this.fadeAnim});
+
+  final VenueModel venue;
+  final Animation<double> fadeAnim;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final venueName = _titleCaseDisplayName(venue.name);
+    return SizedBox(
+      height: AppLayout.heroHeight,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          FadeTransition(
+            opacity: fadeAnim,
+            child: venue.image.isNotEmpty
+                ? Image.network(
+                    venue.image,
+                    fit: BoxFit.cover,
+                    semanticLabel: 'Venue photo: $venueName',
+                    errorBuilder: (_, _, _) => _fallback(context),
+                  )
+                : _fallback(context),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: AlignmentDirectional.topCenter,
+                end: AlignmentDirectional.bottomCenter,
+                colors: [
+                  NightMatchColors.heroScrimTop,
+                  NightMatchColors.heroScrimBottom,
+                ],
+                stops: [0.3, 1],
+              ),
             ),
           ),
-        ),
-        Positioned(
-          bottom: 18, left: 20, right: 20,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (venue.sports.isNotEmpty)
-                Wrap(
-                  spacing: 6,
-                  children: venue.sports.take(3).map((s) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: kPrimary.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(s, style: const TextStyle(
-                        fontSize: 9, fontWeight: FontWeight.w800,
-                        color: Colors.white, letterSpacing: 0.5)),
-                  )).toList(),
+          PositionedDirectional(
+            top: 0,
+            start: 0,
+            end: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
                 ),
-              const SizedBox(height: 8),
-              Text(venue.name,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900,
-                      color: Colors.white, letterSpacing: -0.5, height: 1.1)),
-              const SizedBox(height: 4),
-              Row(children: [
-                const Icon(Icons.location_on_rounded, size: 12, color: Colors.white70),
-                const SizedBox(width: 4),
-                Expanded(child: Text(venue.location,
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
-                    maxLines: 1, overflow: TextOverflow.ellipsis)),
-                const SizedBox(width: 8),
-                const Icon(Icons.schedule_rounded, size: 12, color: Colors.white70),
-                const SizedBox(width: 4),
-                Text('Until ${venue.openUntil}',
-                    style: const TextStyle(fontSize: 12, color: Colors.white70)),
-              ]),
-            ],
+                child: Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Back to venue list',
+                      onPressed: () => Navigator.pop(context),
+                      style: IconButton.styleFrom(
+                        backgroundColor: scheme.inverseSurface.withValues(
+                          alpha: 0.8,
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.arrow_back_rounded,
+                        color: scheme.onInverseSurface,
+                      ),
+                    ),
+                    const Spacer(),
+                    _VenueStatusBadge(venue.available),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        Positioned(
-          top: 80, right: 16,
-          child: _VenueStatusBadge(venue.available),
-        ),
-      ]),
+          PositionedDirectional(
+            bottom: AppSpacing.md,
+            start: AppSpacing.md,
+            end: AppSpacing.md,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (venue.sports.isNotEmpty)
+                  Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: venue.sports
+                        .take(3)
+                        .map(
+                          (sport) => Container(
+                            constraints: const BoxConstraints(minHeight: 36),
+                            padding: const EdgeInsetsDirectional.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xxs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.inverseSurface.withValues(
+                                alpha: 0.88,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
+                            ),
+                            child: Text(
+                              _titleCaseDisplayName(sport),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: scheme.onInverseSurface,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  venueName,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: NightMatchColors.text,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    _HeroMeta(
+                      icon: Icons.location_on_rounded,
+                      label: venue.location,
+                    ),
+                    _HeroMeta(
+                      icon: Icons.schedule_rounded,
+                      label: 'Until ${venue.openUntil}',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _fallback() => Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [kPrimary.withOpacity(0.6), kPrimary],
-        begin: Alignment.topLeft, end: Alignment.bottomRight,
+  Widget _fallback(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: scheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(
+          Icons.stadium_rounded,
+          size: AppSpacing.xxl,
+          color: scheme.onSurfaceVariant,
+        ),
       ),
-    ),
-    child: const Icon(Icons.stadium_rounded, size: 56, color: Colors.white24),
-  );
+    );
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SPORT FILTER
-// ─────────────────────────────────────────────────────────────────────────────
+class _HeroMeta extends StatelessWidget {
+  const _HeroMeta({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground = NightMatchColors.text.withValues(alpha: 0.82);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: foreground),
+        const SizedBox(width: AppSpacing.xxs),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(color: foreground),
+        ),
+      ],
+    );
+  }
+}
+
 class _SportFilterRow extends StatelessWidget {
   final List<String> sports;
   final String? selected;
   final IconData Function(String) sportIcon;
   final ValueChanged<String?> onSelect;
-  const _SportFilterRow({required this.sports, required this.selected, required this.sportIcon, required this.onSelect});
+  const _SportFilterRow({
+    required this.sports,
+    required this.selected,
+    required this.sportIcon,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 36,
+    height: 56,
     child: ListView(
       scrollDirection: Axis.horizontal,
       children: [
-        _SportChip(label: 'All', icon: Icons.grid_view_rounded, selected: selected == null, onTap: () => onSelect(null)),
-        const SizedBox(width: 7),
-        ...sports.map((s) => Padding(
-          padding: const EdgeInsets.only(right: 7),
-          child: _SportChip(label: s, icon: sportIcon(s), selected: selected == s, onTap: () => onSelect(s)),
-        )),
+        _SportChip(
+          label: 'All',
+          icon: Icons.grid_view_rounded,
+          selected: selected == null,
+          onTap: () => onSelect(null),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        ...sports.map(
+          (s) => Padding(
+            padding: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
+            child: _SportChip(
+              label: s,
+              icon: sportIcon(s),
+              selected: selected == s,
+              onTap: () => onSelect(s),
+            ),
+          ),
+        ),
       ],
     ),
   );
@@ -1644,987 +1300,120 @@ class _SportChip extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
-  const _SportChip({required this.label, required this.icon, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? kPrimary : _white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: selected ? kPrimary : _border),
-        boxShadow: selected
-            ? [BoxShadow(color: kPrimary.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 2))]
-            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: selected ? Colors.white : _textMid),
-        const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : _textMid)),
-      ]),
-    ),
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// REDESIGNED COURT CARD - Vertical layout like your screenshot
-// ─────────────────────────────────────────────────────────────────────────────
-class _CourtCard extends StatelessWidget {
-  final CourtModel court;
-  final Map<String, dynamic> courtRaw;
-  final VenueModel venue;
-  final String? playerToken;
-  const _CourtCard({required this.court, required this.courtRaw, required this.venue, required this.playerToken});
+  const _SportChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final available = courtRaw['available'] == true;
-
-    return GestureDetector(
-      onTap: available
-          ? () => Navigator.push(context, _slideUp(CourtDetailPage(
-              court: court, venue: venue, courtRaw: courtRaw, playerToken: playerToken)))
-          : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: _white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: _cardShadow,
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+    final theme = Theme.of(context);
+    final foreground = selected
+        ? NightMatchColors.onAction
+        : theme.colorScheme.onSurface;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: selected
+                ? NightMatchColors.actionLime
+                : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(
+              color: selected
+                  ? NightMatchColors.actionLime
+                  : theme.colorScheme.outlineVariant,
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image - top
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: SizedBox(
-                width: double.infinity,
-                height: 140,
-                child: court.imageUrl != null && court.imageUrl!.isNotEmpty
-                    ? Image.network(
-                        court.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: court.color.withOpacity(0.1),
-                          child: Icon(court.sport.icon, size: 40, color: court.color),
-                        ),
-                      )
-                    : Container(
-                        color: court.color.withOpacity(0.1),
-                        child: Icon(court.sport.icon, size: 40, color: court.color),
-                      ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: foreground),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(color: foreground),
               ),
-            ),
-            
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Court name
-                  Text(
-                    court.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: _ink,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  
-                  // Sport type with icon
-                  Row(
-                    children: [
-                      Icon(court.sport.icon, size: 12, color: _textMid),
-                      const SizedBox(width: 4),
-                      Text(
-                        court.sport.label,
-                        style: const TextStyle(fontSize: 12, color: _textMid),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Amenities (Parking, etc.)
-                  if (venue.amenities.isNotEmpty)
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: venue.amenities.take(3).map((a) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          a,
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey[600]),
-                        ),
-                      )).toList(),
-                    ),
-                  const SizedBox(height: 12),
-                  
-                  // Price and Book button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'From',
-                            style: TextStyle(fontSize: 10, color: _textMid),
-                          ),
-                          Text(
-                            '${court.pricePerHour.toInt()} DT/hr',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: kPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (available)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: kPrimary,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: kPrimary.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Text(
-                            'Book Now',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Full',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: _textMid,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VENUE STATUS BADGE
-// ─────────────────────────────────────────────────────────────────────────────
 class _VenueStatusBadge extends StatelessWidget {
   final bool isOpen;
   const _VenueStatusBadge(this.isOpen);
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: isOpen ? _kGreen : _kRed,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(color: (isOpen ? _kGreen : _kRed).withOpacity(0.4),
-            blurRadius: 12, offset: const Offset(0, 3))
-      ],
-    ),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 6, height: 6,
-          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-      const SizedBox(width: 6),
-      Text(isOpen ? 'Open Now' : 'Closed',
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
-    ]),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final background = isOpen
+        ? theme.colorScheme.secondaryContainer
+        : theme.colorScheme.errorContainer;
+    final foreground = isOpen
+        ? theme.colorScheme.onSecondaryContainer
+        : theme.colorScheme.onErrorContainer;
+    return Semantics(
+      label: isOpen ? 'Open now' : 'Closed',
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 40),
+        padding: const EdgeInsetsDirectional.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+        ),
+        child: Text(
+          isOpen ? 'Open now' : 'Closed',
+          style: theme.textTheme.labelLarge?.copyWith(color: foreground),
+        ),
+      ),
+    );
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EMPTY STATE
-// ─────────────────────────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
   final String? sport;
   const _EmptyState({this.sport});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 48),
-    child: Column(children: [
-      Container(
-        width: 64, height: 64,
-        decoration: BoxDecoration(
-            color: _textLight.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-        child: Icon(Icons.sports_rounded, size: 28, color: _textLight.withOpacity(0.5)),
-      ),
-      const SizedBox(height: 14),
-      Text(sport != null ? 'No $sport courts available' : 'No courts listed',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _ink)),
-      const SizedBox(height: 4),
-      const Text('Try a different sport filter',
-          style: TextStyle(fontSize: 12, color: _textMid)),
-    ]),
+  Widget build(BuildContext context) => EmptyState(
+    title: sport != null ? 'No $sport courts available' : 'No courts listed',
+    message: 'Try a different sport filter.',
+    icon: Icons.sports_rounded,
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RATING DIALOG (Re-exported from widgets - make sure to import)
-// ─────────────────────────────────────────────────────────────────────────────
-// Note: RatingDialog is defined in lib/Widgets/rating_dialog.dart
-// Make sure that file exists
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE TRANSITION
-// ─────────────────────────────────────────────────────────────────────────────
 Route _slideUp(Widget page) => PageRouteBuilder(
-  pageBuilder: (_, __, ___) => page,
-  transitionsBuilder: (_, a, __, child) => SlideTransition(
-    position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+  pageBuilder: (_, _, _) => page,
+  transitionsBuilder: (_, a, _, child) => SlideTransition(
+    position: Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
     child: child,
   ),
   transitionDuration: const Duration(milliseconds: 340),
 );
-
-
-
-
-
-
-// Views/Player/court_booking_page.dart
-// Redesigned: Added venue description, simplified manager section,
-// Court cards redesigned to match screenshot (vertical layout)
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
-import 'package:sporta/Models/app_enums.dart';
-import 'package:sporta/Models/app_models.dart';
-import 'package:sporta/Models/venue_model.dart';
-import 'package:sporta/Views/Player/court_detail.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PALETTE
-// ─────────────────────────────────────────────────────────────────────────────
-const _bg        = Color(0xFFF2F4F7);
-const _white     = Colors.white;
-const _ink       = Color(0xFF0A0E1A);
-const _textMid   = Color(0xFF64748B);
-const _textLight = Color(0xFFB0B7C3);
-const _border    = Color(0xFFE8EDF3);
-const _kGreen    = Color(0xFF16A34A);
-const _kRed      = Color(0xFFDC2626);
-const _cardShadow = Color(0x14000000);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGE
-// ─────────────────────────────────────────────────────────────────────────────
-class CourtBookingPage extends StatefulWidget {
-  final VenueModel venue;
-  final String? playerToken;
-  const CourtBookingPage({super.key, required this.venue, this.playerToken});
-
-  @override
-  State<CourtBookingPage> createState() => _CourtBookingPageState();
-}
-
-class _CourtBookingPageState extends State<CourtBookingPage>
-    with SingleTickerProviderStateMixin {
-  String? _filterSport;
-  late final AnimationController _heroCtrl;
-  late final Animation<double> _heroFade;
-
-  @override
-  void initState() {
-    super.initState();
-    _heroCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _heroFade = CurvedAnimation(parent: _heroCtrl, curve: Curves.easeOut);
-    _heroCtrl.forward();
-  }
-
-  @override
-  void dispose() {
-    _heroCtrl.dispose();
-    super.dispose();
-  }
-
-  SportType _mapSport(String s) {
-    switch (s.toLowerCase()) {
-      case 'padel':      return SportType.padel;
-      case 'tennis':     return SportType.tennis;
-      case 'basketball': return SportType.basketball;
-      default:           return SportType.football;
-    }
-  }
-
-  IconData _sportIcon(String s) {
-    switch (s.toLowerCase()) {
-      case 'padel':      return Icons.sports_tennis_rounded;
-      case 'tennis':     return Icons.sports_tennis;
-      case 'basketball': return Icons.sports_basketball_rounded;
-      case 'volleyball': return Icons.sports_volleyball_rounded;
-      default:           return Icons.sports_soccer_rounded;
-    }
-  }
-
-  List<String> get _sports {
-    final seen = <String>{};
-    for (final c in widget.venue.courts) {
-      final s = c['sport']?.toString() ?? '';
-      if (s.isNotEmpty) seen.add(s);
-    }
-    return seen.toList();
-  }
-
-  List<Map<String, dynamic>> get _filtered {
-    final all = widget.venue.courts;
-    final list = _filterSport == null
-        ? all
-        : all.where((c) => c['sport']?.toString() == _filterSport).toList();
-    return [
-      ...list.where((c) => c['available'] == true),
-      ...list.where((c) => c['available'] != true),
-    ];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final navH = kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom;
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: _bg,
-        body: Column(
-          children: [
-            // Fixed-height hero
-            _VenueHero(venue: widget.venue, fadeAnim: _heroFade),
-            // Scrollable body
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(20, 20, 20, navH + 40),
-                children: [
-                  // ── Venue Description ──────────────────────────────────────
-                  if (widget.venue.description.isNotEmpty) ...[
-                    _SectionHeader('About this venue', Icons.info_outline_rounded),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: _white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _border),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-                      ),
-                      child: Text(
-                        widget.venue.description,
-                        style: const TextStyle(fontSize: 14, color: _textMid, height: 1.5),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // ── Venue Manager (simplified - only name and phone) ───────
-                  _SectionHeader('Venue Manager', Icons.person_outline_rounded),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: _border),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: kPrimary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          child: Center(
-                            child: Text(
-                              widget.venue.managerAvatar,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kPrimary),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.venue.managerName,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const Icon(Icons.phone_rounded, size: 14, color: _textMid),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    widget.venue.managerPhone,
-                                    style: const TextStyle(fontSize: 13, color: _textMid),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // ── Available Courts Header ────────────────────────────────
-                  _buildCourtsHeader(),
-                  const SizedBox(height: 14),
-                  
-                  // ── Sport Filter ───────────────────────────────────────────
-                  if (_sports.length > 1) ...[
-                    _SportFilterRow(
-                      sports: _sports,
-                      selected: _filterSport,
-                      sportIcon: _sportIcon,
-                      onSelect: (s) => setState(() => _filterSport = s),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  
-                  // ── Court Cards (Redesigned - vertical layout) ──────────────
-                  ..._buildCourtCards(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCourtsHeader() => Row(children: [
-    Container(
-      width: 4, height: 22,
-      decoration: BoxDecoration(color: kPrimary, borderRadius: BorderRadius.circular(2)),
-    ),
-    const SizedBox(width: 10),
-    const Text('Available Courts',
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.3)),
-    const Spacer(),
-    Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: kPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-      child: Text(
-        '${_filtered.where((c) => c['available'] == true).length} open',
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kPrimary),
-      ),
-    ),
-  ]);
-
-  List<Widget> _buildCourtCards() {
-    final courts = _filtered;
-    if (courts.isEmpty) return [_EmptyState(sport: _filterSport)];
-    
-    final List<Widget> cards = [];
-    for (final c in courts) {
-      final st = _mapSport(c['sport']?.toString() ?? '');
-      final model = CourtModel(
-        id: c['id']?.toString() ?? '${widget.venue.id}_${c['courtName']}',
-        name: c['courtName']?.toString() ?? '',
-        sport: st,
-        pricePerHour: (c['price'] as num?)?.toDouble() ?? 0,
-        color: st.color,
-        imageUrl: c['imageUrl']?.toString(),
-        isActive: c['available'] ?? true,
-      );
-      cards.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _CourtCard(
-            court: model,
-            courtRaw: c,
-            venue: widget.venue,
-            playerToken: widget.playerToken,
-          ),
-        ),
-      );
-    }
-    return cards;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SECTION HEADER
-// ─────────────────────────────────────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  const _SectionHeader(this.title, this.icon);
-  
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    Container(
-      width: 32, height: 32,
-      decoration: BoxDecoration(color: kPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(9)),
-      child: Icon(icon, size: 14, color: kPrimary),
-    ),
-    const SizedBox(width: 10),
-    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.2)),
-  ]);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VENUE HERO
-// ─────────────────────────────────────────────────────────────────────────────
-class _VenueHero extends StatelessWidget {
-  final VenueModel venue;
-  final Animation<double> fadeAnim;
-  const _VenueHero({required this.venue, required this.fadeAnim});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 260,
-      width: double.infinity,
-      child: Stack(fit: StackFit.expand, children: [
-        FadeTransition(
-          opacity: fadeAnim,
-          child: venue.image.isNotEmpty
-              ? Image.network(venue.image, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallback())
-              : _fallback(),
-        ),
-        Container(decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0x22000000), Color(0xEE0A0E1A)],
-            stops: [0.3, 1.0],
-          ),
-        )),
-        Positioned(
-          top: 0, left: 0, right: 0,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 38, height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                    ),
-                    child: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 15),
-                  ),
-                ),
-              ]),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 18, left: 20, right: 20,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (venue.sports.isNotEmpty)
-                Wrap(
-                  spacing: 6,
-                  children: venue.sports.take(3).map((s) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: kPrimary.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(s, style: const TextStyle(
-                        fontSize: 9, fontWeight: FontWeight.w800,
-                        color: Colors.white, letterSpacing: 0.5)),
-                  )).toList(),
-                ),
-              const SizedBox(height: 8),
-              Text(venue.name,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900,
-                      color: Colors.white, letterSpacing: -0.5, height: 1.1)),
-              const SizedBox(height: 4),
-              Row(children: [
-                const Icon(Icons.location_on_rounded, size: 12, color: Colors.white70),
-                const SizedBox(width: 4),
-                Expanded(child: Text(venue.location,
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
-                    maxLines: 1, overflow: TextOverflow.ellipsis)),
-                const SizedBox(width: 8),
-                const Icon(Icons.schedule_rounded, size: 12, color: Colors.white70),
-                const SizedBox(width: 4),
-                Text('Until ${venue.openUntil}',
-                    style: const TextStyle(fontSize: 12, color: Colors.white70)),
-              ]),
-            ],
-          ),
-        ),
-        Positioned(
-          top: 80, right: 16,
-          child: _VenueStatusBadge(venue.available),
-        ),
-      ]),
-    );
-  }
-
-  Widget _fallback() => Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [kPrimary.withOpacity(0.6), kPrimary],
-        begin: Alignment.topLeft, end: Alignment.bottomRight,
-      ),
-    ),
-    child: const Icon(Icons.stadium_rounded, size: 56, color: Colors.white24),
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SPORT FILTER
-// ─────────────────────────────────────────────────────────────────────────────
-class _SportFilterRow extends StatelessWidget {
-  final List<String> sports;
-  final String? selected;
-  final IconData Function(String) sportIcon;
-  final ValueChanged<String?> onSelect;
-  const _SportFilterRow({required this.sports, required this.selected, required this.sportIcon, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 36,
-    child: ListView(
-      scrollDirection: Axis.horizontal,
-      children: [
-        _SportChip(label: 'All', icon: Icons.grid_view_rounded, selected: selected == null, onTap: () => onSelect(null)),
-        const SizedBox(width: 7),
-        ...sports.map((s) => Padding(
-          padding: const EdgeInsets.only(right: 7),
-          child: _SportChip(label: s, icon: sportIcon(s), selected: selected == s, onTap: () => onSelect(s)),
-        )),
-      ],
-    ),
-  );
-}
-
-class _SportChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-  const _SportChip({required this.label, required this.icon, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? kPrimary : _white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: selected ? kPrimary : _border),
-        boxShadow: selected
-            ? [BoxShadow(color: kPrimary.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 2))]
-            : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: selected ? Colors.white : _textMid),
-        const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : _textMid)),
-      ]),
-    ),
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// REDESIGNED COURT CARD - Vertical layout like your screenshot
-// ─────────────────────────────────────────────────────────────────────────────
-class _CourtCard extends StatelessWidget {
-  final CourtModel court;
-  final Map<String, dynamic> courtRaw;
-  final VenueModel venue;
-  final String? playerToken;
-  const _CourtCard({required this.court, required this.courtRaw, required this.venue, required this.playerToken});
-
-  @override
-  Widget build(BuildContext context) {
-    final available = courtRaw['available'] == true;
-
-    return GestureDetector(
-      onTap: available
-          ? () => Navigator.push(context, _slideUp(CourtDetailPage(
-              court: court, venue: venue, courtRaw: courtRaw, playerToken: playerToken)))
-          : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: _white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: _cardShadow,
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image - top
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: SizedBox(
-                width: double.infinity,
-                height: 140,
-                child: court.imageUrl != null && court.imageUrl!.isNotEmpty
-                    ? Image.network(
-                        court.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: court.color.withOpacity(0.1),
-                          child: Icon(court.sport.icon, size: 40, color: court.color),
-                        ),
-                      )
-                    : Container(
-                        color: court.color.withOpacity(0.1),
-                        child: Icon(court.sport.icon, size: 40, color: court.color),
-                      ),
-              ),
-            ),
-            
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Court name
-                  Text(
-                    court.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: _ink,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  
-                  // Sport type with icon
-                  Row(
-                    children: [
-                      Icon(court.sport.icon, size: 12, color: _textMid),
-                      const SizedBox(width: 4),
-                      Text(
-                        court.sport.label,
-                        style: const TextStyle(fontSize: 12, color: _textMid),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Amenities (Parking, etc.)
-                  if (venue.amenities.isNotEmpty)
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: venue.amenities.take(3).map((a) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          a,
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey[600]),
-                        ),
-                      )).toList(),
-                    ),
-                  const SizedBox(height: 12),
-                  
-                  // Price and Book button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'From',
-                            style: TextStyle(fontSize: 10, color: _textMid),
-                          ),
-                          Text(
-                            '${court.pricePerHour.toInt()} DT/hr',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: kPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (available)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: kPrimary,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: kPrimary.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Text(
-                            'Book Now',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Full',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: _textMid,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VENUE STATUS BADGE
-// ─────────────────────────────────────────────────────────────────────────────
-class _VenueStatusBadge extends StatelessWidget {
-  final bool isOpen;
-  const _VenueStatusBadge(this.isOpen);
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: isOpen ? _kGreen : _kRed,
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(color: (isOpen ? _kGreen : _kRed).withOpacity(0.4),
-            blurRadius: 12, offset: const Offset(0, 3))
-      ],
-    ),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 6, height: 6,
-          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-      const SizedBox(width: 6),
-      Text(isOpen ? 'Open Now' : 'Closed',
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
-    ]),
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EMPTY STATE
-// ─────────────────────────────────────────────────────────────────────────────
-class _EmptyState extends StatelessWidget {
-  final String? sport;
-  const _EmptyState({this.sport});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 48),
-    child: Column(children: [
-      Container(
-        width: 64, height: 64,
-        decoration: BoxDecoration(
-            color: _textLight.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-        child: Icon(Icons.sports_rounded, size: 28, color: _textLight.withOpacity(0.5)),
-      ),
-      const SizedBox(height: 14),
-      Text(sport != null ? 'No $sport courts available' : 'No courts listed',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _ink)),
-      const SizedBox(height: 4),
-      const Text('Try a different sport filter',
-          style: TextStyle(fontSize: 12, color: _textMid)),
-    ]),
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE TRANSITION
-// ─────────────────────────────────────────────────────────────────────────────
-Route _slideUp(Widget page) => PageRouteBuilder(
-  pageBuilder: (_, __, ___) => page,
-  transitionsBuilder: (_, a, __, child) => SlideTransition(
-    position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
-    child: child,
-  ),
-  transitionDuration: const Duration(milliseconds: 340),
-);*/

@@ -22,6 +22,10 @@ function getFirestore() {
   return getFirebaseApp().firestore();
 }
 
+function createCustomToken(uid, claims) {
+  return admin.auth(getFirebaseApp()).createCustomToken(uid, claims);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SEND PUSH NOTIFICATION via FCM
 // ─────────────────────────────────────────────────────────────────────────────
@@ -332,6 +336,7 @@ async function getUserFcmToken(userId, userType) {
 
 module.exports = {
   getFirestore,
+  createCustomToken,
   createConversation,
   createPlayerWorkerConversation,
   createWorkerManagerConversation,

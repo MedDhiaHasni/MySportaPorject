@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:flutter/services.dart';
+import 'package:sporta/Core/Theme/app_tokens.dart';
 import 'package:sporta/Views/Auth/login_page.dart';
+
+// Graphite + Lime palette (temporary: move into app_tokens.dart).
+const Color _kBackground = Color(0xFF0B0E0D);
+const Color _kPlaceholder = Color(0xFF151A18);
+const Color _kText = Color(0xFFF4F6F5);
+const Color _kMuted = Color(0xFF9AA5A1);
+const Color _kLime = Color(0xFFC6F432);
+const Color _kOnLime = Color(0xFF0E1412);
+
+// Share of the screen height used by the photo. Try 0.55 to 0.70.
+const double _kImageHeightFactor = 0.62;
 
 class Onboarding extends StatefulWidget {
   const Onboarding({super.key});
@@ -14,15 +25,23 @@ class _OnboardingState extends State<Onboarding> {
   final PageController controlleronboard = PageController();
   int _currentPage = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    controlleronboard.addListener(() {
-      setState(() {
-        _currentPage = controlleronboard.page?.round() ?? 0;
-      });
-    });
-  }
+  static const _pages = [
+    (
+      image: 'assets/onb1.png',
+      headline: 'Book matches instantly',
+      benefit: 'Find an open slot and get your game on.',
+    ),
+    (
+      image: 'assets/onb2.png',
+      headline: 'Find your team',
+      benefit: 'Meet players and join games near you.',
+    ),
+    (
+      image: 'assets/onb3.png',
+      headline: 'Your game, made easier',
+      benefit: 'Get help with bookings whenever you need it.',
+    ),
+  ];
 
   @override
   void dispose() {
@@ -31,162 +50,224 @@ class _OnboardingState extends State<Onboarding> {
   }
 
   void _goToLogin() {
+    HapticFeedback.selectionClick();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
 
+  void _nextPage() {
+    if (_currentPage < _pages.length - 1) {
+      HapticFeedback.selectionClick();
+      controlleronboard.nextPage(
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _goToLogin();
+    }
+  }
+
+  bool get _isLastPage => _currentPage == _pages.length - 1;
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final textTheme = Theme.of(context).textTheme;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final fade =
+        reduceMotion ? Duration.zero : const Duration(milliseconds: 220);
+    final page = _pages[_currentPage];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _kBackground,
       body: Stack(
         children: [
-          // Pages
-          PageView(
-            controller: controlleronboard,
-            children: [
-              _buildPage(
-                context: context,
-                size: size,
-                imagePath: 'assets/onb1.png',
-                tagline: 'BOOK & PLAY',
-                title: 'Book Matches\nInstantly',
-                description:
-                    'Reserve your slot, organize your game,\nand hit the field — all in seconds.',
-                bgColor: const Color(0xFFFFF8F0),
-                accentColor: const Color(0xFF005D5E),
-              ),
-              _buildPage(
-                context: context,
-                size: size,
-                imagePath: 'assets/onb2.png',
-                tagline: 'FIND YOUR TEAM',
-                title: 'Connect With\nOther Players',
-                description:
-                    'Find teammates, join open matches,\nand grow your sports network.',
-                bgColor: const Color(0xFFF0F8F8),
-                accentColor: const Color(0xFF005D5E),
-              ),
-              _buildPage(
-                context: context,
-                size: size,
-                imagePath: 'assets/onb3.png',
-                tagline: 'JUST ASK',
-                title: 'Your AI Assistant\nNever Sleeps',
-                description:
-                    'Need to book a field at 2 AM? Just chat.\nYour assistant handles the rest.',
-                bgColor: const Color(0xFFF5F0FF),
-                accentColor: const Color(0xFF005D5E),
-              ),
-            ],
-          ),
+          // ── Layer 1: photos at full width, fading into the background ──
+          Positioned.fill(
+            child: PageView.builder(
+              controller: controlleronboard,
+              itemCount: _pages.length,
+              onPageChanged: (index) => setState(() => _currentPage = index),
+              itemBuilder: (context, index) {
+                final item = _pages[index];
+                final imageHeight =
+                    MediaQuery.sizeOf(context).height * _kImageHeightFactor;
 
-          // Skip button
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 16, top: 8),
-                child: TextButton(
-                  onPressed: _goToLogin,
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    backgroundColor: Colors.white.withOpacity(0.8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Skip',
-                        style: TextStyle(
-                          color: Color(0xFF005D5E),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      SizedBox(width: 2),
-                      Icon(
-                        Icons.chevron_right,
-                        color: Color(0xFF005D5E),
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Bottom bar: indicator + button
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 24,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                return Stack(
                   children: [
-                    SmoothPageIndicator(
-                      controller: controlleronboard,
-                      count: 3,
-                      effect: const ExpandingDotsEffect(
-                        activeDotColor: Color(0xFF005D5E),
-                        dotColor: Color(0xFFB2DFDB),
-                        dotHeight: 8,
-                        dotWidth: 8,
-                        expansionFactor: 3,
-                        spacing: 6,
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: imageHeight,
+                      child: ClipRect(
+                        child: Image.asset(
+                          item.image,
+                          fit: BoxFit.fitWidth,
+                          alignment: Alignment.topCenter,
+                          excludeFromSemantics: true,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const ColoredBox(color: _kPlaceholder),
+                        ),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        if (_currentPage < 2) {
-                          controlleronboard.nextPage(
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeInOut,
-                          );
-                        } else {
-                          _goToLogin();
-                        }
-                      },
-                      child: Container(
-                        width: 58,
-                        height: 58,
+                    // Fade: light scrim at the top, then into the background.
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: imageHeight,
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF005D5E),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF005D5E).withOpacity(0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _currentPage < 2
-                              ? Icons.arrow_forward_rounded
-                              : Icons.check_rounded,
-                          color: Colors.white,
-                          size: 26,
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            stops: const [0.0, 0.12, 0.55, 1.0],
+                            colors: [
+                              _kBackground.withValues(alpha: 0.55),
+                              _kBackground.withValues(alpha: 0.0),
+                              _kBackground.withValues(alpha: 0.0),
+                              _kBackground,
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ],
-                ),
+                );
+              },
+            ),
+          ),
+
+          // ── Layer 2: top bar, text, dots and button ────────────────────
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.md,
+              ),
+              child: Column(
+                children: [
+                  // Top bar: Skip (end side)
+                  Row(
+                    children: [
+                      const Spacer(),
+                      AnimatedOpacity(
+                        duration: fade,
+                        opacity: _isLastPage ? 0 : 1,
+                        child: IgnorePointer(
+                          ignoring: _isLastPage,
+                          child: TextButton(
+                            onPressed: _goToLogin,
+                            style: TextButton.styleFrom(
+                              foregroundColor: _kText,
+                              backgroundColor:
+                                  _kBackground.withValues(alpha: 0.55),
+                              minimumSize: const Size(48, 48),
+                              padding: const EdgeInsetsDirectional.symmetric(
+                                horizontal: AppSpacing.md,
+                              ),
+                              shape: const StadiumBorder(),
+                              textStyle: textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            child: const Text('Skip'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Text block (does not block swipes on the photo)
+                  Expanded(
+                    child: IgnorePointer(
+                      child: Align(
+                        alignment: AlignmentDirectional.bottomStart,
+                        child: SingleChildScrollView(
+                          reverse: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: AnimatedSwitcher(
+                            duration: fade,
+                            layoutBuilder: (current, previous) => Stack(
+                              alignment: AlignmentDirectional.bottomStart,
+                              children: [
+                                ...previous,
+                                if (current != null) current,
+                              ],
+                            ),
+                            child: Column(
+                              key: ValueKey<int>(_currentPage),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${(_currentPage + 1).toString().padLeft(2, '0')} / '
+                                  '${_pages.length.toString().padLeft(2, '0')}',
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: _kMuted,
+                                    letterSpacing: 2,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  page.headline,
+                                  style: textTheme.headlineLarge?.copyWith(
+                                    color: _kText,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.1,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  page.benefit,
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    color: _kMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  _StepDots(count: _pages.length, current: _currentPage),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Primary action: lime fill, dark text
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton.icon(
+                      onPressed: _nextPage,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _kLime,
+                        foregroundColor: _kOnLime,
+                        shape: const StadiumBorder(),
+                        textStyle: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      icon: Icon(
+                        _isLastPage
+                            ? Icons.check_rounded
+                            : Icons.arrow_forward_rounded,
+                      ),
+                      iconAlignment: IconAlignment.end,
+                      label: Text(_isLastPage ? 'Get started' : 'Continue'),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -194,103 +275,42 @@ class _OnboardingState extends State<Onboarding> {
       ),
     );
   }
+}
 
-  Widget _buildPage({
-    required BuildContext context,
-    required Size size,
-    required String imagePath,
-    required String tagline,
-    required String title,
-    required String description,
-    required Color bgColor,
-    required Color accentColor,
-  }) {
-    return Column(
-      children: [
-        // Top image section — takes ~58% of screen
-        Expanded(
-          flex: 58,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Background color only (circles removed)
-              Container(color: bgColor),
+// Active = wide lime pill, inactive = translucent white dot.
+class _StepDots extends StatelessWidget {
+  const _StepDots({required this.count, required this.current});
 
-              // Image
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    top: 80,
-                    bottom: 24,
-                    left: 32,
-                    right: 32,
-                  ),
-                  child: Image.asset(imagePath, fit: BoxFit.contain),
-                ),
+  final int count;
+  final int current;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+
+    return Semantics(
+      label: 'Page ${current + 1} of $count',
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: List.generate(count, (i) {
+            final active = i == current;
+            return AnimatedContainer(
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              margin: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
+              height: 8,
+              width: active ? 28 : 8,
+              decoration: BoxDecoration(
+                color: active ? _kLime : _kText.withValues(alpha: 0.30),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
-            ],
-          ),
+            );
+          }),
         ),
-
-        // Bottom text section — takes ~42% of screen
-        Expanded(
-          flex: 42,
-          child: Container(
-            color: const Color(0xFFF5F5F5),
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 100),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Tagline chip
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    tagline,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: accentColor,
-                      letterSpacing: 1.8,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Main title
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0D0D0D),
-                    fontSize: 34,
-                    height: 1.15,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Description
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    color: Colors.grey[600],
-                    fontSize: 15,
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

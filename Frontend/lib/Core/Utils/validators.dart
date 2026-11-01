@@ -9,7 +9,8 @@ class Validators {
   }
 
   static String? password(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Please enter your password';
+    if (value == null || value.trim().isEmpty)
+      return 'Please enter your password';
     if (value.length < 6) return 'Password must be at least 6 characters';
     return null;
   }
@@ -26,9 +27,11 @@ class Validators {
   }
 
   static String? phone(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Please enter your phone number';
+    if (value == null || value.trim().isEmpty)
+      return 'Please enter your phone number';
     final regex = RegExp(r'^\+?[0-9]{8,15}$');
-    if (!regex.hasMatch(value.trim())) return 'Please enter a valid phone number';
+    if (!regex.hasMatch(value.trim()))
+      return 'Please enter a valid phone number';
     return null;
   }
 }

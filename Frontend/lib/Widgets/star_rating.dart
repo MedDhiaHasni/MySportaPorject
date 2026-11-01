@@ -91,10 +91,7 @@ class StarRating extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Tap to rate (${rating.toStringAsFixed(1)} ★)',
-          style: TextStyle(
-            fontSize: 12,
-            color: kTextLight,
-          ),
+          style: TextStyle(fontSize: 12, color: kTextLight),
         ),
       ],
     );
@@ -111,9 +108,9 @@ class StarRating extends StatelessWidget {
   }
 }
 
-// 
+//
 // RATING SUMMARY WIDGET - Shows average rating with distribution
-// 
+//
 class RatingSummaryWidget extends StatelessWidget {
   final double averageRating;
   final int totalRatings;
@@ -161,10 +158,7 @@ class RatingSummaryWidget extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '$totalRatings ${totalRatings == 1 ? 'rating' : 'ratings'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: kTextMid,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: kTextMid),
                 ),
               ],
             ),
@@ -178,7 +172,9 @@ class RatingSummaryWidget extends StatelessWidget {
                 children: List.generate(5, (index) {
                   final starCount = 5 - index;
                   final count = distribution?[starCount] ?? 0;
-                  final double percentage = totalRatings > 0 ? count / totalRatings : 0.0;
+                  final double percentage = totalRatings > 0
+                      ? count / totalRatings
+                      : 0.0;
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(

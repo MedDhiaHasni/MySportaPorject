@@ -23,7 +23,7 @@
     },
     "status": {
       "type": "enumeration",
-      "enum": ["pending", "succeeded", "failed"],
+      "enum": ["pending", "succeeded", "failed", "refunded"],
       "default": "pending",
       "required": true
     },

@@ -25,11 +25,8 @@ class _AvatarWidgetState extends State<AvatarWidget> {
     decoration: BoxDecoration(
       gradient: LinearGradient(
         colors: [
-          (widget.bg ?? kPrimary).withOpacity(
-            0.8,
-          ), 
-          widget.bg ??
-              kPrimary, // background color mta3 l'avatar 
+          (widget.bg ?? kPrimary).withOpacity(0.8),
+          widget.bg ?? kPrimary, // background color mta3 l'avatar
         ],
       ),
       borderRadius: BorderRadius.circular(widget.size * 0.3),

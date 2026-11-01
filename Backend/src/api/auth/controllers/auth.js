@@ -34,6 +34,25 @@ module.exports = {
         }
     },
 
+    async firebaseToken(ctx) {
+        const user = ctx.state.user;
+        if (!user) return ctx.unauthorized('Authentication required');
+
+        try {
+            const result = await authService.createFirebaseCustomToken(user.id);
+            return ctx.send({
+                success: true,
+                customToken: result.customToken,
+                firebaseUid: result.firebaseUid,
+            });
+        } catch (error) {
+            strapi.log.error('[auth] Firebase custom token issuance failed', error.code || error.message);
+            if (error.status === 403) return ctx.forbidden(error.message);
+            if (error.status === 404) return ctx.notFound(error.message);
+            return ctx.internalServerError('Unable to issue Firebase sign-in token');
+        }
+    },
+
     async reset(ctx) {
         try {
             await authService.resetPassword(ctx.request.body.token, ctx.request.body.password);
@@ -58,11 +77,15 @@ module.exports = {
     },
 
     async forgot(ctx) {
+        const response = {
+            message: 'If an account exists for that email, a reset link has been sent',
+        };
         try {
             await authService.forgotPassword(ctx.request.body.email);
-            ctx.send({ message: 'Reset link has been sent' });
+            ctx.send(response);
         } catch (error) {
-            ctx.badRequest(error.message);
+            strapi.log.error('[auth] Password reset request failed', error);
+            ctx.send(response);
         }
     },
 

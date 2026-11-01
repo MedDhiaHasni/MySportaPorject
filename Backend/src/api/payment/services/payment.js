@@ -14,6 +14,95 @@ module.exports = ({ strapi }) => ({
     return Stripe(key);
   },
 
+  async handleStripeEvent(event) {
+    const object = event.data?.object;
+
+    if (event.type === 'payment_intent.succeeded') {
+      const payment = await this.getPaymentByIntentId(object.id);
+      if (!payment) throw new Error('Payment record for Stripe intent was not found');
+      if (object.currency !== 'eur' ||
+          object.amount_received !== Math.round(Number(payment.amount) * 100)) {
+        throw new Error('Stripe payment amount or currency does not match the payment record');
+      }
+      if (payment.status === 'refunded') return;
+
+      const reservation = await strapi.entityService.findOne(
+        'api::reservation.reservation',
+        payment.reservation?.id,
+      );
+      if (!reservation) throw new Error('Reservation for Stripe payment was not found');
+
+      if (payment.status !== 'succeeded') {
+        await strapi.entityService.update('api::payment.payment', payment.id, {
+          data: { status: 'succeeded' },
+        });
+      }
+
+      if (['cancelled', 'cancel_requested', 'rejected'].includes(reservation.booking_status)) {
+        await this.refundReservation(reservation.id);
+      } else if (reservation.booking_status === 'pending') {
+        await strapi.entityService.update(
+          'api::reservation.reservation',
+          reservation.id,
+          { data: { booking_status: 'confirmed', payment_method: 'pay_now' } },
+        );
+      }
+      return;
+    }
+
+    if (event.type === 'payment_intent.payment_failed') {
+      const payment = await this.getPaymentByIntentId(object.id);
+      if (!payment) throw new Error('Payment record for Stripe intent was not found');
+      if (payment.status === 'pending') {
+        await strapi.entityService.update('api::payment.payment', payment.id, {
+          data: { status: 'failed' },
+        });
+      }
+      return;
+    }
+
+    if (event.type === 'charge.refunded' && object.amount_refunded >= object.amount) {
+      const intentId = typeof object.payment_intent === 'string'
+        ? object.payment_intent
+        : object.payment_intent?.id;
+      if (!intentId) throw new Error('Refund event is missing its PaymentIntent reference');
+
+      const payment = await this.getPaymentByIntentId(intentId);
+      if (!payment) throw new Error('Payment record for Stripe refund was not found');
+      if (payment.status !== 'refunded') {
+        await strapi.entityService.update('api::payment.payment', payment.id, {
+          data: { status: 'refunded' },
+        });
+      }
+    }
+  },
+
+  async refundReservation(reservationId) {
+    const payments = await this.getAllPaymentsByReservation(reservationId);
+    const successfulPayments = payments.filter(
+      (payment) => payment.status === 'succeeded' && payment.stripe_payment_intent_id,
+    );
+    if (!successfulPayments.length) return { status: 'not_paid' };
+
+    const stripe = this.getStripe();
+    const results = [];
+    for (const payment of successfulPayments) {
+      const refund = await stripe.refunds.create(
+        { payment_intent: payment.stripe_payment_intent_id },
+        { idempotencyKey: `sporta-payment-${payment.id}-refund` },
+      );
+
+      if (refund.status === 'succeeded' && payment.status !== 'refunded') {
+        await strapi.entityService.update('api::payment.payment', payment.id, {
+          data: { status: 'refunded' },
+        });
+      }
+      results.push({ paymentId: payment.id, status: refund.status });
+    }
+
+    return { status: results.every((result) => result.status === 'succeeded') ? 'refunded' : 'pending' };
+  },
+
   // ─────────────────────────────────────────────────────────────────────────
   // Get payment by ID with optional populate
   // ─────────────────────────────────────────────────────────────────────────
@@ -77,24 +166,14 @@ module.exports = ({ strapi }) => ({
   // Update payment status
   // ─────────────────────────────────────────────────────────────────────────
   async updatePaymentStatus(paymentId, status, additionalData = {}) {
+    if (status === 'succeeded' || status === 'refunded') {
+      throw new Error('Successful and refunded payment states are managed by Stripe events');
+    }
+
     return await strapi.entityService.update('api::payment.payment', paymentId, {
       data: {
         status: status,
         ...additionalData,
-      },
-    });
-  },
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Update payment record with Stripe data after successful payment
-  // ─────────────────────────────────────────────────────────────────────────
-  async updatePaymentAfterSuccess(paymentId, stripeData) {
-    return await strapi.entityService.update('api::payment.payment', paymentId, {
-      data: {
-        status: 'succeeded',
-        stripe_payment_method_id: stripeData.payment_method,
-        receipt_url: stripeData.charges?.data?.[0]?.receipt_url || null,
-        paid_at: new Date().toISOString(),
       },
     });
   },

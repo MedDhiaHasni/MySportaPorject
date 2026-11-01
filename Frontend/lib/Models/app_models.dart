@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sporta/Models/app_enums.dart';
-import 'package:sporta/Core/Constants/app_colors.dart';
 import 'package:sporta/Core/Utils/date_utils.dart';
 
 class AppPlayer {
@@ -22,7 +21,7 @@ class CourtModel {
   final String? imageUrl;
   final List<String> availableTimeSlots;
   final bool isActive; // NEW: Court availability status
-  
+
   const CourtModel({
     required this.id,
     required this.name,

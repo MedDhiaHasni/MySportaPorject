@@ -431,17 +431,9 @@ async createBooking(entities, userId) {
         return { type: 'error', data: null, message: 'Cannot cancel a completed booking.' };
       }
 
-      await strapi.db.query('api::reservation.reservation').update({
-        where: { id: reservation.id },
-        data: { booking_status: 'cancelled' },
-      });
-
-      if (reservation.time_slot?.id) {
-        await strapi.db.query('api::time-slot.time-slot').update({
-          where: { id: reservation.time_slot.id },
-          data: { isActive: true },
-        });
-      }
+      await strapi
+        .service('api::reservation.reservation')
+        .releaseReservationSlot(reservation.id, { booking_status: 'cancelled' });
 
       return {
         type: 'booking_cancelled',

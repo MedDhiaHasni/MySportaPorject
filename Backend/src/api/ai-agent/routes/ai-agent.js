@@ -19,7 +19,7 @@ module.exports = {
       handler: 'ai-agent.history',
       config: {
         auth: false,
-        policies: [],
+        policies: ['global::authMiddleware'],
         middlewares: [],
       },
     },
@@ -29,7 +29,7 @@ module.exports = {
       handler: 'ai-agent.clearHistory',
       config: {
         auth: false,
-        policies: [],
+        policies: ['global::authMiddleware'],
         middlewares: [],
       },
     },

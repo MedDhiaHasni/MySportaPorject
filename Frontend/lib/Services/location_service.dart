@@ -1,23 +1,26 @@
 // lib/Services/location_service.dart
 
-
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
 enum LocationStatus {
-  granted,        // position obtained
-  serviceDisabled,// device GPS switch is off
-  denied,         // user tapped "Deny"
-  deniedForever,  // user tapped "Never ask again"
-  pluginMissing,  // MissingPluginException — needs full rebuild
-  unavailable,    // any other error (timeout, no fix, …)
+  granted, // position obtained
+  serviceDisabled, // device GPS switch is off
+  denied, // user tapped "Deny"
+  deniedForever, // user tapped "Never ask again"
+  pluginMissing, // MissingPluginException — needs full rebuild
+  unavailable, // any other error (timeout, no fix, …)
 }
 
 class LocationResult {
   final LocationStatus status;
   final Position? position;
   final String? errorMessage;
-  const LocationResult({required this.status, this.position, this.errorMessage});
+  const LocationResult({
+    required this.status,
+    this.position,
+    this.errorMessage,
+  });
 }
 
 class LocationService {
@@ -32,9 +35,15 @@ class LocationService {
     try {
       serviceEnabled = await Geolocator.isLocationServiceEnabled();
     } on MissingPluginException catch (e) {
-      return LocationResult(status: LocationStatus.pluginMissing, errorMessage: e.message);
+      return LocationResult(
+        status: LocationStatus.pluginMissing,
+        errorMessage: e.message,
+      );
     } catch (e) {
-      return LocationResult(status: LocationStatus.unavailable, errorMessage: e.toString());
+      return LocationResult(
+        status: LocationStatus.unavailable,
+        errorMessage: e.toString(),
+      );
     }
 
     if (!serviceEnabled) {
@@ -49,9 +58,15 @@ class LocationService {
         permission = await Geolocator.requestPermission();
       }
     } on MissingPluginException catch (e) {
-      return LocationResult(status: LocationStatus.pluginMissing, errorMessage: e.message);
+      return LocationResult(
+        status: LocationStatus.pluginMissing,
+        errorMessage: e.message,
+      );
     } catch (e) {
-      return LocationResult(status: LocationStatus.unavailable, errorMessage: e.toString());
+      return LocationResult(
+        status: LocationStatus.unavailable,
+        errorMessage: e.toString(),
+      );
     }
 
     if (permission == LocationPermission.denied) {
@@ -69,21 +84,31 @@ class LocationService {
       );
       return LocationResult(status: LocationStatus.granted, position: pos);
     } on MissingPluginException catch (e) {
-      return LocationResult(status: LocationStatus.pluginMissing, errorMessage: e.message);
+      return LocationResult(
+        status: LocationStatus.pluginMissing,
+        errorMessage: e.message,
+      );
     } on LocationServiceDisabledException {
       return const LocationResult(status: LocationStatus.serviceDisabled);
     } catch (e) {
-      return LocationResult(status: LocationStatus.unavailable, errorMessage: e.toString());
+      return LocationResult(
+        status: LocationStatus.unavailable,
+        errorMessage: e.toString(),
+      );
     }
   }
 
   /// Open device GPS settings (safe).
   Future<void> openLocationSettings() async {
-    try { await Geolocator.openLocationSettings(); } catch (_) {}
+    try {
+      await Geolocator.openLocationSettings();
+    } catch (_) {}
   }
 
   /// Open app permission settings (safe).
   Future<void> openAppSettings() async {
-    try { await Geolocator.openAppSettings(); } catch (_) {}
+    try {
+      await Geolocator.openAppSettings();
+    } catch (_) {}
   }
 }

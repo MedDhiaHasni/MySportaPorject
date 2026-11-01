@@ -3,11 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart'; // add to pubspec: http_parser: ^4.0.0
+import 'package:sporta/Core/Utils/app_logger.dart';
 
 class PlayerManagerAuthService {
   static String get _baseUrl {
     if (Platform.isAndroid) return 'http://10.0.2.2:1337/api';
-    if (Platform.isIOS)     return 'http://localhost:1337/api';
+    if (Platform.isIOS) return 'http://localhost:1337/api';
     return 'http://localhost:1337/api';
   }
 
@@ -17,20 +18,48 @@ class PlayerManagerAuthService {
     required String email,
     required String password,
   }) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/auth/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'email': email, 'password': password}),
+    );
+    if (response.statusCode == 429) {
+      throw Exception('Too many attempts, try again later');
+    }
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return {'success': true, 'token': data['token'], 'user': data['user']};
+    }
+    final error = json.decode(response.body);
+    throw Exception(error['error']?['message'] ?? 'Login failed');
+  }
+
+  static Future<Map<String, dynamic>> createFirebaseToken(String token) async {
+    final response = await http
+        .post(
+          Uri.parse('$_baseUrl/auth/firebase-token'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    }
+    if (response.statusCode == 429) {
+      throw Exception('Too many attempts, try again later');
+    }
+
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'password': password}),
+      final error = json.decode(response.body) as Map<String, dynamic>;
+      throw Exception(
+        error['error']?['message']?.toString() ??
+            'Unable to initialize secure chat sign-in',
       );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {'success': true, 'token': data['token'], 'user': data['user']};
-      }
-      final error = json.decode(response.body);
-      throw Exception(error['error']?['message'] ?? 'Login failed');
-    } catch (e) {
-      throw Exception(e.toString());
+    } on FormatException {
+      throw Exception('Unable to initialize secure chat sign-in');
     }
   }
 
@@ -44,7 +73,12 @@ class PlayerManagerAuthService {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'username': username, 'email': email, 'password': password, 'phone': phone}),
+        body: json.encode({
+          'username': username,
+          'email': email,
+          'password': password,
+          'phone': phone,
+        }),
       );
       if (response.statusCode == 200) return json.decode(response.body);
       final error = json.decode(response.body);
@@ -63,14 +97,19 @@ class PlayerManagerAuthService {
       );
       if (response.statusCode != 200) {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? 'Failed to send reset link');
+        throw Exception(
+          error['error']?['message'] ?? 'Failed to send reset link',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
     }
   }
 
-  static Future<void> resetPassword({required String token, required String newPassword}) async {
+  static Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/reset'),
@@ -79,7 +118,9 @@ class PlayerManagerAuthService {
       );
       if (response.statusCode != 200) {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? 'Failed to reset password');
+        throw Exception(
+          error['error']?['message'] ?? 'Failed to reset password',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -94,12 +135,20 @@ class PlayerManagerAuthService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/change'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-        body: json.encode({'oldPassword': oldPassword, 'newPassword': newPassword}),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        }),
       );
       if (response.statusCode != 200) {
         final error = json.decode(response.body);
-        throw Exception(error['error']?['message'] ?? 'Failed to change password');
+        throw Exception(
+          error['error']?['message'] ?? 'Failed to change password',
+        );
       }
     } catch (e) {
       throw Exception(e.toString());
@@ -110,35 +159,39 @@ class PlayerManagerAuthService {
   /// Response now includes: { user, profile, photoUrl }
   /// photoUrl is a convenience string — absolute URL or null
   static Future<Map<String, dynamic>> getMe(String token) async {
-  try {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/auth/me'),
-      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      
-      // Make photoUrl absolute if it exists
-      if (data['photoUrl'] != null && data['photoUrl'].toString().isNotEmpty) {
-        String url = data['photoUrl'].toString();
-        if (!url.startsWith('http')) {
-          if (Platform.isAndroid) {
-            url = 'http://10.0.2.2:1337$url';
-          } else {
-            url = 'http://localhost:1337$url';
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/auth/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        // Make photoUrl absolute if it exists
+        if (data['photoUrl'] != null &&
+            data['photoUrl'].toString().isNotEmpty) {
+          String url = data['photoUrl'].toString();
+          if (!url.startsWith('http')) {
+            if (Platform.isAndroid) {
+              url = 'http://10.0.2.2:1337$url';
+            } else {
+              url = 'http://localhost:1337$url';
+            }
+            data['photoUrl'] = url;
           }
-          data['photoUrl'] = url;
         }
+
+        return data;
       }
-      
-      return data;
+      final error = json.decode(response.body);
+      throw Exception(error['error']?['message'] ?? 'Failed to get user info');
+    } catch (e) {
+      throw Exception(e.toString());
     }
-    final error = json.decode(response.body);
-    throw Exception(error['error']?['message'] ?? 'Failed to get user info');
-  } catch (e) {
-    throw Exception(e.toString());
   }
-}
 
   static Future<Map<String, dynamic>> updateProfile({
     required String token,
@@ -147,7 +200,10 @@ class PlayerManagerAuthService {
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl/auth/update'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: json.encode(data),
       );
       if (response.statusCode == 200) return json.decode(response.body);
@@ -178,18 +234,20 @@ class PlayerManagerAuthService {
 
       final response = await http.put(
         Uri.parse('$_baseUrl/auth/update-firebase-uid'),
-        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: json.encode(body),
       );
 
       if (response.statusCode == 200) {
-        print('✅ Firebase identity updated: uid=$firebaseUid fcm=${fcmToken ?? 'unchanged'}');
       } else {
         final error = json.decode(response.body);
-        print('⚠️ Failed: ${error['error']?['message']}');
+        AppLogger.error('⚠️ Failed: ${error['error']?['message']}');
       }
     } catch (e) {
-      print('❌ updateFirebaseUid error: $e');
+      AppLogger.error('❌ updateFirebaseUid error: $e');
     }
   }
 
@@ -205,50 +263,53 @@ class PlayerManagerAuthService {
   ///
   /// Returns the absolute photo URL string on success.
   // ── Update profile photo ─────────────────────────────────────────────────
-static Future<String> uploadProfilePhoto({
-  required String token,
-  required File imageFile,
-}) async {
-  try {
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$_baseUrl/auth/upload-photo'),
-    );
-    request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'photo',
-        imageFile.path,
-        contentType: MediaType('image', 'jpeg'),
-      ),
-    );
-    
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-    
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      String url = data['photoUrl']?.toString() ?? '';
-      
-      // Make URL absolute if it's relative
-      if (url.isNotEmpty && !url.startsWith('http')) {
-        if (Platform.isAndroid) {
-          url = 'http://10.0.2.2:1337$url';
-        } else {
-          url = 'http://localhost:1337$url';
+  static Future<String> uploadProfilePhoto({
+    required String token,
+    required File imageFile,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_baseUrl/auth/upload-photo'),
+      );
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'photo',
+          imageFile.path,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        String url = data['photoUrl']?.toString() ?? '';
+
+        // Make URL absolute if it's relative
+        if (url.isNotEmpty && !url.startsWith('http')) {
+          if (Platform.isAndroid) {
+            url = 'http://10.0.2.2:1337$url';
+          } else {
+            url = 'http://localhost:1337$url';
+          }
         }
+
+        return url;
       }
-      
-      print('✅ Profile photo uploaded: $url');
-      return url;
+
+      final error = json.decode(response.body);
+      throw Exception(
+        error['error']?['message'] ??
+            'Photo upload failed (${response.statusCode})',
+      );
+    } catch (e) {
+      throw Exception('uploadProfilePhoto: $e');
     }
-    
-    final error = json.decode(response.body);
-    throw Exception(error['error']?['message'] ?? 'Photo upload failed (${response.statusCode})');
-  } catch (e) {
-    throw Exception('uploadProfilePhoto: $e');
   }
-}
+
   /// Helper — extract photoUrl from getMe response safely.
   /// Usage:  final url = PlayerManagerAuthService.photoUrlFrom(meResponse);
   static String? photoUrlFrom(Map<String, dynamic> meResponse) {
@@ -258,8 +319,8 @@ static Future<String> uploadProfilePhoto({
 
     // Fallback: dig into profile.photo.url
     final profile = meResponse['profile'] as Map<String, dynamic>?;
-    final photo   = profile?['photo'] as Map<String, dynamic>?;
-    final url     = photo?['url']?.toString();
+    final photo = profile?['photo'] as Map<String, dynamic>?;
+    final url = photo?['url']?.toString();
     if (url == null || url.isEmpty) return null;
 
     // Make absolute if relative
@@ -271,11 +332,16 @@ static Future<String> uploadProfilePhoto({
   static String _mimeType(String ext) {
     switch (ext) {
       case 'jpg':
-      case 'jpeg': return 'image/jpeg';
-      case 'png':  return 'image/png';
-      case 'webp': return 'image/webp';
-      case 'gif':  return 'image/gif';
-      default:     return 'image/jpeg';
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      default:
+        return 'image/jpeg';
     }
   }
 }

@@ -787,7 +787,9 @@ export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
       'manyToOne',
       'api::reservation.reservation'
     >;
-    status: Schema.Attribute.Enumeration<['pending', 'succeeded', 'failed']> &
+    status: Schema.Attribute.Enumeration<
+      ['pending', 'succeeded', 'failed', 'refunded']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'pending'>;
     stripe_payment_intent_id: Schema.Attribute.String & Schema.Attribute.Unique;

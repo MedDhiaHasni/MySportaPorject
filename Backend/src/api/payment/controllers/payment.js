@@ -21,6 +21,38 @@ function getStripe() {
 
 module.exports = {
 
+  async webhook(ctx) {
+    const signature = ctx.request.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const rawBody =
+      ctx.request.body?.[Symbol.for('unparsedBody')] ?? ctx.request.rawBody;
+
+    if (!webhookSecret) {
+      strapi.log.error('[Payment] STRIPE_WEBHOOK_SECRET is not configured');
+      return ctx.internalServerError('Payment webhook is not configured');
+    }
+    if (!signature || !rawBody) {
+      return ctx.badRequest('Missing Stripe signature or raw request body');
+    }
+
+    let event;
+    try {
+      const body = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody);
+      event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
+    } catch (error) {
+      strapi.log.warn('[Payment] Stripe webhook signature verification failed');
+      return ctx.badRequest('Invalid Stripe webhook signature');
+    }
+
+    try {
+      await strapi.service('api::payment.payment').handleStripeEvent(event);
+      return ctx.send({ received: true });
+    } catch (error) {
+      strapi.log.error('[Payment] Stripe webhook processing failed:', error.message);
+      return ctx.internalServerError('Payment webhook processing failed');
+    }
+  },
+
   // ── POST /payments/create-intent ─────────────────────────────────────────
   async createIntent(ctx) {
     try {
@@ -40,54 +72,113 @@ module.exports = {
       if (!playerProfile || reservation.player?.id !== playerProfile.id) {
         return ctx.forbidden('This reservation does not belong to you');
       }
-      if (reservation.booking_status === 'confirmed') return ctx.badRequest('Already paid and confirmed');
-      if (reservation.booking_status === 'cancelled')  return ctx.badRequest('Cannot pay for a cancelled reservation');
+      if (['cancelled', 'cancel_requested', 'rejected', 'completed'].includes(reservation.booking_status)) {
+        return ctx.badRequest('Cannot pay for a reservation that is no longer payable');
+      }
 
-      const existingSucceeded = (reservation.payments || []).find(p => p.status === 'succeeded');
-      if (existingSucceeded) return ctx.badRequest('A successful payment already exists for this reservation');
+      const hourlyPrice = Number(reservation.court?.pricePerHour);
+      const durationHours = Number(reservation.duration_hours);
+      if (!Number.isFinite(hourlyPrice) || hourlyPrice <= 0 ||
+          !Number.isFinite(durationHours) || durationHours <= 0) {
+        return ctx.badRequest('Reservation price or duration is invalid');
+      }
+      const amount = Math.round(hourlyPrice * durationHours * 100) / 100;
+      const amountCents = Math.round(amount * 100);
+      if (!Number.isSafeInteger(amountCents) || amountCents <= 0) {
+        return ctx.badRequest('Reservation price is invalid');
+      }
+
+      const payments = await strapi.db.query('api::payment.payment').findMany({
+        where: { reservation: { id: reservationId } },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (payments.some((payment) => payment.status === 'succeeded')) {
+        return ctx.badRequest('A successful payment already exists for this reservation');
+      }
+
+      if (Number(reservation.total_price) !== amount) {
+        await strapi.entityService.update('api::reservation.reservation', reservationId, {
+          data: { total_price: amount },
+        });
+      }
 
       const stripe = getStripe();
+      const reusablePayment = payments.find(
+        (payment) => payment.stripe_payment_intent_id && payment.status !== 'refunded',
+      );
+      let payment;
+      let paymentIntent;
 
-      // Treat 1 DT = 1 EUR for Stripe processing
-      // Stripe requires amounts in the smallest currency unit (cents)
-      const amountCents = Math.round(reservation.total_price * 100);
+      if (reusablePayment) {
+        paymentIntent = await stripe.paymentIntents.retrieve(
+          reusablePayment.stripe_payment_intent_id,
+        );
+        if (paymentIntent.status === 'succeeded') {
+          return ctx.badRequest('Payment is being confirmed; please check your reservation shortly');
+        }
+        if (paymentIntent.status !== 'canceled') {
+          if (paymentIntent.amount !== amountCents) {
+            paymentIntent = await stripe.paymentIntents.update(paymentIntent.id, {
+              amount: amountCents,
+              metadata: {
+                reservation_id: String(reservationId),
+                player_id: String(playerProfile.id),
+                display_currency: DISPLAY_CURRENCY,
+                display_amount: String(amount),
+              },
+            });
+          }
+          payment = await strapi.entityService.update(
+            'api::payment.payment',
+            reusablePayment.id,
+            { data: { amount, status: 'pending', currency: DISPLAY_CURRENCY } },
+          );
+        }
+      }
 
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount:   amountCents,
-        currency: STRIPE_CURRENCY,
-        metadata: {
-          reservation_id:   String(reservationId),
-          player_id:        String(playerProfile.id),
-          court_name:       reservation.court?.name ?? '',
-          venue_name:       reservation.court?.venue?.name ?? '',
-          display_currency: DISPLAY_CURRENCY,
-          display_amount:   String(reservation.total_price),
-        },
-        automatic_payment_methods: { enabled: true },
-        // Pre-fill billing address country to Tunisia
-        payment_method_options: {
-          card: {
-            mandate_options: undefined,
+      if (!paymentIntent || paymentIntent.status === 'canceled') {
+        const idempotencyKey = `sporta-reservation-${reservationId}-${payments.length + 1}`;
+        paymentIntent = await stripe.paymentIntents.create(
+          {
+            amount: amountCents,
+            currency: STRIPE_CURRENCY,
+            metadata: {
+              reservation_id: String(reservationId),
+              player_id: String(playerProfile.id),
+              court_name: reservation.court?.name ?? '',
+              venue_name: reservation.court?.venue?.name ?? '',
+              display_currency: DISPLAY_CURRENCY,
+              display_amount: String(amount),
+            },
+            automatic_payment_methods: { enabled: true },
           },
-        },
-      });
+          { idempotencyKey },
+        );
 
-      const payment = await strapi.entityService.create('api::payment.payment', {
-        data: {
-          amount:                   reservation.total_price,
-          currency:                 DISPLAY_CURRENCY,   // store as DT in our DB
-          status:                   'pending',
-          stripe_payment_intent_id: paymentIntent.id,
-          reservation:              reservationId,
-        },
-      });
+        try {
+          payment = await strapi.entityService.create('api::payment.payment', {
+            data: {
+              amount,
+              currency: DISPLAY_CURRENCY,
+              status: 'pending',
+              stripe_payment_intent_id: paymentIntent.id,
+              reservation: reservationId,
+            },
+          });
+        } catch (error) {
+          payment = await strapi.db.query('api::payment.payment').findOne({
+            where: { stripe_payment_intent_id: paymentIntent.id },
+          });
+          if (!payment) throw error;
+        }
+      }
 
       return ctx.send({
         success:         true,
         clientSecret:    paymentIntent.client_secret,
         paymentId:       payment.id,
         paymentIntentId: paymentIntent.id,
-        amount:          reservation.total_price,
+        amount,
         currency:        DISPLAY_CURRENCY,
         publishableKey:  process.env.STRIPE_PUBLISHABLE_KEY,
       });
@@ -115,31 +206,18 @@ module.exports = {
       if (!playerProfile || payment.reservation?.player?.id !== playerProfile.id) {
         return ctx.forbidden('This payment does not belong to you');
       }
-      if (payment.status === 'succeeded') {
-        return ctx.send({ success: true, status: 'succeeded', message: 'Payment already confirmed' });
-      }
-
-      const stripe        = getStripe();
-      const paymentIntent = await stripe.paymentIntents.retrieve(payment.stripe_payment_intent_id);
-
-      if (paymentIntent.status === 'succeeded') {
-        await strapi.entityService.update('api::payment.payment', id, { data: { status: 'succeeded' } });
-        await strapi.entityService.update('api::reservation.reservation', payment.reservation.id, {
-          data: { booking_status: 'confirmed', payment_method: 'pay_now' },
-        });
-        return ctx.send({
-          success:       true,
-          status:        'succeeded',
-          paymentId:     id,
-          reservationId: payment.reservation.id,
-          message:       'Payment successful! Reservation confirmed.',
-        });
-      } else if (['requires_payment_method', 'canceled'].includes(paymentIntent.status)) {
-        await strapi.entityService.update('api::payment.payment', id, { data: { status: 'failed' } });
-        return ctx.send({ success: false, status: 'failed', message: 'Payment failed or was cancelled.' });
-      } else {
-        return ctx.send({ success: false, status: paymentIntent.status, message: `Payment status: ${paymentIntent.status}` });
-      }
+      const status = payment.status;
+      return ctx.send({
+        success: status === 'succeeded',
+        status,
+        paymentId: id,
+        reservationId: payment.reservation?.id,
+        message: status === 'succeeded'
+          ? 'Payment successful! Reservation confirmed.'
+          : status === 'pending'
+            ? 'Payment is awaiting confirmation.'
+            : `Payment status: ${status}`,
+      });
     } catch (error) {
       strapi.log.error('[Payment] confirmPayment error:', error.message);
       if (error.type === 'StripeInvalidRequestError') return ctx.badRequest(`Stripe error: ${error.message}`);
@@ -153,6 +231,49 @@ module.exports = {
       const { reservationId } = ctx.params;
       const user              = ctx.state.user;
       if (!user) return ctx.unauthorized('Authentication required');
+
+      const reservation = await strapi.entityService.findOne(
+        'api::reservation.reservation',
+        reservationId,
+        {
+          populate: [
+            'player',
+            'court',
+            'court.venue',
+            'court.venue.manager',
+          ],
+        },
+      );
+      if (!reservation) return ctx.notFound('Reservation not found');
+
+      let isAuthorized = user.user_role === 'admin';
+      if (user.user_role === 'player') {
+        const player = await strapi.db.query('api::player.player').findOne({
+          where: { player: user.id },
+        });
+        isAuthorized =
+          !!player && String(reservation.player?.id) === String(player.id);
+      } else if (user.user_role === 'manager') {
+        const manager = await strapi.db.query('api::manager.manager').findOne({
+          where: { manager: user.id },
+        });
+        isAuthorized =
+          !!manager &&
+          String(reservation.court?.venue?.manager?.id) === String(manager.id);
+      } else if (user.user_role === 'worker') {
+        const worker = await strapi.entityService.findMany('api::worker.worker', {
+          filters: { worker: user.id },
+          populate: { courts: true },
+          limit: 1,
+        });
+        isAuthorized = !!worker?.[0]?.courts?.some(
+          (court) => String(court.id) === String(reservation.court?.id),
+        );
+      }
+
+      if (!isAuthorized) {
+        return ctx.forbidden('You are not authorized to view this reservation payment');
+      }
 
       const payments = await strapi.db.query('api::payment.payment').findMany({
         where:   { reservation: { id: reservationId } },
@@ -180,7 +301,7 @@ module.exports = {
       const offset = (Number(page) - 1) * Number(limit);
 
       const paymentFilters = {};
-      if (status && ['pending', 'succeeded', 'failed'].includes(status)) {
+      if (status && ['pending', 'succeeded', 'failed', 'refunded'].includes(status)) {
         paymentFilters.status = status;
       }
 

@@ -15,6 +15,16 @@ module.exports = {
         },
         {
             method: 'POST',
+            path: '/auth/firebase-token',
+            handler: 'auth.firebaseToken',
+            config: {
+                auth: false,
+                policies: ['global::authMiddleware'],
+                middlewares: ['global::firebase-token-rate-limit'],
+            },
+        },
+        {
+            method: 'POST',
             path: '/auth/reset',
             handler: 'auth.reset',
             config: { auth: false },

@@ -16,6 +16,88 @@ module.exports = createCoreService('api::reservation.reservation', ({ strapi }) 
     return strapi.entityService.create('api::reservation.reservation', params);
   },
 
+  async createForAvailableSlot(slotId, data) {
+    return strapi.db.transaction(async ({ trx }) => {
+      const lockedSlot = await trx('time_slots')
+        .where({ id: slotId })
+        .forUpdate()
+        .first();
+      if (!lockedSlot) {
+        const error = new Error('Time slot not found');
+        error.status = 404;
+        throw error;
+      }
+
+      const slot = await strapi.entityService.findOne(
+        'api::time-slot.time-slot',
+        slotId,
+        { populate: ['reservation', 'day_plan'] },
+      );
+      if (!slot) {
+        const error = new Error('Time slot not found');
+        error.status = 404;
+        throw error;
+      }
+      if (!slot.isActive || slot.reservation) {
+        throw new Error('This time slot is not available');
+      }
+      if (slot.day_plan?.dayType === 'day_off') {
+        throw new Error('Cannot book on a day-off');
+      }
+
+      const reservation = await strapi.entityService.create(
+        'api::reservation.reservation',
+        {
+          data: { ...data, time_slot: slotId },
+          populate: ['court', 'player', 'time_slot'],
+        },
+      );
+
+      await strapi.entityService.update('api::time-slot.time-slot', slotId, {
+        data: { isActive: false },
+      });
+
+      return reservation;
+    });
+  },
+
+  async releaseReservationSlot(reservationId, reservationData) {
+    return strapi.db.transaction(async ({ trx }) => {
+      const reservation = await strapi.entityService.findOne(
+        'api::reservation.reservation',
+        reservationId,
+        { populate: ['time_slot'] },
+      );
+      if (!reservation) {
+        const error = new Error('Reservation not found');
+        error.status = 404;
+        throw error;
+      }
+
+      const slotId = reservation.time_slot?.id;
+      if (slotId) {
+        await trx('time_slots').where({ id: slotId }).forUpdate().first();
+      }
+
+      const updated = await strapi.entityService.update(
+        'api::reservation.reservation',
+        reservationId,
+        {
+          data: { ...reservationData, time_slot: null },
+          populate: ['court', 'player', 'time_slot'],
+        },
+      );
+
+      if (slotId) {
+        await strapi.entityService.update('api::time-slot.time-slot', slotId, {
+          data: { isActive: true },
+        });
+      }
+
+      return updated;
+    });
+  },
+
   async update(id, params) {
     return strapi.entityService.update('api::reservation.reservation', id, params);
   },

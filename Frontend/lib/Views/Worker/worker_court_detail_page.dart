@@ -9,7 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class WorkerCourtDetailPage extends StatefulWidget {
   final String? workerToken;
   final Map<String, dynamic> court;
-  
+
   const WorkerCourtDetailPage({
     super.key,
     this.workerToken,
@@ -29,7 +29,7 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
   String? _error;
   List<dynamic> _timeSlots = [];
   String _selectedDate = '';
-  
+
   late TabController _tabController;
 
   String _getFullImageUrl(String? url) {
@@ -40,18 +40,23 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
 
   String _getCourtImageUrl() {
     final court = _court;
-    
+
     // Priority order for image URL
-    if (court['court_img_url'] != null && court['court_img_url'].toString().isNotEmpty) {
+    if (court['court_img_url'] != null &&
+        court['court_img_url'].toString().isNotEmpty) {
       return _getFullImageUrl(court['court_img_url'].toString());
     }
     if (court['court_img'] != null && court['court_img']['url'] != null) {
       return _getFullImageUrl(court['court_img']['url'].toString());
     }
-    if (court['photos_urls'] != null && court['photos_urls'] is List && court['photos_urls'].isNotEmpty) {
+    if (court['photos_urls'] != null &&
+        court['photos_urls'] is List &&
+        court['photos_urls'].isNotEmpty) {
       return _getFullImageUrl(court['photos_urls'][0].toString());
     }
-    if (court['photos'] != null && court['photos'] is List && court['photos'].isNotEmpty) {
+    if (court['photos'] != null &&
+        court['photos'] is List &&
+        court['photos'].isNotEmpty) {
       final firstPhoto = court['photos'][0];
       if (firstPhoto is Map && firstPhoto['url'] != null) {
         return _getFullImageUrl(firstPhoto['url'].toString());
@@ -63,13 +68,13 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
   List<String> _getAllGalleryImages() {
     final List<String> images = [];
     final court = _court;
-    
+
     // Main image
     final mainImage = _getCourtImageUrl();
     if (mainImage.isNotEmpty) {
       images.add(mainImage);
     }
-    
+
     // Gallery images from photos_urls
     if (court['photos_urls'] != null && court['photos_urls'] is List) {
       for (final url in court['photos_urls']) {
@@ -79,7 +84,7 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
         }
       }
     }
-    
+
     // Gallery images from photos nested
     if (court['photos'] != null && court['photos'] is List) {
       for (final photo in court['photos']) {
@@ -91,7 +96,7 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
         }
       }
     }
-    
+
     return images;
   }
 
@@ -120,10 +125,10 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
       }
 
       _token = token;
-      
+
       // Set today as selected date
       _selectedDate = DateTime.now().toString().split(' ')[0];
-      
+
       await _loadTimeSlots();
     } catch (e) {
       setState(() {
@@ -155,9 +160,16 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
     }
   }
 
-  Future<void> _toggleTimeSlot(String slotId, bool isActive, bool hasReservation) async {
+  Future<void> _toggleTimeSlot(
+    String slotId,
+    bool isActive,
+    bool hasReservation,
+  ) async {
     if (hasReservation && !isActive) {
-      _showSnackBar('Cannot deactivate a time slot with a reservation', Colors.red);
+      _showSnackBar(
+        'Cannot deactivate a time slot with a reservation',
+        Colors.red,
+      );
       return;
     }
 
@@ -169,9 +181,9 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
         timeSlotId: slotId,
         isActive: !isActive,
       );
-      
+
       await _loadTimeSlots();
-      
+
       _showSnackBar(
         'Time slot ${!isActive ? 'activated' : 'deactivated'} successfully',
         kGreen,
@@ -233,14 +245,11 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: kPrimary))
           : _error != null
-              ? _buildErrorWidget()
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildDetailsTab(),
-                    _buildTimeSlotsTab(),
-                  ],
-                ),
+          ? _buildErrorWidget()
+          : TabBarView(
+              controller: _tabController,
+              children: [_buildDetailsTab(), _buildTimeSlotsTab()],
+            ),
     );
   }
 
@@ -252,7 +261,7 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
     final description = _court['description'] ?? 'No description available';
     final amenities = _court['amenities'] ?? [];
     final isActive = _court['isActive'] ?? true;
-    
+
     final courtImages = _getAllGalleryImages();
     final primaryImage = courtImages.isNotEmpty ? courtImages.first : '';
 
@@ -270,28 +279,29 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
           courtImages.isEmpty
               ? _buildImagePlaceholder(sportIcon)
               : courtImages.length == 1
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.network(
-                        courtImages.first,
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.network(
+                    courtImages.first,
+                    height: 220,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) =>
+                        _buildImagePlaceholder(sportIcon),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
                         height: 220,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildImagePlaceholder(sportIcon),
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            height: 220,
-                            color: kPrimary.withOpacity(0.08),
-                            child: const Center(
-                              child: CircularProgressIndicator(color: kPrimary),
-                            ),
-                          );
-                        },
-                      ),
-                    )
-                  : _buildImageCarousel(courtImages, sportIcon),
-          
+                        color: kPrimary.withOpacity(0.08),
+                        child: const Center(
+                          child: CircularProgressIndicator(color: kPrimary),
+                        ),
+                      );
+                    },
+                  ),
+                )
+              : _buildImageCarousel(courtImages, sportIcon),
+
           const SizedBox(height: 16),
 
           // Court Name & Status
@@ -309,9 +319,14 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: isActive ? kGreen.withOpacity(0.1) : kRed.withOpacity(0.1),
+                  color: isActive
+                      ? kGreen.withOpacity(0.1)
+                      : kRed.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -330,15 +345,16 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
           // Venue & Location
           Row(
             children: [
-              Icon(Icons.location_on_rounded, size: 16, color: Colors.grey[500]),
+              Icon(
+                Icons.location_on_rounded,
+                size: 16,
+                color: Colors.grey[500],
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   venue['name'] ?? 'Unknown Venue',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
               ),
             ],
@@ -421,7 +437,10 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
               runSpacing: 8,
               children: amenities.map<Widget>((amenity) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: kPrimary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(20),
@@ -454,7 +473,7 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
             child: Image.network(
               images[index],
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildImagePlaceholder(sportIcon),
+              errorBuilder: (_, _, _) => _buildImagePlaceholder(sportIcon),
               loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) return child;
                 return Container(
@@ -484,7 +503,10 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
                 child: GestureDetector(
                   onTap: () => _selectDate(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: kBg,
                       borderRadius: BorderRadius.circular(12),
@@ -492,7 +514,11 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today_rounded, size: 18, color: kPrimary),
+                        const Icon(
+                          Icons.calendar_today_rounded,
+                          size: 18,
+                          color: kPrimary,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           _formatDate(_selectedDate),
@@ -502,7 +528,10 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
                           ),
                         ),
                         const Spacer(),
-                        const Icon(Icons.arrow_drop_down_rounded, color: kTextMid),
+                        const Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: kTextMid,
+                        ),
                       ],
                     ),
                   ),
@@ -517,7 +546,11 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
                     color: kPrimary,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.refresh_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -529,36 +562,36 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
           child: _isLoadingSlots
               ? const Center(child: CircularProgressIndicator(color: kPrimary))
               : _timeSlots.isEmpty
-                  ? _buildEmptyTimeSlots()
-                  : GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.8,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
+              ? _buildEmptyTimeSlots()
+              : GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 1.8,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: _timeSlots.length,
+                  itemBuilder: (context, index) {
+                    final slot = _timeSlots[index];
+                    final startTime = slot['startTime'] ?? '--:--';
+                    final endTime = slot['endTime'] ?? '--:--';
+                    final isActive = slot['isActive'] ?? false;
+                    final hasReservation = slot['reservation'] != null;
+
+                    return _TimeSlotCard(
+                      startTime: startTime,
+                      endTime: endTime,
+                      isActive: isActive,
+                      isBooked: hasReservation,
+                      onToggle: () => _toggleTimeSlot(
+                        slot['id'].toString(),
+                        isActive,
+                        hasReservation,
                       ),
-                      itemCount: _timeSlots.length,
-                      itemBuilder: (context, index) {
-                        final slot = _timeSlots[index];
-                        final startTime = slot['startTime'] ?? '--:--';
-                        final endTime = slot['endTime'] ?? '--:--';
-                        final isActive = slot['isActive'] ?? false;
-                        final hasReservation = slot['reservation'] != null;
-                        
-                        return _TimeSlotCard(
-                          startTime: startTime,
-                          endTime: endTime,
-                          isActive: isActive,
-                          isBooked: hasReservation,
-                          onToggle: () => _toggleTimeSlot(
-                            slot['id'].toString(),
-                            isActive,
-                            hasReservation,
-                          ),
-                        );
-                      },
-                    ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -572,9 +605,9 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
       lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: kPrimary),
-          ),
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: const ColorScheme.light(primary: kPrimary)),
           child: child!,
         );
       },
@@ -604,17 +637,11 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              sportIcon,
-              style: const TextStyle(fontSize: 48),
-            ),
+            Text(sportIcon, style: const TextStyle(fontSize: 48)),
             const SizedBox(height: 8),
             Text(
               'No image available',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -658,11 +685,7 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.schedule_rounded,
-            size: 64,
-            color: Colors.grey[300],
-          ),
+          Icon(Icons.schedule_rounded, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'No Time Slots',
@@ -676,10 +699,7 @@ class _WorkerCourtDetailPageState extends State<WorkerCourtDetailPage>
           Text(
             'No time slots available for ${_formatDate(_selectedDate)}',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -767,7 +787,7 @@ class _TimeSlotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     Color slotColor;
     String statusText;
-    
+
     if (isBooked) {
       slotColor = Colors.red;
       statusText = 'Booked';
@@ -805,7 +825,10 @@ class _TimeSlotCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: slotColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),

@@ -45,7 +45,7 @@ class ConversationModel {
   });
 
   factory ConversationModel.fromDoc(DocumentSnapshot doc) {
-    final d    = doc.data() as Map<String, dynamic>? ?? {};
+    final d = doc.data() as Map<String, dynamic>? ?? {};
     final docId = doc.id;
 
     // ── Infer type from the 'type' field first, then fall back to doc ID prefix.
@@ -82,20 +82,21 @@ class ConversationModel {
     }
 
     return ConversationModel(
-      id:             docId,
-      reservationId:  reservationId,
-      type:           type,
-      participants:   List<String>.from(d['participants'] ?? []),
+      id: docId,
+      reservationId: reservationId,
+      type: type,
+      participants: List<String>.from(d['participants'] ?? []),
       participantIds: Map<String, String>.from(
-        (d['participantIds'] as Map<String, dynamic>? ?? {})
-            .map((k, v) => MapEntry(k, v.toString())),
+        (d['participantIds'] as Map<String, dynamic>? ?? {}).map(
+          (k, v) => MapEntry(k, v.toString()),
+        ),
       ),
-      lastMessage:   d['lastMessage']?.toString(),
+      lastMessage: d['lastMessage']?.toString(),
       lastMessageAt: _ts(d['lastMessageAt']),
-      createdAt:     _ts(d['createdAt']),
-      playerName:    d['playerName']?.toString(),
-      managerName:   d['managerName']?.toString(),
-      workerName:    d['workerName']?.toString(),
+      createdAt: _ts(d['createdAt']),
+      playerName: d['playerName']?.toString(),
+      managerName: d['managerName']?.toString(),
+      workerName: d['workerName']?.toString(),
     );
   }
 
@@ -105,7 +106,7 @@ class ConversationModel {
       case ConversationType.playerManager:
         return participants.first == myUid
             ? (managerName ?? 'Manager')
-            : (playerName  ?? 'Player');
+            : (playerName ?? 'Player');
       case ConversationType.playerWorker:
         return participants.first == myUid
             ? (workerName ?? 'Worker')
@@ -113,7 +114,7 @@ class ConversationModel {
       case ConversationType.workerManager:
         return participants.first == myUid
             ? (managerName ?? 'Manager')
-            : (workerName  ?? 'Worker');
+            : (workerName ?? 'Worker');
       default:
         return 'Unknown';
     }
@@ -147,10 +148,10 @@ class MessageModel {
   factory MessageModel.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>? ?? {};
     return MessageModel(
-      id:        doc.id,
-      text:      d['text']?.toString()     ?? '',
-      senderId:  d['senderId']?.toString() ?? '',
-      type:      d['type']?.toString()     ?? 'text',
+      id: doc.id,
+      text: d['text']?.toString() ?? '',
+      senderId: d['senderId']?.toString() ?? '',
+      type: d['type']?.toString() ?? 'text',
       createdAt: ConversationModel._ts(d['createdAt']),
     );
   }
@@ -176,23 +177,24 @@ class ChatService {
         .where('participants', arrayContains: uid)
         .snapshots()
         .map((snap) {
-      final list = snap.docs
-          .map((doc) => ConversationModel.fromDoc(doc))
-          .toList();
-      list.sort((a, b) {
-        final ta = a.lastMessageAt ?? a.createdAt ?? DateTime(0);
-        final tb = b.lastMessageAt ?? b.createdAt ?? DateTime(0);
-        return tb.compareTo(ta);
-      });
-      return list;
-    });
+          final list = snap.docs
+              .map((doc) => ConversationModel.fromDoc(doc))
+              .toList();
+          list.sort((a, b) {
+            final ta = a.lastMessageAt ?? a.createdAt ?? DateTime(0);
+            final tb = b.lastMessageAt ?? b.createdAt ?? DateTime(0);
+            return tb.compareTo(ta);
+          });
+          return list;
+        });
   }
 
   // ── Stream only player↔manager conversations for a UID ──────────────────
   Stream<List<ConversationModel>> streamPlayerManagerConversations(String uid) {
     if (uid.isEmpty) return const Stream.empty();
     return streamConversations(uid).map(
-      (list) => list.where((c) => c.type == ConversationType.playerManager).toList(),
+      (list) =>
+          list.where((c) => c.type == ConversationType.playerManager).toList(),
     );
   }
 
@@ -200,7 +202,8 @@ class ChatService {
   Stream<List<ConversationModel>> streamPlayerWorkerConversations(String uid) {
     if (uid.isEmpty) return const Stream.empty();
     return streamConversations(uid).map(
-      (list) => list.where((c) => c.type == ConversationType.playerWorker).toList(),
+      (list) =>
+          list.where((c) => c.type == ConversationType.playerWorker).toList(),
     );
   }
 
@@ -217,10 +220,13 @@ class ChatService {
 
   // ── Stream ALL worker↔manager conversations for a manager ───────────────
   // Used in manager messages page — shows one channel per worker.
-  Stream<List<ConversationModel>> streamWorkerManagerConversationsForManager(String uid) {
+  Stream<List<ConversationModel>> streamWorkerManagerConversationsForManager(
+    String uid,
+  ) {
     if (uid.isEmpty) return const Stream.empty();
     return streamConversations(uid).map(
-      (list) => list.where((c) => c.type == ConversationType.workerManager).toList(),
+      (list) =>
+          list.where((c) => c.type == ConversationType.workerManager).toList(),
     );
   }
 
@@ -229,20 +235,25 @@ class ChatService {
   Stream<List<ConversationModel>> streamWorkerConversations(String uid) {
     if (uid.isEmpty) return const Stream.empty();
     return streamConversations(uid).map(
-      (list) => list.where((c) =>
-        c.type == ConversationType.playerWorker ||
-        c.type == ConversationType.workerManager
-      ).toList(),
+      (list) => list
+          .where(
+            (c) =>
+                c.type == ConversationType.playerWorker ||
+                c.type == ConversationType.workerManager,
+          )
+          .toList(),
     );
   }
 
   // ── Get a conversation by reservation id (player↔manager) ───────────────
-  Future<ConversationModel?> getPlayerManagerConversation(String reservationId) =>
-      getConversation('reservation_$reservationId');
+  Future<ConversationModel?> getPlayerManagerConversation(
+    String reservationId,
+  ) => getConversation('reservation_$reservationId');
 
   // ── Get a conversation by reservation id (player↔worker) ────────────────
-  Future<ConversationModel?> getPlayerWorkerConversation(String reservationId) =>
-      getConversation('player_worker_$reservationId');
+  Future<ConversationModel?> getPlayerWorkerConversation(
+    String reservationId,
+  ) => getConversation('player_worker_$reservationId');
 
   // ── Get the permanent worker↔manager conversation ────────────────────────
   Future<ConversationModel?> getWorkerManagerConversation(String workerId) =>
@@ -252,7 +263,10 @@ class ChatService {
   Future<ConversationModel?> getConversation(String conversationId) async {
     if (conversationId.isEmpty) return null;
     try {
-      final doc = await _db.collection('conversations').doc(conversationId).get();
+      final doc = await _db
+          .collection('conversations')
+          .doc(conversationId)
+          .get();
       if (!doc.exists) return null;
       return ConversationModel.fromDoc(doc);
     } catch (_) {
@@ -269,8 +283,9 @@ class ChatService {
         .collection('messages')
         .orderBy('createdAt', descending: false)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((doc) => MessageModel.fromDoc(doc)).toList());
+        .map(
+          (snap) => snap.docs.map((doc) => MessageModel.fromDoc(doc)).toList(),
+        );
   }
 
   // ── Send a message ───────────────────────────────────────────────────────
@@ -280,7 +295,8 @@ class ChatService {
     required String text,
     String type = 'text',
   }) async {
-    if (conversationId.isEmpty || senderId.isEmpty || text.trim().isEmpty) return;
+    if (conversationId.isEmpty || senderId.isEmpty || text.trim().isEmpty)
+      return;
 
     final now = FieldValue.serverTimestamp();
 
@@ -289,17 +305,14 @@ class ChatService {
         .doc(conversationId)
         .collection('messages')
         .add({
-      'text':      text.trim(),
-      'senderId':  senderId,
-      'type':      type,
-      'createdAt': now,
-    });
+          'text': text.trim(),
+          'senderId': senderId,
+          'type': type,
+          'createdAt': now,
+        });
 
-    await _db
-        .collection('conversations')
-        .doc(conversationId)
-        .update({
-      'lastMessage':   text.trim(),
+    await _db.collection('conversations').doc(conversationId).update({
+      'lastMessage': text.trim(),
       'lastMessageAt': now,
     });
   }
@@ -330,12 +343,12 @@ class ChatService {
       if (remaining.docs.isNotEmpty) {
         final d = remaining.docs.first.data();
         await _db.collection('conversations').doc(conversationId).update({
-          'lastMessage':   d['text']?.toString() ?? '',
+          'lastMessage': d['text']?.toString() ?? '',
           'lastMessageAt': d['createdAt'] ?? FieldValue.serverTimestamp(),
         });
       } else {
         await _db.collection('conversations').doc(conversationId).update({
-          'lastMessage':   null,
+          'lastMessage': null,
           'lastMessageAt': null,
         });
       }
@@ -384,7 +397,9 @@ class ChatService {
         // Skip the permanent worker↔manager channel
         if (convDoc.id.startsWith('worker_manager_')) continue;
         final msgs = await convDoc.reference.collection('messages').get();
-        for (final msg in msgs.docs) await msg.reference.delete();
+        for (final msg in msgs.docs) {
+          await msg.reference.delete();
+        }
         await convDoc.reference.delete();
       }
     } catch (e) {
@@ -392,21 +407,6 @@ class ChatService {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*// lib/Services/chat_service.dart
 // Requires Firebase to be initialized AND the user to be signed in
@@ -616,9 +616,8 @@ class ChatService {
           .doc(conversationId)
           .delete();
           
-      print('Conversation $conversationId deleted successfully');
     } catch (e) {
-      print('Error deleting conversation: $e');
+      AppLogger.error('Error deleting conversation: $e');
       throw Exception('Failed to delete conversation: $e');
     }
   }
@@ -653,9 +652,8 @@ class ChatService {
         await convDoc.reference.delete();
       }
       
-      print('All conversations for user $userUid cleared successfully');
     } catch (e) {
-      print('Error clearing conversations: $e');
+      AppLogger.error('Error clearing conversations: $e');
       throw Exception('Failed to clear conversations: $e');
     }
   }
@@ -712,9 +710,8 @@ class ChatService {
         });
       }
       
-      print('Message $messageId deleted from conversation $conversationId');
     } catch (e) {
-      print('Error deleting message: $e');
+      AppLogger.error('Error deleting message: $e');
       throw Exception('Failed to delete message: $e');
     }
   }
@@ -1046,31 +1043,23 @@ class ChatService {
   // Sorted in Dart after the snapshot arrives.
   Stream<List<ConversationModel>> streamConversations(String uid) {
     // DEBUG: Check if user is authenticated
-    print('🔍 [DEBUG] streamConversations called with uid: $uid');
     
     if (uid.isEmpty) {
-      print('❌ [DEBUG] uid is empty! User is NOT authenticated!');
       return const Stream.empty();
     }
     
     // Check current auth state
     final currentUser = FirebaseAuth.instance.currentUser;
-    print('✅ [DEBUG] FirebaseAuth.currentUser.uid: ${currentUser?.uid ?? "null"}');
-    print('✅ [DEBUG] Passed uid: $uid');
-    print('✅ [DEBUG] Users match: ${currentUser?.uid == uid}');
     
-    print('📡 [DEBUG] Querying conversations with participants arrayContains: $uid');
     
     return _db
         .collection('conversations')
         .where('participants', arrayContains: uid)
         .snapshots()
         .map((snap) {
-      print('📦 [DEBUG] Received ${snap.docs.length} conversations from Firestore');
       
       final list = snap.docs
           .map((doc) {
-            print('📄 [DEBUG] Conversation doc: ${doc.id}, data: ${doc.data()}');
             return ConversationModel.fromDoc(doc);
           })
           .toList();
@@ -1081,7 +1070,6 @@ class ChatService {
         return tb.compareTo(ta);
       });
 
-      print('✅ [DEBUG] Returning ${list.length} conversations sorted');
       return list;
     });
   }
@@ -1089,14 +1077,11 @@ class ChatService {
   // ── Stream messages in a conversation ────────────────────────────────────
   Stream<List<MessageModel>> streamMessages(String conversationId) {
     // DEBUG: Check conversation ID
-    print('🔍 [DEBUG] streamMessages called with conversationId: $conversationId');
     
     if (conversationId.isEmpty) {
-      print('❌ [DEBUG] conversationId is empty!');
       return const Stream.empty();
     }
     
-    print('📡 [DEBUG] Querying messages for conversation: $conversationId');
     
     return _db
         .collection('conversations')
@@ -1105,7 +1090,6 @@ class ChatService {
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map((snap) {
-          print('📦 [DEBUG] Received ${snap.docs.length} messages from Firestore');
           return snap.docs.map((doc) => MessageModel.fromDoc(doc)).toList();
         });
   }
@@ -1118,19 +1102,14 @@ class ChatService {
     String type = 'text',
   }) async {
     // DEBUG: Check send message parameters
-    print('🔍 [DEBUG] sendMessage called');
-    print('  - conversationId: $conversationId');
-    print('  - senderId: $senderId');
-    print('  - text: $text');
     
     if (conversationId.isEmpty || senderId.isEmpty || text.trim().isEmpty) {
-      print('❌ [DEBUG] Invalid parameters for sendMessage');
+      AppLogger.error('❌ [DEBUG] Invalid parameters for sendMessage');
       return;
     }
 
     final now = FieldValue.serverTimestamp();
     
-    print('📡 [DEBUG] Adding message to Firestore...');
 
     await _db
         .collection('conversations')
@@ -1143,7 +1122,6 @@ class ChatService {
       'createdAt': now,
     });
     
-    print('✅ [DEBUG] Message added successfully');
 
     await _db
         .collection('conversations')
@@ -1153,30 +1131,24 @@ class ChatService {
       'lastMessageAt': now,
     });
     
-    print('✅ [DEBUG] Conversation updated with lastMessage');
   }
 
   // ── Get a single conversation once ──────────────────────────────────────
   Future<ConversationModel?> getConversation(String conversationId) async {
     // DEBUG: Check get conversation parameters
-    print('🔍 [DEBUG] getConversation called with conversationId: $conversationId');
     
     if (conversationId.isEmpty) return null;
     try {
-      print('📡 [DEBUG] Fetching conversation from Firestore...');
       final doc = await _db
           .collection('conversations')
           .doc(conversationId)
           .get();
       if (!doc.exists) {
-        print('❌ [DEBUG] Conversation does not exist');
         return null;
       }
-      print('✅ [DEBUG] Conversation found: ${doc.id}');
-      print('📄 [DEBUG] Conversation data: ${doc.data()}');
       return ConversationModel.fromDoc(doc);
     } catch (e) {
-      print('❌ [DEBUG] Error getting conversation: $e');
+      AppLogger.error('❌ [DEBUG] Error getting conversation: $e');
       return null;
     }
   }
